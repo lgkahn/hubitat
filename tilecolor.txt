@@ -1,0 +1,611 @@
+  {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-20"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-19"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-18"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-17"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-16"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-15"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-14"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-13"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-12"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-11"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-10"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-9"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-8"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-7"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-6"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-5"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "c8e3f9a6",
+      "state": "-4"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-3"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-2"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "-1"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c8e3f9a6",
+      "state": "0"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "1"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "2"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "3"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "4"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "5"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "6"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "7"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "8"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "9"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#dbdee2a6",
+      "state": "10"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "11"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "12"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "13"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "14"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "15"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "16"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "17"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "18"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "19"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#c0d2e4a6",
+      "state": "20"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "21"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "22"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "23"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "24"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "25"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "26"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "27"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "28"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "29"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "30"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "31"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#153591a6",
+      "state": "32"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "33"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "34"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "35"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "36"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "37"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "38"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "39"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "40"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "41"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "42"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "43"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#1e9cbba6",
+      "state": "44"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "45"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "46"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "47"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "48"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "49"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "50"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "51"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "52"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "53"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "54"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "55"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "56"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "57"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "58"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#90d2a7a6",
+      "state": "59"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "60"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "61"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "62"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "63"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "64"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "65"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "66"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "67"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "68"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "69"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "70"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "71"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6",
+      "state": "72"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6a6",
+      "state": "73"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#44b621a6a6",
+      "state": "74"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "75"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "76"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "77"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "78"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "79"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "80"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "81"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "82"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "83"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#f1d801a6",
+      "state": "84"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#a6",
+      "state": "85"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "86"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "87"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "88"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "89"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "90"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "91"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "92"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "93"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "94"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "95"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "96"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "97"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bs2323a6",
+      "state": "98"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "99"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "#bc2323a6",
+      "state": "100"
+    },
+    {
+      "template": "temperature",
+      "bgColor": "rgba(86,58,171,0.65)",
+      "iconColor": "rgb(255,255,255)",
+      "state": "default"
+    },
