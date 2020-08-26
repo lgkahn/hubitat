@@ -1,0 +1,241 @@
+/**
+*   simple sendmail no authentication .. lg kahn
+*  You should have received a copy of the GNU General Public License
+*  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*
+*
+*/
+
+
+attribute "lastCommand", "string"
+
+preferences {
+	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
+	input("EmailPort", "integer", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
+	input("From", "text", title: "From:", description: "", required: true)
+	input("To", "text", title: "To:", description: "", required: true)
+	input("Subject", "text", title: "Subject:", description: "")
+    input("debug", "bool", title: "Enable logging", required: true, defaultValue: false)
+}
+
+metadata {
+    definition (name: "LGK Sendmail", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
+        capability "Notification"
+        capability "Actuator"
+		capability "Telnet"
+		capability "Configuration"
+    }
+}
+
+def installed() {
+    initialize()
+}
+
+def updated() {
+    initialize()   
+}
+
+def configure()
+{
+    initialize()
+}
+
+
+def initialize() {
+ 	state.lastMsg = ""
+	state.LastCode = 0
+	state.EmailBody = ""
+}
+
+def deviceNotification(message) {
+
+    if (debug) log.debug "in sendmail deviceNotification"
+      sendEvent(name: "lastCommand", value: "initialConnect")
+    
+	state.EmailBody = "${message}"
+	state.LastCode = 0
+    log.debug "Connecting to ${EmailServer}:${EmailPort}"
+	
+	telnetClose()
+	telnetConnect(EmailServer, EmailPort.toInteger(), null, null)
+}
+
+def sendData(String msg, Integer millsec) {
+ log.debug "$msg"
+	
+	def hubCmd = sendHubCommand(new hubitat.device.HubAction("${msg}", hubitat.device.Protocol.TELNET))
+	pauseExecution(millsec)
+	
+	return hubCmd
+}
+
+def parse(String msg) {
+	 
+    def lastCommand = device.currentValue("lastCommand")
+    
+    if (debug) {
+        log.debug "in parse  ${msg}"
+    }
+        
+  if (debug)  log.debug "lastCommand = $lastCommand"
+    
+    def pair = msg.split(" ")
+
+     def response = pair[0]
+    
+   if (debug) log.debug "got server response $response value = $value lastCommand = ($lastCommand)"
+    
+ 
+   if (lastCommand == "initialConnect")
+        {
+         if (debug)    log.debug "in initialConnect case"
+             if (response == "220")
+                 {
+                     sendEvent(name: "lastCommand", value: "helo")       
+                     def res1 = sendData("helo",500)
+                 }
+                 else
+                 {
+                     log.debug "got bad response = $response"
+                     sendEvent(name: "lastCommand", value: "send failed")  
+                     closeConnection()
+                 }
+                }
+         
+    else if (lastCommand == "helo")
+        {
+        if (debug)    log.debug "in helo case"
+        if (response == "250")
+         {
+             sendEvent(name: "lastCommand", value: "sendmessage") 
+                    
+            def msgData = "${state.EmailBody}"
+	        def emlBody = ""
+	        def emlSubject = ""
+	        def emlDateTime = new Date()
+	
+	        if(msgData.substring(0,1) == "{") {
+	             	
+		        def slurper = new groovy.json.JsonSlurper()
+		        def result = slurper.parseText(msgData)
+		        emlBody = result.Body
+		        emlSubject = (result.Subject != null ? result.Subject : "")
+	        } else {
+	           	emlBody = msgData
+	        	emlSubject = (Subject != null ? "${Subject}" : "")
+	        }
+   
+    
+	        def sndMsg =[
+	        		"MAIL FROM: ${From}"
+	        		, "RCPT TO: ${To}"
+	        		, "DATA"
+	        		, "From: ${From}"
+	        		, "To: ${To}"
+	        		, "Subject: ${emlSubject}"
+	        		, "Date: ${emlDateTime}"		
+            		, ""
+	        		, "${emlBody}"
+            		, ""
+	        		, "."
+		        	, "quit"
+	            ]  
+             def res1 = seqSend(sndMsg,500)
+         }
+         else
+         {
+             log.debug "got bad response = $response"
+             sendEvent(name: "lastCommand", value: "send failed")  
+             closeConnection()
+         }
+        }
+    
+    else if (lastComamnd == "sendmessage")
+        {
+       if (debug) log.debug "in send message case"
+             if (response == "220")
+                 {
+                     sendEvent(name: "lastCommand", value: "quit" )     
+                     def res1 = sendData("quit",500)
+                 }
+                 else
+                 {
+                     log.debug "got bad response = $response"
+                      sendEvent(name: "lastCommand", value: "send failed")  
+                     closeConnection()
+                 }
+                }
+       else if (lastComamnd == "quit")
+        {
+          if (debug) log.debug "in quit case"
+               if (response == "220" || response == "221")
+                 { 
+                   sendEvent(name: "lastCommand", value: "sent ok")      
+                   CloseConnection()
+                 }
+                 else
+                 {
+                      log.debug "got bad response = $response"
+                      sendEvent(name: "lastCommand", value: "send failed")  
+                      closeConnection()
+                 }
+           }
+        else 
+        {
+         if (debug)   log.debug "in fall through case looking for 250 or 354 or 221 (bye)"
+            if (response == "250" || response == "354" || response == "221")
+            {
+                // all ok
+                sendEvent(name: "lastCommand", value: "other")
+            }
+            else
+            {
+               log.debug "got bad response = $response"
+                sendEvent(name: "lastCommand", value: "send failed")  
+                closeConnection()
+            }
+        }         
+                  
+ 
+  
+}
+
+def telnetStatus(status) {
+    log.debug "telnetStatus: ${status}"
+    sendEvent([name: "telnet", value: "${status}"])
+}
+
+
+def closeConnection()
+{
+    if (closeTelnet){
+                try {
+                    telnetClose()
+                } catch(e) {
+                    log.debug("Connection Closed")
+                }
+                
+			}
+}
+    
+//boolean seqSend(int currCode, msg, msgs, dbgMsg, closeTelnet) {
+boolean seqSend(msgs, Integer millisec)
+{
+    log.debug "in sendData"
+    
+  //  def seqSent = false
+//	if (currCode != state.LastCode) {
+	//	if (msg.startsWith("${currCode}")) {
+	//		state.LastCode = currCode
+	//		log.debug "${dbgMsg}"
+			msgs.each {
+				sendData("${it}",millisec)
+			}
+			seqSent = true
+            
+		//	closeConnection()
+//		}
+//	}
+	return seqSent
+}
+
