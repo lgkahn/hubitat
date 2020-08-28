@@ -32,6 +32,7 @@
 
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
+* Version 3.2 fixed typo (stray letter left in code) in turnon function in port to hubitat.
 */
 
 definition(
@@ -292,7 +293,7 @@ def TurnOn()
     if (settings.enabled == true)
     {
      def appLabel = app.getLabel()
-l    mysend("$applabel: Turning On!")
+     mysend("$applabel: Turning On!")
      hues.on()
     }
 }
