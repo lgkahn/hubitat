@@ -14,6 +14,7 @@
  *  version 2 user defineable timeout before checking if door opened or closed correctly. Raised default to 25 secs. You can reduce it to 15 secs. if you have custom simulated door with < 6 sec wait.
  * Version 3. add code to get name of device so messages don't alwasy says garage door for instance if you are using it on a fence gate etc.
  * Version 4 . Port to Hubitat. 
+*  version 4.1 change doorcontrol to virtualgaragedoor for hubitat.
 */
  
 definition(
@@ -35,7 +36,7 @@ preferences {
 	}
     
 	section("Choose the Virtual Garage Door Device? "){
-		input "virtualgd", "capability.doorControl", title: "Virtual Garage Door?", required: true
+		input "virtualgd", "capability.garageDoorControl", title: "Virtual Garage Door?", required: true
 	}
     
 	section("Choose the Virtual Garage Door Device sensor (same as above device)?"){
@@ -245,4 +246,3 @@ def virtualgdstate = virtualgd.currentContact
              virtualgd.close()
     }   
 }
-
