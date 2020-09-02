@@ -61,7 +61,7 @@ metadata {
                         state "inactive", label:'no motion', icon:"st.motion.motion.inactive", backgroundColor:"#ffffff"
                 }
                 valueTile("temperature", "device.temperature", width: 2, height: 2) {
-                        state "temperature", label:'${currentValue}°', unit:"F", icon:"", // would be better if the units would switch to the desired units of the system (imperial or metric)
+                        state "temperature", label:'${currentValue}Â°', unit:"F", icon:"", // would be better if the units would switch to the desired units of the system (imperial or metric)
                         backgroundColors:[
                         [value: 31, color: "#153591"],
                     [value: 44, color: "#1e9cbb"],
@@ -126,7 +126,7 @@ def parse(String description){
 
     def statusTextmsg = ""
     if (device.currentState('temperature') != null && device.currentState('illuminance') != null) {
-                statusTextmsg = "${device.currentState('temperature').value} °F - ${device.currentState('illuminance').value} ${(lum == "" || lum == null || lum == 1) ? "%" : "LUX"}"
+                statusTextmsg = "${device.currentState('temperature').value} Â°F - ${device.currentState('illuminance').value} ${(lum == "" || lum == null || lum == 1) ? "%" : "LUX"}"
         sendEvent("name":"statusText", "value":statusTextmsg, displayed:false)
         }
     if (result != [null]) if (debugEnable) log.debug "Parse returned ${result}"
