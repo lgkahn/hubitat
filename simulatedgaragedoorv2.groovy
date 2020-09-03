@@ -72,13 +72,13 @@ def parse(String description) {
 def open() {
 	sendEvent(name: "door", value: "opening")
     sendEvent(name: "garageDoor", value: "opening")
-    runIn(6, finishOpening)
+    runIn(2, finishOpening)
 }
 
 def close() {
     sendEvent(name: "door", value: "closing")
     sendEvent(name: "garageDoor", value: "closing")
-	runIn(6, finishClosing)
+	runIn(2, finishClosing)
 }
 
 def finishOpening() {
@@ -128,5 +128,4 @@ def off()
 {
 	close()
 }
-
 
