@@ -59,7 +59,7 @@ preferences {
             state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
         }
         valueTile("temperature", "device.temperature", inactiveLabel: false) {
-            state "temperature", label:'${currentValue}°',
+            state "temperature", label:'${currentValue}Â°',
             backgroundColors:[
                 [value: 31, color: "#153591"],
                 [value: 44, color: "#1e9cbb"],
@@ -291,7 +291,7 @@ private Map makeTemperatureResult(value) {
     return [
         name: 'temperature',
         value: "" + value,
-        descriptionText: "${linkText} is ${value}°${temperatureScale}",
+        descriptionText: "${linkText} is ${value}Â°${temperatureScale}",
     ]
 }
 
