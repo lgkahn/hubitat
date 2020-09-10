@@ -91,6 +91,20 @@ metadata {
 	}
 }
 
+preferences
+{
+  
+    input name: "logEnable", title: "Enable debug logging", type: "bool", defaultValue: true
+}
+
+void logsOff()
+{
+    device.updateSetting("logEnable", [value:"false", type:"bool"])
+    log.warn "debug logging disabled"
+}
+
+
+
 def parse(String description) {
 	def item1 = [
 		canBeCurrentState: false,
@@ -101,7 +115,7 @@ def parse(String description) {
 		value:  description
 	]
     
-    log.debug "in parse desc = $description"
+     if (logEnable) log.debug "in parse desc = $description"
 	def result
 	def cmd = zwave.parse(description, [0x20: 1, 0x26: 1, 0x70: 1])
 	if (cmd) {
@@ -111,7 +125,7 @@ def parse(String description) {
 		item1.displayed = displayed(description, item1.isStateChange)
 		result = [item1]
 	}
-	log.debug "Parse returned ${result?.descriptionText}"
+	if (logEnable) log.debug "Parse returned ${result?.descriptionText}"
 	result
 }
 
@@ -152,7 +166,7 @@ def createEvent(hubitat.zwave.commands.switchmultilevelv1.SwitchMultilevelReport
 	result[0].descriptionText = "${item1.linkText} is ${item1.value}"
 	result[0].handlerName = cmd.value ? "statusOn" : "statusOff"
     
-    log.debug "result size = $result.size"
+  if (logEnable)  log.debug "result size = $result.size"
 	for (int i = 0; i < result.size(); i++) {
 		result[i].type = "digital"
 	}
@@ -163,7 +177,7 @@ def createEvent(hubitat.zwave.commands.switchmultilevelv1.SwitchMultilevelReport
 def doCreateEvent(hubitat.zwave.Command cmd, Map item1) {
 	def result = [item1]
 
- log.debug "in create event cmd = $cmd"
+ if (logEnable) log.debug "in create event cmd = $cmd"
 	item1.name = "switch"
 	item1.value = cmd.value ? "on" : "off"
 	item1.handlerName = item1.value
@@ -197,17 +211,17 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 
 def createEvent(hubitat.zwave.Command cmd,  Map map) {
 	// Handles any Z-Wave commands we aren't interested in
-	log.debug "UNHANDLED COMMAND $cmd"
+	if (logEnable) log.debug "UNHANDLED COMMAND $cmd"
 }
 
 
 def on() {
-	log.debug "in on"
+if (logEnable)	log.debug "in on"
 	delayBetween([zwave.basicV1.basicSet(value: 0xFF).format(), zwave.switchMultilevelV1.switchMultilevelGet().format()], 1000)
 }
 
 def off() {
-	log.debug "in off"
+if (logEnable)	log.debug "in off"
 	delayBetween ([zwave.basicV1.basicSet(value: 0x00).format(), zwave.switchMultilevelV1.switchMultilevelGet().format()], 3000)
 
 }
@@ -215,7 +229,7 @@ def off() {
 def setLevel(value) {
 	def valueaux = value as Integer
 	def level = Math.max(Math.min(valueaux, 99), 0)
-    log.debug "in set level new level = $level"
+    if (logEnable) log.debug "in set level new level = $level"
 	if (level > 0) {
 		sendEvent(name: "switch", value: "on")
 	} else {
@@ -229,17 +243,17 @@ def setLevelo(value) {
 
 	def valueaux = value as Integer
 	def level = Math.min(valueaux, 99)
-    log.debug "in set level new level = $level"
+   if (logEnable) log.debug "in set level new level = $level"
 	delayBetween ([zwave.basicV1.basicSet(value: level).format(), zwave.switchMultilevelV1.switchMultilevelGet().format(),
    				 	sendEvent(name:"switch.setLevel",value:level)], 500)
 }
 
 
 def setLevel(value, duration) {
- log.debug "in set level w duration new level = $value duration = $duration"
+if (logEnable) log.debug "in set level w duration new level = $value duration = $duration"
 	def valueaux = value as Integer
 	def level = Math.min(valueaux, 99)
-    log.debug "in set level w duration new level = $level duration = $duration"
+  if (logEnable)  log.debug "in set level w duration new level = $level duration = $duration"
 	def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
 	zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format()
     sendEvent(name:"switch.setLevel",value:level)
@@ -272,19 +286,19 @@ def indicatorNever() {
 }
 
 def invertSwitch(invert=true) {
-log.debug "in invert"
+if (logEnable) log.debug "in invert"
 	if (invert) {
 		zwave.configurationV1.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()
 	}
 	else {
-    log.debug "turn off invert"
+    if (logEnable) log.debug "turn off invert"
 		zwave.configurationV1.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()
 	}
 }
 
 
 def setColor(value) {
-	log.debug "setColor: ${value}, $this"
+if (logEnable)	log.debug "setColor: ${value}, $this"
 	if (value.hue) { sendEvent(name: "hue", value: value.hue)}
 	if (value.saturation) { sendEvent(name: "saturation", value: value.saturation)}
 	if (value.hex) { sendEvent(name: "color", value: value.hex)}
@@ -294,7 +308,7 @@ def setColor(value) {
 
 def setAdjustedColor(value) {
 	if (value) {
-        log.trace "setAdjustedColor: ${value}"
+      if (logEnable)  log.trace "setAdjustedColor: ${value}"
         def adjusted = value + [:]
         adjusted.hue = adjustOutgoingHue(value.hue)
         // Needed because color picker always sends 100
@@ -316,7 +330,7 @@ def adjustOutgoingHue(percent) {
 			adjusted = percent + (2 * (100 - percent) / 28)
 		}
 	}
-	log.info "percent: $percent, adjusted: $adjusted"
+	if (logEnable) log.info "percent: $percent, adjusted: $adjusted"
 	adjusted
 }
 
