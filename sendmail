@@ -16,14 +16,17 @@ preferences {
 	input("To", "text", title: "To:", description: "", required: true)
 	input("Subject", "text", title: "Subject:", description: "")
     input("debug", "bool", title: "Enable logging", required: true, defaultValue: false)
+    input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
+    input("Username", "text", title: "Username for Authentication?", required: false, defaultValue: "")
+    input("Password", "text", title: "Password for Authentication?", required: false, defaultValue: "")
 }
 
 metadata {
-    definition (name: "LGK Sendmail", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
+    definition (name: "LGK Sendmail V2", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
         capability "Notification"
         capability "Actuator"
-		capability "Telnet"
-		capability "Configuration"
+	capability "Telnet"
+	capability "Configuration"
     }
 }
 
@@ -54,7 +57,7 @@ def deviceNotification(message) {
     
 	state.EmailBody = "${message}"
 	state.LastCode = 0
-    log.debug "Connecting to ${EmailServer}:${EmailPort}"
+        log.debug "Connecting to ${EmailServer}:${EmailPort}"
 	
 	telnetClose()
 	telnetConnect(EmailServer, EmailPort.toInteger(), null, null)
@@ -101,15 +104,60 @@ def parse(String msg) {
                      closeConnection()
                  }
                 }
-         
-    else if (lastCommand == "helo")
+    
+   else if (lastCommand == "Auth")
+    {
+     if (debug) log.debug "In auth response looking for 334"
+     if (response == "334")
+     {
+       if (debug) log.debug "got auth response now sending username = $Username"
+       sendEvent(name: "lastCommand", value: "Username")
+       def res1 = sendData("$Username",500)
+     }
+    else  
+    {
+         log.debug "got bad response for auth = $response"
+         sendEvent(name: "lastCommand", value: "send failed")  
+         closeConnection()
+     }
+    }   
+
+   else if (lastCommand == "Username")
+    {
+     if (debug) log.debug "In Username response looking for 334"
+     if (response == "334")
+     {
+       if (debug) log.debug "got username response now sending password = $Password"
+       sendEvent(name: "lastCommand", value: "Password")
+       def res1 = sendData("$Password",500)
+     }
+    else  
+    {
+         log.debug "got bad response for Username = $response"
+         sendEvent(name: "lastCommand", value: "send failed")  
+         closeConnection()
+     }
+    }   
+     
+    else if ((lastCommand == "helo") || (lastCommand == "Password"))
         {
-        if (debug)    log.debug "in helo case"
-        if (response == "250")
+        if (debug)    log.debug "in helo/Password case"
+        if ((response == "250") || (response == "235"))
          {
-             sendEvent(name: "lastCommand", value: "sendmessage") 
+        
+          if ((lastCommand == "helo") && (Authenticate) && (Username) && (Password))
+          {
+           log.debug "Trying authentication"
+           sendEvent(name: "lastCommand", value: "Auth")
+           def res1 = sendData("auth login",500)
+          }
+
+         else
+           {
+           if (debug) "Either got 250 for helo or 235 for password, Now Sending Message"
+            sendEvent(name: "lastCommand", value: "sendmessage") 
                     
-            def msgData = "${state.EmailBody}"
+                def msgData = "${state.EmailBody}"
 	        def emlBody = ""
 	        def emlSubject = ""
 	        def emlDateTime = new Date()
@@ -141,6 +189,7 @@ def parse(String msg) {
 		        	, "quit"
 	            ]  
              def res1 = seqSend(sndMsg,500)
+         }
          }
          else
          {
@@ -228,4 +277,5 @@ boolean seqSend(msgs, Integer millisec)
 			seqSent = true
 	return seqSent
 }
+
 
