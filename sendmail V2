@@ -59,7 +59,7 @@ if (debug) log.debug "In lgk sendmail Version ($version)"
     
 	state.EmailBody = "${message}"
 	state.LastCode = 0
-        log.debug "Connecting to ${EmailServer}:${EmailPort}"
+        if (debug) log.debug "Connecting to ${EmailServer}:${EmailPort}"
 	
 	telnetClose()
 	telnetConnect(EmailServer, EmailPort.toInteger(), null, null)
