@@ -231,7 +231,7 @@ def parse(String msg) {
                       sendEvent(name: "lastCommand", value: "send failed")  
                       closeConnection()
                  }
-           }
+           } 
         else 
         {
          if (debug)   log.debug "In fall through case looking for 250 or 354 or 221 (bye)"
