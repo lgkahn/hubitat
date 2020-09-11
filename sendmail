@@ -110,7 +110,7 @@ def parse(String msg) {
      if (debug) log.debug "In auth response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "got auth response now sending username = $Username"
+       if (debug) log.debug "got auth response now sending username"
        sendEvent(name: "lastCommand", value: "Username")
        def res1 = sendData("$Username",500)
      }
@@ -127,7 +127,7 @@ def parse(String msg) {
      if (debug) log.debug "In Username response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "got username response now sending password = $Password"
+       if (debug) log.debug "got username response now sending password"
        sendEvent(name: "lastCommand", value: "Password")
        def res1 = sendData("$Password",500)
      }
