@@ -3,7 +3,7 @@
 *  You should have received a copy of the GNU General Public License
 *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
-*
+* v 2.1 added desciprtive text and cleaned up debugging
 */
 
 
@@ -15,10 +15,10 @@ preferences {
 	input("From", "text", title: "From:", description: "", required: true)
 	input("To", "text", title: "To:", description: "", required: true)
 	input("Subject", "text", title: "Subject:", description: "")
-    input("debug", "bool", title: "Enable logging", required: true, defaultValue: false)
-    input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
-    input("Username", "text", title: "Username for Authentication?", required: false, defaultValue: "")
-    input("Password", "text", title: "Password for Authentication?", required: false, defaultValue: "")
+        input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+        input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
+        input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
+        input("Password", "text", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
 }
 
 metadata {
@@ -52,7 +52,9 @@ def initialize() {
 
 def deviceNotification(message) {
 
-    if (debug) log.debug "in sendmail deviceNotification"
+def version = "2.1"
+
+if (debug) log.debug "In lgk sendmail Version ($version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
     
 	state.EmailBody = "${message}"
@@ -64,7 +66,7 @@ def deviceNotification(message) {
 }
 
 def sendData(String msg, Integer millsec) {
- log.debug "$msg"
+ if (debug) log.debug "$msg"
 	
 	def hubCmd = sendHubCommand(new hubitat.device.HubAction("${msg}", hubitat.device.Protocol.TELNET))
 	pauseExecution(millsec)
@@ -77,7 +79,7 @@ def parse(String msg) {
     def lastCommand = device.currentValue("lastCommand")
     
     if (debug) {
-        log.debug "in parse  ${msg}"
+        log.debug "In parse - ${msg}"
     }
         
   if (debug)  log.debug "lastCommand = $lastCommand"
@@ -87,12 +89,12 @@ def parse(String msg) {
      def response = pair[0]
      def value = pair[1]
     
-   if (debug) log.debug "got server response $response value = $value lastCommand = ($lastCommand)"
+   if (debug) log.debug "Got server response $response value = $value lastCommand = ($lastCommand)"
     
  
    if (lastCommand == "initialConnect")
         {
-         if (debug)    log.debug "in initialConnect case"
+         if (debug)    log.debug "In initialConnect case"
              if (response == "220")
                  {
                      sendEvent(name: "lastCommand", value: "helo")       
@@ -100,7 +102,7 @@ def parse(String msg) {
                  }
                  else
                  {
-                     log.debug "got bad response = $response"
+                     log.debug "Got bad response = $response"
                      sendEvent(name: "lastCommand", value: "send failed")  
                      closeConnection()
                  }
@@ -111,13 +113,13 @@ def parse(String msg) {
      if (debug) log.debug "In auth response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "got auth response now sending username = $Username"
+       if (debug) log.debug "Got auth response now sending username = $Username"
        sendEvent(name: "lastCommand", value: "Username")
        def res1 = sendData("$Username",500)
      }
     else  
     {
-         log.debug "got bad response for auth = $response"
+         log.debug "Got bad response for auth = $response"
          sendEvent(name: "lastCommand", value: "send failed")  
          closeConnection()
      }
@@ -128,13 +130,13 @@ def parse(String msg) {
      if (debug) log.debug "In Username response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "got username response now sending password = $Password"
+       if (debug) log.debug "Got username response now sending password = $Password"
        sendEvent(name: "lastCommand", value: "Password")
        def res1 = sendData("$Password",500)
      }
     else  
     {
-         log.debug "got bad response for Username = $response"
+         log.debug "Got bad response for Username = $response"
          sendEvent(name: "lastCommand", value: "send failed")  
          closeConnection()
      }
@@ -142,13 +144,13 @@ def parse(String msg) {
      
     else if ((lastCommand == "helo") || (lastCommand == "Password"))
         {
-        if (debug)    log.debug "in helo/Password case"
+        if (debug)    log.debug "In helo/Password case"
         if ((response == "250") || (response == "235"))
          {
         
           if ((lastCommand == "helo") && (Authenticate) && (Username) && (Password))
           {
-           log.debug "Trying authentication"
+           if (debug) log.debug "Trying authentication"
            sendEvent(name: "lastCommand", value: "Auth")
            def res1 = sendData("auth login",500)
           }
@@ -194,7 +196,7 @@ def parse(String msg) {
          }
          else
          {
-             log.debug "got bad response = $response"
+             log.debug "Got bad response = $response"
              sendEvent(name: "lastCommand", value: "send failed")  
              closeConnection()
          }
@@ -202,7 +204,7 @@ def parse(String msg) {
     
     else if (lastComamnd == "sendmessage")
         {
-       if (debug) log.debug "in send message case"
+       if (debug) log.debug "In send message case"
              if (response == "220")
                  {
                      sendEvent(name: "lastCommand", value: "quit" )     
@@ -210,7 +212,7 @@ def parse(String msg) {
                  }
                  else
                  {
-                     log.debug "got bad response = $response"
+                     log.debug "Got bad response = $response"
                       sendEvent(name: "lastCommand", value: "send failed")  
                      closeConnection()
                  }
@@ -225,14 +227,14 @@ def parse(String msg) {
                  }
                  else
                  {
-                      log.debug "got bad response = $response"
+                      log.debug "Got bad response = $response"
                       sendEvent(name: "lastCommand", value: "send failed")  
                       closeConnection()
                  }
            }
         else 
         {
-         if (debug)   log.debug "in fall through case looking for 250 or 354 or 221 (bye)"
+         if (debug)   log.debug "In fall through case looking for 250 or 354 or 221 (bye)"
             if (response == "250" || response == "354" || response == "221")
             {
                 // all ok
@@ -240,7 +242,7 @@ def parse(String msg) {
             }
             else
             {
-               log.debug "got bad response = $response"
+               log.debug "Got bad response = $response"
                 sendEvent(name: "lastCommand", value: "send failed")  
                 closeConnection()
             }
@@ -251,7 +253,7 @@ def parse(String msg) {
 }
 
 def telnetStatus(status) {
-    log.debug "telnetStatus: ${status}"
+    if (debug) log.debug "telnetStatus: ${status}"
     sendEvent([name: "telnet", value: "${status}"])
 }
 
@@ -262,7 +264,7 @@ def closeConnection()
                 try {
                     telnetClose()
                 } catch(e) {
-                    log.debug("Connection Closed")
+                    if (debug) log.debug("Connection Closed")
                 }
                 
 			}
@@ -270,7 +272,7 @@ def closeConnection()
     
 boolean seqSend(msgs, Integer millisec)
 {
-    log.debug "in sendData"
+    if (debug) log.debug "in sendData"
   
 			msgs.each {
 				sendData("${it}",millisec)
