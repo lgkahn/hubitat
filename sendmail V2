@@ -1,8 +1,8 @@
 /**
-*   simple sendmail no authentication .. lg kahn
+*   simple sendmail no authentication .. lg kahn kahn@lgk.com
 *  You should have received a copy of the GNU General Public License
 *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
+* 
 *
 */
 
@@ -85,6 +85,7 @@ def parse(String msg) {
     def pair = msg.split(" ")
 
      def response = pair[0]
+     def value = pair[1]
     
    if (debug) log.debug "got server response $response value = $value lastCommand = ($lastCommand)"
     
@@ -110,7 +111,7 @@ def parse(String msg) {
      if (debug) log.debug "In auth response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "got auth response now sending username"
+       if (debug) log.debug "got auth response now sending username = $Username"
        sendEvent(name: "lastCommand", value: "Username")
        def res1 = sendData("$Username",500)
      }
@@ -127,7 +128,7 @@ def parse(String msg) {
      if (debug) log.debug "In Username response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "got username response now sending password"
+       if (debug) log.debug "got username response now sending password = $Password"
        sendEvent(name: "lastCommand", value: "Password")
        def res1 = sendData("$Password",500)
      }
