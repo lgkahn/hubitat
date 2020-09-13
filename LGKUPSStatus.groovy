@@ -23,6 +23,7 @@ attribute "UPSStatus", "string"
 attribute "lastUpdate" , "string"
 attribute "version", "string"
 attribute "name", "string"
+attribute "batteryPercentage" , "string"
 
 command "refresh"
 
@@ -48,7 +49,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.0"
+	state.version = "1.1"
 }
 
 def installed() {
@@ -78,6 +79,7 @@ def initialize() {
     sendEvent(name: "minutesRemaining",value: 1000)
     sendEvent(name: "UPSStatus", value: "Unknown")
     sendEvent(name: "version", value: "1.0")
+    sendEvent(name: "batteryPercentage", value: "???")
     
     if (debug) log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
     if ((UPSIP) && (UPSPort) && (Username) && (Password))
@@ -153,6 +155,7 @@ def parse(String msg) {
 	        		, "$Password"
 	        		, "detstatus -rt"
                     , "detstatus -ss"
+                    , "detstatus -soc"
 		        	, "quit"
 	            ]  
              def res1 = seqSend(sndMsg,500)
@@ -170,14 +173,13 @@ def parse(String msg) {
             
        if (debug) log.debug "In getstatus case length =$pair.length"
       
-           if (pair.length == 7)
-            {
-              def p0 = pair[0]
-              def p1 = pair[1]
-              def p2 = pair[2]
-              def p3 = pair[3]
-      
-                
+       if (pair.length == 7)
+         {
+           def p0 = pair[0]
+           def p1 = pair[1]
+           def p2 = pair[2]
+           def p3 = pair[3]
+           
       if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
 
              if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
@@ -186,8 +188,27 @@ def parse(String msg) {
                     sendEvent(name: "UPSStatus", value: p3)
                  }
             } // length = 7
-                    
-       else if (pair.length ==8)
+     
+      if (pair.length == 6)
+         {
+           def p0 = pair[0]
+           def p1 = pair[1]
+           def p2 = pair[2]
+           def p3 = pair[3]
+           def p4 = pair[4]
+             
+      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
+
+             if ((p0 == "Battery") && (p1 == "State") && (p3 == "Charge:"))
+                 {
+                    def p4dec = p4.toDouble() / 100.0
+                    int p4int = p4dec * 100
+                    log.debug "Got UPS Battery Percentage = $p4!"
+                    sendEvent(name: "batteryPercentage", value: p4int)
+                 }
+            } // length = 6
+            
+       else if (pair.length == 8)
          {
                 
        def p0 = pair[0]
@@ -256,6 +277,5 @@ boolean seqSend(msgs, Integer millisec)
 			seqSent = true
 	return seqSent
 }
-
 
 
