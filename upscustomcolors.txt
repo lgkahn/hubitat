@@ -1,0 +1,521 @@
+ "customColors": [
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "Online"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#a60000a6",
+      "state": "Battery"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(80,80,80,.8)",
+      "state": "???"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "100"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "99"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "98"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "97"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "96"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "95"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "94"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "93"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "92"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#00a600a6",
+      "state": "91"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "90"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "89"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "88"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "87"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "86"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "85"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "84"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "83"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "83"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "82"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "#005600a6",
+      "state": "81"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "80"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "79"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "78"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "77"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "76"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "75"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "74"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "73"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "72"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(102,153,0,.8)",
+      "state": "71"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "70"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "69"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "68"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "67"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "66"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "65"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "64"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "63"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "62"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(200,200,0,.8)",
+      "state": "61"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "60"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "59"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "58"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "57"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "56"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "55"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "54"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "53"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "52"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,255,0,.8)",
+      "state": "51"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "50"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "49"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "48"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "47"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "46"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "45"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "44"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "43"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "42"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(229,127,0,.8)",
+      "state": "41"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "40"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "39"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "38"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "37"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "36"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "35"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "34"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "33"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "32"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(255,127,0,.8)",
+      "state": "31"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "30"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "29"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "28"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "27"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "26"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "25"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "24"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "23"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "22"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,153,.8)",
+      "state": "21"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "20"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "190"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "18"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "17"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "16"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "15"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "14"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "13"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "12"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(153,0,0,.8)",
+      "state": "11"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "10"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "9"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "8"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "7"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "6"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "5"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "4"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "3"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "2"
+    },
+    {
+      "template": "attribute",
+      "bgColor": "rgb(230,0,0,.8)",
+      "state": "1"
+    },
