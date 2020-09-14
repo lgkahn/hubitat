@@ -7,12 +7,14 @@
 *
 * lgk.com c 2020  free for personal use.. do not post
 *
-* version 1.0
+* version 1.2
 *
 *  You should have received a copy of the GNU General Public License
 *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
-* v 2.1 added desciprtive text and cleaned up debugging
+* v 1.1 added desciprtive text and cleaned up debugging
+* v 1.2 added changes due to varying net card firmware responses, also added some change debugging to help debug alternate smart ups net cards
+*        also handle issue where some ups return on line , others online 
 */
 
 
@@ -49,7 +51,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.1"
+	state.version = "1.2"
 }
 
 def installed() {
@@ -107,9 +109,8 @@ def initialize() {
 
 def refresh() {
 
-def version = "1.0"
 
-if (debug) log.debug "In lgk SmartUPS Status Version ($version)"
+if (debug) log.debug "In lgk SmartUPS Status Version ($state.version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
       sendEvent(name: "UPSStatus", value: "Unknown")
     
@@ -139,11 +140,12 @@ def parse(String msg) {
   if (debug)  log.debug "lastCommand = $lastCommand"
     
     def pair = msg.split(" ")
-
-//     def response = pair[0]
-  //   def value = pair[1]
-    
-   if (debug) log.debug "Got server response $msg value = $value lastCommand = ($lastCommand)"
+  
+    if (debug){
+        log.debug ""
+        log.debug "Got server response $msg value = $value lastCommand = ($lastCommand) length = ($pair.length)"
+        log.debug ""
+    }
     
    if (lastCommand == "initialConnect")
     
@@ -173,19 +175,28 @@ def parse(String msg) {
             
        if (debug) log.debug "In getstatus case length =$pair.length"
       
-       if (pair.length == 7)
+       if ((pair.length == 7) || (pair.length == 8))
          {
            def p0 = pair[0]
            def p1 = pair[1]
            def p2 = pair[2]
            def p3 = pair[3]
+           def p4 = pair[4]
            
       if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
 
              if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
                  {
-                    log.debug "Got UPS Status = $p3!"
-                    sendEvent(name: "UPSStatus", value: p3)
+                    def thestatus = p3
+                    if (debug) log.debug ""
+                     // handle on line versus online case combiner p3 and p4
+                    if (p3 == "On")
+                     { 
+                       thestatus = p3 + p4
+                     } 
+                    log.debug "Got UPS Status = $thestatus!"
+                    if (debug) log.debug ""
+                    sendEvent(name: "UPSStatus", value: thestatus)
                  }
             } // length = 7
      
@@ -203,12 +214,14 @@ def parse(String msg) {
                  {
                     def p4dec = p4.toDouble() / 100.0
                     int p4int = p4dec * 100
+                    if (debug) log.debug ""
                     log.debug "Got UPS Battery Percentage = $p4!"
+                    if (debug) log.debug ""
                     sendEvent(name: "batteryPercentage", value: p4int)
                  }
             } // length = 6
             
-       else if (pair.length == 8)
+       if ((pair.length == 8) || (pair.length == 6))
          {
                 
        def p0 = pair[0]
@@ -217,22 +230,25 @@ def parse(String msg) {
        def p3 = pair[3]
        def p4 = pair[4]
        def p5 = pair[5]
-       def p6 = pair[6]
+      
 
-      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5 p6 = $p6"
+      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5"
 
      // looking for hours and minutes
      // Runtime Remaining: 2 hr 19 min 0 sec
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p3 == "hr"))
-                 {
+                 {  if (debug) log.debug ""
                     log.debug "Got $p2 hours Remaining!"
+                    if (debug) log.debug ""
                     sendEvent(name: "hoursRemaining", value: p2.toInteger())
                     state.hoursRemaining = p2.toInteger()
                  }
            
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p5 == "min"))
-                 {
+                 {   
+                    if (debug) log.debug ""
                     log.debug "Got $p4 minutes Remaining!"
+                    if (debug) log.debug ""
                     sendEvent(name: "minutesRemaining", value: p4.toInteger())
                     state.minutesRemaining = p4.toInteger()
                      
