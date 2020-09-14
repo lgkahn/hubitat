@@ -193,6 +193,8 @@ def parse(String msg) {
                     if (p3 == "On")
                      { 
                        thestatus = p3 + p4
+                       if (thestatus == "OnLine,")
+                         thestatus = "OnLine"
                      } 
                     log.debug "Got UPS Status = $thestatus!"
                     if (debug) log.debug ""
