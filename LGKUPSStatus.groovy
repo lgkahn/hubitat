@@ -15,17 +15,19 @@
 * v 1.1 added desciprtive text and cleaned up debugging
 * v 1.2 added changes due to varying net card firmware responses, also added some change debugging to help debug alternate smart ups net cards
 *        also handle issue where some ups return on line , others online 
+* v 1.3 apparently integer attributes dont work in rule machine . I assumed I needed them to be int to do value comparision but it wasn't working.
+        Changed them to number not integer.
 */
 
 
 attribute "lastCommand", "string"
-attribute "hoursRemaining", "integer"
-attribute "minutesRemaining", "integer"
+attribute "hoursRemaining", "number"
+attribute "minutesRemaining", "number"
 attribute "UPSStatus", "string"
 attribute "lastUpdate" , "string"
 attribute "version", "string"
 attribute "name", "string"
-attribute "batteryPercentage" , "string"
+attribute "batteryPercentage" , "number"
 
 command "refresh"
 
@@ -51,7 +53,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.2"
+	state.version = "1.3"
 }
 
 def installed() {
