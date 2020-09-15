@@ -17,6 +17,7 @@
 *        also handle issue where some ups return on line , others online 
 * v 1.3 apparently integer attributes dont work in rule machine . I assumed I needed them to be int to do value comparision but it wasn't working.
         Changed them to number not integer.
+* v 1.4 added option to enable/disable.
 */
 
 
@@ -38,6 +39,7 @@ preferences {
     input("Password", "text", title: "Password for Login?", required: true, defaultValue: "")
     input("runTime", "integer", title: "How often to check UPS Status (in Minutes)>", required: true, defaultValue: 30)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+    input("disable", "bool", title: "Disable?", required: false, defaultValue: false)
       
 }
 
@@ -53,7 +55,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.3"
+	state.version = "1.4"
 }
 
 def installed() {
@@ -92,27 +94,50 @@ def initialize() {
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
     
     unschedule()
-        
-    log.debug "Scheduling to run Every $runTime Minutes!"
+    if (!disable)
+        {
+          if ((state.origAppName) && (state.origAppName != "") && (state.origAppName != device.getLabel()))
+            {
+                device.setLabel(state.origAppName)
+            }
+           
+            // only reset name if was not disabled
+            if (state.disabled != true) state.origAppName =  device.getLabel()  
+            state.disabled = fale 
+            log.debug "Scheduling to run Every $runTime Minutes!"
              
-    scheduleString = "0 */" + runTime.toString() + " * ? * * *"
-    if (debug) log.debug "Schedule string = $scheduleString"
+            scheduleString = "0 */" + runTime.toString() + " * ? * * *"
+            if (debug) log.debug "Schedule string = $scheduleString"
             
-     schedule(scheduleString, refresh)
-     sendEvent(name: "lastCommand", value: "Scheduled")     
-     refresh()
-    }
+           schedule(scheduleString, refresh)
+           sendEvent(name: "lastCommand", value: "Scheduled")     
+           refresh()
+         }
+        
+    else
+    {
+      log.debug "App. Disabled!"
+      unschedule()
+      if ((state.origAppName) && (state.origAppName != "")) 
+     // change name if disbled or enabled
+    
+       device.setLabel(state.origAppName + " (Disabled)")
+       state.disabled = true
+    }           
+    }   
     else
     {
          log.debug "Parameters not filled in yet!"
     }
-
-}
+    
+ }
 
 def refresh() {
 
+    if (!disable)
+    {
 
-if (debug) log.debug "In lgk SmartUPS Status Version ($state.version)"
+     if (debug) log.debug "In lgk SmartUPS Status Version ($state.version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
       sendEvent(name: "UPSStatus", value: "Unknown")
     
@@ -120,7 +145,12 @@ if (debug) log.debug "In lgk SmartUPS Status Version ($state.version)"
 	
 	telnetClose()
 	telnetConnect(UPSIP, UPSPort.toInteger(), null, null)
-}
+    }
+  else
+  { 
+     log.debug "Refresh called but App is disabled. Will Not Run!"
+  }
+ }
 
 def sendData(String msg, Integer millsec) {
  if (debug) log.debug "$msg"
