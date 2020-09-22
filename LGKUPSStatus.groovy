@@ -18,6 +18,7 @@
 * v 1.3 apparently integer attributes dont work in rule machine . I assumed I needed them to be int to do value comparision but it wasn't working.
         Changed them to number not integer.
 * v 1.4 added option to enable/disable.
+* v 1.5 some ups return on line other on line handle both one with 8 words one with 4 
 */
 
 
@@ -207,6 +208,38 @@ def parse(String msg) {
             
        if (debug) log.debug "In getstatus case length =$pair.length"
       
+       if (pair.length == 4)
+            {
+              if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3"
+ 
+             def p0 = pair[0]
+             def p1 = pair[1]
+             def p2 = pair[2]
+             def p3 = pair[3]
+       
+           
+             if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
+                 {
+                    def thestatus = p3
+                    if (debug) log.debug ""
+                     // handle on line versus online case combiner p3 and p4
+                    if ((p3 == "OnLine") || (p3 == "Online"))
+                     {
+                     thestatus = p3
+                     }
+                  
+                       if ((thestatus == "OnLine,") || (thestatus == "Online"))
+                         thestatus = "OnLine"
+                       if (thestatus == "OnBattery,")
+                         thestatus = "OnBattery"
+                     
+                    log.debug "Got UPS Status = $thestatus!"
+                    if (debug) log.debug ""
+                    sendEvent(name: "UPSStatus", value: thestatus)
+                 }
+            } // length = 4
+     
+                
        if ((pair.length == 7) || (pair.length == 8))
          {
            def p0 = pair[0]
@@ -215,21 +248,25 @@ def parse(String msg) {
            def p3 = pair[3]
            def p4 = pair[4]
            
-      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
-
+    
              if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
                  {
                     def thestatus = p3
                     if (debug) log.debug ""
                      // handle on line versus online case combiner p3 and p4
-                    if (p3 == "On")
+                    if ((p3 == "OnLine") || (p3 == "Online"))
+                     {
+                     thestatus = p3
+                     }
+                     else if (p3 == "On")
                      { 
                        thestatus = p3 + p4
-                       if (thestatus == "OnLine,")
+                     }
+                       if ((thestatus == "OnLine,") || (thestatus == "Online"))
                          thestatus = "OnLine"
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
-                     } 
+                     
                     log.debug "Got UPS Status = $thestatus!"
                     if (debug) log.debug ""
                     sendEvent(name: "UPSStatus", value: thestatus)
