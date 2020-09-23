@@ -18,7 +18,9 @@
 * v 1.3 apparently integer attributes dont work in rule machine . I assumed I needed them to be int to do value comparision but it wasn't working.
         Changed them to number not integer.
 * v 1.4 added option to enable/disable.
-* v 1.5 some ups return on line other on line handle both one with 8 words one with 4 
+* v 1.5 some ups return on line other on line handle both one with 8 words one with 4
+* v 1.6 Add optional runtime for on battery so that you can check the UPS status fewer times and then increase
+* the times check when on battery (ie reduce the time say from 30 minutes to 10 etc.)
 */
 
 
@@ -30,6 +32,7 @@ attribute "lastUpdate" , "string"
 attribute "version", "string"
 attribute "name", "string"
 attribute "batteryPercentage" , "number"
+attribute "currentCheckTime", "number"
 
 command "refresh"
 
@@ -38,10 +41,10 @@ preferences {
 	input("UPSPort", "integer", title: "Port #:", description: "Enter port number, default 23", defaultValue: 23)
     input("Username", "text", title: "Username for Login?", required: true, defaultValue: "")
     input("Password", "text", title: "Password for Login?", required: true, defaultValue: "")
-    input("runTime", "integer", title: "How often to check UPS Status (in Minutes)>", required: true, defaultValue: 30)
+    input("runTime", "integer", title: "How often to check UPS Status  (in Minutes)>", required: true, defaultValue: 30)  
+    input("runTimeOnBattery", "integer", title: "How often to check UPS Status when on Battery (in Minutes)>", required: true, defaultValue: 10)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
     input("disable", "bool", title: "Disable?", required: false, defaultValue: false)
-      
 }
 
 metadata {
@@ -56,7 +59,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.4"
+	state.version = "1.6"
 }
 
 def installed() {
@@ -87,7 +90,7 @@ def initialize() {
     sendEvent(name: "UPSStatus", value: "Unknown")
     sendEvent(name: "version", value: "1.0")
     sendEvent(name: "batteryPercentage", value: "???")
-    
+
     if (debug) log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
     if ((UPSIP) && (UPSPort) && (Username) && (Password))
     {
@@ -104,8 +107,10 @@ def initialize() {
            
             // only reset name if was not disabled
             if (state.disabled != true) state.origAppName =  device.getLabel()  
-            state.disabled = fale 
+            state.disabled = false 
             log.debug "Scheduling to run Every $runTime Minutes!"
+            state.currentCheckTime = runTime
+            sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
              
             scheduleString = "0 */" + runTime.toString() + " * ? * * *"
             if (debug) log.debug "Schedule string = $scheduleString"
@@ -124,6 +129,9 @@ def initialize() {
     
        device.setLabel(state.origAppName + " (Disabled)")
        state.disabled = true
+       state.currentCheckTime = 0
+       sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
+           
     }           
     }   
     else
@@ -200,13 +208,13 @@ def parse(String msg) {
        else if (lastCommand == "quit")
         { 
             sendEvent(name: "lastCommand", value: "Rescheduled")
-            log.debug "Will run again in $runTime Minutes!"
+            log.debug "Will run again in $state.currentCheckTime Minutes!"
             closeConnection()
            } 
    else 
         {
             
-       if (debug) log.debug "In getstatus case length =$pair.length"
+       if (debug) log.debug "In getstatus case length = $pair.length"
       
        if (pair.length == 4)
             {
@@ -236,11 +244,34 @@ def parse(String msg) {
                     log.debug "Got UPS Status = $thestatus!"
                     if (debug) log.debug ""
                     sendEvent(name: "UPSStatus", value: thestatus)
+                     
+                   
+                  if ((thestatus == "OnBattery") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTimeOnBattery))
+                     {
+                         log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
+                         unschedule()
+                         scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
+                         if (debug) log.debug "Schedule string = $scheduleString"
+                         state.currentCheckTime = runTimeOnBattery
+                         sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
+                         schedule(scheduleString, refresh)
+                     } 
+                   else if ((thestatus == "OnLine") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTime))
+                     {
+                       log.debug "UPS Back Online, so Resetting Check time to $runTime Minutes!"
+                       unschedule()
+                       scheduleString = "0 */" + runTime.toString() + " * ? * * *"
+                       if (debug) log.debug "Schedule string = $scheduleString"
+                       state.currentCheckTime = runTime
+                       sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
+                       schedule(scheduleString, refresh)
+                     }
+                     
                  }
             } // length = 4
      
                 
-       if ((pair.length == 7) || (pair.length == 8))
+       if ((pair.length == 7) || (pair.length == 8) || (pair.length == 5))
          {
            def p0 = pair[0]
            def p1 = pair[1]
@@ -270,7 +301,29 @@ def parse(String msg) {
                     log.debug "Got UPS Status = $thestatus!"
                     if (debug) log.debug ""
                     sendEvent(name: "UPSStatus", value: thestatus)
-                 }
+                     
+                    if ((thestatus == "OnBattery") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTimeOnBattery))
+                     {
+                         log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
+                         unschedule()
+                         scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
+                         if (debug) log.debug "Schedule string = $scheduleString"
+                         state.currentCheckTime = runTimeOnBattery
+                         sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
+                         schedule(scheduleString, refresh)
+                     } 
+                   else if ((thestatus == "OnLine") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTime))
+                     {
+                       log.debug "UPS Back Online, so Resetting Check time to $runTime Minutes!"
+                       unschedule()
+                       scheduleString = "0 */" + runTime.toString() + " * ? * * *"
+                       if (debug) log.debug "Schedule string = $scheduleString"
+                       state.currentCheckTime = runTime
+                       sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
+                       schedule(scheduleString, refresh)
+                     }
+                 }      
+                          
             } // length = 7
      
       if (pair.length == 6)
@@ -366,5 +419,4 @@ boolean seqSend(msgs, Integer millisec)
 			seqSent = true
 	return seqSent
 }
-
 
