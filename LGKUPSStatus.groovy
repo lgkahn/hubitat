@@ -21,6 +21,7 @@
 * v 1.5 some ups return on line other on line handle both one with 8 words one with 4
 * v 1.6 Add optional runtime for on battery so that you can check the UPS status fewer times and then increase
 * the times check when on battery (ie reduce the time say from 30 minutes to 10 etc.)
+* v 1.7 fix.. for yet another differing version of responses to get the UPS status. It seems there are as many differnt ups and net card firmwares and responses as days in the month!
 */
 
 
@@ -59,7 +60,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.6"
+	state.version = "1.7"
 }
 
 def installed() {
@@ -271,7 +272,7 @@ def parse(String msg) {
             } // length = 4
      
                 
-       if ((pair.length == 7) || (pair.length == 8) || (pair.length == 5))
+       if ((pair.length == 7) || (pair.length == 8) || (pair.length == 5) || (pair.length == 11))
          {
            def p0 = pair[0]
            def p1 = pair[1]
