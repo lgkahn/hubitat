@@ -1,6 +1,6 @@
 /**
  *  Spruce Scheduler Pre-release V2.55 - Updated 8/2019
- *
+ *  lgkahn kahn@lgk.com v2.56 add weather device option to get precip from
  *
  *  Copyright 2015 Plaid Systems
  *
@@ -147,7 +147,8 @@ def globalPage() {
                       'Selecting watering days is optional. Spruce will optimize your watering schedule automatically. ' +
                       'If your area has water restrictions or you prefer set days, select the days to meet your requirements. ')
            input (name: 'days', type: 'enum', title: 'Water only on these days...', required: false, multiple: true, options: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Even', 'Odd'])
-       }
+        
+        }
 
         section('Push Notifications') {   
             input(name: 'notify', type: 'enum', title: 'Select what push notifications to receive.', required: false,
@@ -162,6 +163,8 @@ def weatherPage() {
     dynamicPage(name: 'weatherPage', title: 'Weather settings') {
        section("Location to get weather forecast and conditions:") {
             input(name: 'zipcode', type: 'text', title: "Zipcode default location: ${getDefaultLocation()}", required: false, submitOnChange: true)
+           	input "weatherDevice", "capability.relativeHumidityMeasurement", title: "Weather Device (ie darksky or openweather) to get rain forecase from?", required: false
+
             input 'isRain', 'bool', title: 'Enable Rain check:', metadata: [values: ['true', 'false']]
             input 'rainDelay', 'decimal', title: 'inches of rain that will delay watering, default: 0.2', required: false
             input 'isSeason', 'bool', title: 'Enable Seasonal Weather Adjustment:', metadata: [values: ['true', 'false']]
@@ -819,7 +822,12 @@ def installed() {
 }
 
 def updated() {
-    log.debug "Updated with settings: ${settings}"
+    log.debug "Updated with settings: ${settings}" 
+    state.dpwMap =                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    state.tpwMap =                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    state.Rain =                 [0,0,0,0,0,0,0]
+    state.daycount =             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    
     installSchedule()
 }
 
@@ -843,7 +851,11 @@ def installSchedule(){
     // always collect rainfall
     int randomSeconds = rand.nextInt(59)
    // if (settings.isRain || settings.isSeason) schedule("${randomSeconds} 57 23 1/1 * ? *", getRainToday)        // capture today's rainfall just before midnight
- if (settings.isRain || settings.isSeason) runIn("${randomSeconds} 57 23 1/1 * ? *", getRainToday)        // capture today's rainfall just before midnight
+// if (settings.isRain || settings.isSeason) runIn("${randomSeconds} 57 23 1/1 * ? *", getRainToday)        // capture today's rainfall just before midnight
+    log.debug "scheduling getraintoday"
+if (settings.isRain || settings.isSeason) 
+    runIn(10,getRainToday)
+    //schedule("${randomSeconds} 57 23 1/1 * ? *", getRainToday )      // capture today's rainfall just before midnight
 
     if (settings.switches && settings.startTime && settings.enable){
 
@@ -2101,22 +2113,28 @@ def getForecast(){
 
 //capture today's total rainfall - scheduled for just before midnight each day
 def getRainToday() {
-    //def wzipcode = zipString()
-    //def conditionsData = getTwcConditions(wzipcode)
-    def conditionsData = getConditions()
-    if (!conditionsData) {
-        note('warning', "${app.label}: Please check Zipcode/PWS setting, error: null", 'a')
-    } else {
-        float TRain = 0.0
-        if (conditionsData.precip24Hour.isNumber()) {
-            TRain = conditionsData.precip24Hour.toFloat()
+    
+    log.debug "Current Weather Device to get precip info = $weatherDevice"
+   
+    if (weatherDevice)
+      {
+         def rainToday = weatherDevice.currentValue("rainToday")
+         log.debug "rainToday = $rainToday"
+          float TRain = 0.0
+        
+            TRain = rainToday.toFloat()
             if (TRain > 25.0) TRain = 25.0
             else if (TRain < 0.0) TRain = 0.0
-            log.debug "getRainToday(): ${conditionsData.precip24Hour} / ${TRain}"
-        }
+            log.debug "getRainToday(): ${rainToday} / ${TRain}"
+        
         int day = getWeekDay()                        // what day is it today?
+        //  log.debug "got day = $day"
         if (day == 7) day = 0                        // adjust: state.Rain order is Su,Mo,Tu,We,Th,Fr,Sa
-        state.Rain[day] = TRain as Float            // store today's total rainfall
+        state.Rain[day] = TRain as Float            // store today's total rainfall  
+    }
+  //  def conditionsData = getConditions()
+    else {
+        note('warning', "${app.label}: Please select an openweather or darksky weather device that has a daily rain forecase", 'a')
     }
 }
 
