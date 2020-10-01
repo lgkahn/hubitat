@@ -851,12 +851,12 @@ def installSchedule(){
     // always collect rainfall
     int randomSeconds = rand.nextInt(59)
    // if (settings.isRain || settings.isSeason) schedule("${randomSeconds} 57 23 1/1 * ? *", getRainToday)        // capture today's rainfall just before midnight
-// if (settings.isRain || settings.isSeason) runIn("${randomSeconds} 57 23 1/1 * ? *", getRainToday)        // capture today's rainfall just before midnight
+    if (settings.isRain || settings.isSeason)
+    { 
     log.debug "scheduling getraintoday"
-if (settings.isRain || settings.isSeason) 
     runIn(10,getRainToday)
-    //schedule("${randomSeconds} 57 23 1/1 * ? *", getRainToday )      // capture today's rainfall just before midnight
-
+    schedule("${randomSeconds} 57 23 1/1 * ? *", getRainToday )      // capture today's rainfall just before midnight
+    }
     if (settings.switches && settings.startTime && settings.enable){
 
         //randomOffset = rand.nextInt(60000) + 20000
