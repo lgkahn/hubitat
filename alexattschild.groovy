@@ -22,10 +22,13 @@
  *    2018-11-18  Stephan Hackett	Added support for Virtual Containers
  *    2020-07-29  nh.schottfam      Remove characters from message text that may cause issues
  *    2020-09-25  lgk add volume
+ *    2020-10-04  lgk add set volume as command so it can be called from rule machione.
  */
 
 attribute "currentVolume", "number"
  capability "Configuration"
+
+ command "setVolume", [[name: "volumeLevel", type: "intteger", range: "1..100"]]
 
 metadata {
     definition (name: "Child Alexa TTS", namespace: "ogiewon", author: "Dan Ogorchock", importUrl: "https://raw.githubusercontent.com/ogiewon/Hubitat/master/AlexaTTS/Drivers/child-alexa-tts.src/child-alexa-tts.groovy") {
@@ -35,20 +38,8 @@ metadata {
 
 
 preferences {
-	input("volumeLevel", "integer", title: "Volume level for this device (0-99)?", range: "1…100", defaultValue: 75, required: true)
+	input("volumeLevel", "integer", title: "Volume level for this device (0-99)?", range: "1â€¦100", defaultValue: 75, required: true)
 }
-
-def updateVolume()
-{
-    log.debug "In update volume ... new level = $volumeLevel!"
-
-def name = device.deviceNetworkId.split("-")[-1]
-def vId = device.data.vcId
-if(vId) parent.childComm("setVolume", volumeLevel, vId)
-	else parent.setVolume(volumeLevel.toInteger(), name)
-    
-}
-
 
 
 def updated()
@@ -63,10 +54,37 @@ def updated()
     }
 }
 
+def updateVolume(newLevel)
+{
+   log.debug "In update volume ... new level = $newLevel!"
+
+  def name = device.deviceNetworkId.split("-")[-1]
+  def vId = device.data.vcId
+    
+  if(vId) parent.childComm("setVolume", newLevel, vId)
+	else parent.setVolume(newLevel.toInteger(), name)   
+    
+}
+def updateVolume()
+{
+    updateVolume(volumeLevel)
+}
+
 def installed()
 {
     log.debug "in initialize"
     state.currentVolume = volumeLevel
+}
+
+def setVolume(level)
+{
+     if (level)
+    {
+      log.debug "In setVolume command: new level = $level"
+      sendEvent(name: "currentVolume", value: level)
+      state.currentVolume = level
+      updateVolume(level)
+    }   
 }
 
 def speak(message) {
@@ -77,4 +95,3 @@ def speak(message) {
 	if(vId) parent.childComm("speakMessage", nmsg.toString(), vId)
 	else parent.speakMessage(nmsg.toString(), name)
 }
-
