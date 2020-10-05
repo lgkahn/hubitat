@@ -81,8 +81,10 @@ def pageOne(){
         }
         else {
             // Schedule automatic update
-            unschedule()
-            schedule("0 0 1 1/6 * ? *", refreshCookie) //  Check for updates every 6 days at 1:00 AM
+	    def random=new Random()
+	    Integer random_int=random.nextInt(60)
+	    Integer random_dint=random.nextInt(9)
+	    schedule("${random_int} ${random_dint} 1 1/6 * ? *", refreshCookie) //  Check for updates every 6 days at 1:00 AM            unschedule()
             //Extract cookie from options if cookie is empty
             if(alexaCookie == null){
                 app.updateSetting("alexaCookie",[type:"text", value: getCookieFromOptions(alexaRefreshOptions)])
@@ -231,7 +233,7 @@ def speakMessage(String message, String device) {
     } 
     
     log.debug "Sending '${message}' to '${device}'"
-	sendEvent(name:"speakMessage", value: message, descriptionText: "Sending message to '${device}'")
+//	sendEvent(name:"speakMessage", value: message, descriptionText: "Sending message to '${device}'")
     if (message == '' || message.length() == 0) {
         log.warn "Message is empty. Skipping sending request to Amazon"
     }
