@@ -41,6 +41,9 @@ preferences {
 	input("volumeLevel", "integer", title: "Volume level for this device (0-99)?", range: "1…100", defaultValue: 75, required: true)
 }
 
+def configure()
+{
+}
 
 def updated()
 
