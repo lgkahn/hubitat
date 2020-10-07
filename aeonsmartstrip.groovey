@@ -63,7 +63,10 @@ preferences {
  input("SwitchLabel3", "text", title: "Label for Switch 3?", required: false, defaultValue: "Switch 3", description: "Label for the 3rd switch.")  
  input("SwitchLabel4", "text", title: "Label for Switch 4?", required: false, defaultValue: "Switch 4", description: "Label for the 4th switch.")  
  input("OutletLabel1", "text", title: "Label for non switcheable outlet 1?", required: false, defaultValue: "Outlet 1", description: "Label for the 1st non switcheable outlet.")  
- input("OutletLabel2", "text", title: "Label for non switcheable outlet 2?", required: false, defaultValue: "Outlet 2", description: "Label for the 2nd non switcheable outlet.")  
+ input("OutletLabel2", "text", title: "Label for non switcheable outlet 2?", required: false, defaultValue: "Outlet 2", description: "Label for the 2nd non switcheable outlet.")    
+ input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+   
+    
 
 }
 
@@ -210,7 +213,7 @@ preferences {
             }
             
            valueTile("temperature", "device.temperature", inactiveLabel: false, width: 2, height: 2) { 
-             state "temperature", label:'${currentValue}°',icon:"st.Weather.weather2",
+             state "temperature", label:'${currentValue}Â°',icon:"st.Weather.weather2",
              backgroundColors: 
              [ 
                 	[value: 44, color: "#1e9cbb"],
@@ -243,7 +246,7 @@ preferences {
 
 def updated()
 {
-log.debug "in updated"
+if(debug) log.debug "in updated"
   response(configure())
 }
 
@@ -285,7 +288,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd, e
 			} else if (endpoint == 1 || endpoint == 2) { 
                 zwaveEvent(encapsulatedCommand, endpoint + 4) 
 			} else {
-				log.debug("Ignoring metered outlet $endpoint msg: $encapsulatedCommand")
+				if (debug) log.debug("Ignoring metered outlet $endpoint msg: $encapsulatedCommand")
 				[]
 			}
 		} else {
@@ -295,7 +298,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd, e
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd, endpoint) {
-log.debug "in basic report cmd = $cmd ep = $endpoint"
+if (debug) log.debug "in basic report cmd = $cmd ep = $endpoint"
 
 if (!ep)
 {
@@ -333,7 +336,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd, end
 	if (!endpoint && (isstatechange == true) )
     {
     //sendEvent(events[0])
-       log.debug "setting events "
+      if (debug) log.debug "setting events "
 		events += (1..4).collect { ep -> endpointEvent(ep, map.clone()) }
 		cmds << "delay 2000"
 		cmds += delayBetween((1..4).collect { ep -> encap(zwave.meterV3.meterGet(scale: 2), ep) })
@@ -345,7 +348,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd, end
 def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd, ep) {
 	def event = [:]
 	def cmds = []
-   // log.debug "in meter report cmd = $cmd ep = $ep"
+   if (debug) log.debug "in meter report cmd = $cmd ep = $ep"
 		if (cmd.scale == 0) {
         log.debug " got kwh $cmd.scaledMeterValue"
 			event = endpointEvent(ep, [name: "energy", value: cmd.scaledMeterValue, unit: "kWh"])
@@ -362,8 +365,14 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd, ep) {
 		//event = endpointEvent(ep, [name: "energy", value: cmd.scaledMeterValue, unit: ["kWh", "kVAh"][cmd.scale]])
 	//} 
     else {
-   //  log.debug "in power event for endpoint = $ep"
+    // log.debug "in power event for endpoint = $ep"
+      //  log.debug "cmd = $cmd"
+       // log.debug "metervalue = $cmd.meterValue"
+        if (cmd.meterValue)
+        {
 		event = endpointEvent(ep, [name: "power", value: Math.round(cmd.scaledMeterValue), unit: "W"])
+        }
+    else if (debug) log.debug "skipping blank power report"
 	}
 	if (!ep && event.isStateChange && event.name == "energy") {
   	// Total strip energy consumption changed, check individual outlets
@@ -385,7 +394,7 @@ def zwaveEvent(hubitat.zwave.Command cmd, ep) {
 }
 
 def onOffCmd(value, endpoint = null) {
-log.debug "in onoff value = $value swith = $endpoint"
+if (debug) log.debug "in onoff value = $value swith = $endpoint"
 	[
 		encap(zwave.basicV1.basicSet(value: value), endpoint),
 		"delay 1000",
@@ -529,7 +538,7 @@ if (settings.OutletLabel2 == null)
        else 
          { 
          def convtemp = Math.round(celsiusToFahrenheit(thetemp) * 10) / 10
-         log.debug "got temp = $convtemp"
+        if (debug) log.debug "got temp = $convtemp"
        	createEvent(name:"temperature", value: Math.round(celsiusToFahrenheit(thetemp) * 10) / 10)
  	   } 
     } 
