@@ -332,6 +332,8 @@ def checkOnLevelInput(value) {
 
 // ensure we are passing an acceptable param value for TempAdj configs
 def checkTempAdjInput(value) {
+    log.debug "in temp adjus value = $value"
+    
         if (value == null) {
         value=0
     }
@@ -388,7 +390,7 @@ private command(hubitat.zwave.Command cmd) {
         return cmd.format()
     }
     Short S2 = getDataValue("S2")?.toInteger()
- //   log.debug "s2 = $s2"
+    //log.debug "s2 = $s2"
     String encap = ""
     String keyUsed = "S0"
     if (S2 == null) { //S0 existing device
@@ -410,11 +412,23 @@ private command(hubitat.zwave.Command cmd) {
 
 private command(String cmd) {
    // log.debug "in cmd 2 = $cmd"
+    if (cmd)
+    {
+      //  log.debug "got cmd"
+        def cmds = cmd.split(" ")
+        if (cmds[0] == "delay")
+        {
+          log.debug "skipping delay"
+          return
+        }
+    }
+   
+    
     if (getDataValue("zwaveSecurePairingComplete") != "true") {
         return cmd
     }
     Short S2 = getDataValue("S2")?.toInteger()
- //   log.debug " s2 = $s2"
+   // log.debug " s2 = $s2"
     String encap = ""
     String keyUsed = "S0"
     if (S2 == null) { //S0 existing device
@@ -443,7 +457,10 @@ void zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd){
 }
 
 private commands(commands, delay=1000) {
-    delayBetween(commands.collect{ command(it) }, delay)
+   // log.debug "incommands"
+   // delayBetween(commands.collect{ command(it) }, delay)
+     delayBetween(commands.collect{ command(it) })
+    
 }
 
 def huesatToRGB(float hue, float sat) {
