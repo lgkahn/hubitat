@@ -131,7 +131,7 @@ def pageStatus() {
     if (settings.devices == null) {
         return pageAbout()
     }
-    
+   
     def listLevel0 = ""
     def listLevel1 = ""
     def listLevel2 = ""
@@ -248,22 +248,22 @@ def pageConfigure() {
     
   
 
-   /* def inputPush      = [
+    def inputPush      = [
         name:           "pushMessage",
         type:           "bool",
         title:          "Send push notifications?",
         defaultValue:   true
     ]
-*/
 
-    def inputSMS       = [
+
+ /*   def inputSMS       = [
         name:           "phoneNumber",
         type:           "phone",
         title:          "Send SMS notifications to?",
         required:       false
     ]
     
-
+*/
     def pageProperties = [
         name:           "pageConfigure",
         title:          smartAppNameShort() + " Configuration",
@@ -287,12 +287,12 @@ def pageConfigure() {
         
         section("Notification") {
             input inputTime
-            //input inputPush   
+            input inputPush   
             input "sendPushMessage", "capability.notification", title: "Notification Devices: Hubitat PhoneApp or Pushover", multiple: true, required: false
 
             
             input nightlyStatusMsg
-            input inputSMS           
+           // input inputSMS           
         }
 
         section([title:"Options", mobileOnly:true]) {
@@ -312,6 +312,7 @@ def updated() {
     unsubscribe()
     initialize()
     //nightlyStatus() for testing fx
+  //  log.debug "in updated pushmessage = $settings.pushMessage"
 }
 
 def initialize() {
@@ -322,16 +323,16 @@ def send(msg) {
     log.debug msg
 
     if (settings.pushMessage) {
-      //  sendPush(msg) 
+     
         sendPushMessage.deviceNotification(msg)
-        
-    } else {
+    } 
+   /* } else {
         sendNotificationEvent(msg)
-    }
+    }*/
 
-    if (settings.phoneNumber != null) {
+  /*  if (settings.phoneNumber != null) {
         sendSms(phoneNumber, msg) 
-    }
+    }*/
 }
 
 // lgk now fx to prepare nightly message and send to get complete status not just outstanding devices.
