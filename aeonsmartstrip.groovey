@@ -33,6 +33,8 @@ metadata {
 		capability "Actuator"
 		capability "Sensor"
         capability "Polling"
+        capability "Temperature Measurement"
+        
         attribute "Label1", "string"
  		attribute "Label2", "string"
 	    attribute "Label3", "string"
@@ -350,11 +352,17 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd, ep) {
 	def cmds = []
    if (debug) log.debug "in meter report cmd = $cmd ep = $ep"
 		if (cmd.scale == 0) {
-        log.debug " got kwh $cmd.scaledMeterValue"
-			event = endpointEvent(ep, [name: "energy", value: cmd.scaledMeterValue, unit: "kWh"])
-		} else if (cmd.scale == 1) {
-          log.debug "got kvah $cmd.scaledMeterValue"
-			event = endpointEvent(ep, [name: "energy", value: cmd.scaledMeterValue, unit: "kVAh"])
+               if (cmd.meterValue)
+                {
+                    log.debug " got kwh $cmd.scaledMeterValue"
+			        event = endpointEvent(ep, [name: "energy", value: cmd.scaledMeterValue, unit: "kWh"])
+                }
+		} else if (cmd.scale == 1) {  
+            if (cmd.meterValue)
+            {
+              log.debug "got kvah $cmd.scaledMeterValue"
+			  event = endpointEvent(ep, [name: "energy", value: cmd.scaledMeterValue, unit: "kVAh"])
+            }
             }
 	//if (cmd.scale < 2) {
           //log.debug " got kwh $cmd.scaledMeterValue"
@@ -540,6 +548,7 @@ if (settings.OutletLabel2 == null)
          def convtemp = Math.round(celsiusToFahrenheit(thetemp) * 10) / 10
         if (debug) log.debug "got temp = $convtemp"
        	createEvent(name:"temperature", value: Math.round(celsiusToFahrenheit(thetemp) * 10) / 10)
+      
  	   } 
     } 
  }
