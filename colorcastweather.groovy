@@ -127,7 +127,7 @@ preferences {
 			input "allClearColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"Disabled",  multiple:false            
 		}
 		section ("Low Temperature") {
-			input "tempMinTrigger", "number", title: "Low Temperature - 캟", required: true, defaultValue:35 //Set the minumum temperature to trigger the "Cold" color
+			input "tempMinTrigger", "number", title: "Low Temperature - 째F", required: true, defaultValue:35 //Set the minumum temperature to trigger the "Cold" color
  			input "tempMinType", "enum", title: "Temperature Type", options: [
 				"Actual",
 				"Feels like"
@@ -135,7 +135,7 @@ preferences {
 			input "tempMinColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"Blue",  multiple:false            
 		}
 		section ("High Temperature") {
-			input "tempMaxTrigger", "number", title: "High Temperature - 캟", required: true, defaultValue:80 //Set the minumum temperature to trigger the "Cold" color
+			input "tempMaxTrigger", "number", title: "High Temperature - 째F", required: true, defaultValue:80 //Set the minumum temperature to trigger the "Cold" color
 			input "tempMaxType", "enum", title: "Temperature Type", options: [
 				"Actual",
 				"Feels like"
@@ -158,14 +158,14 @@ preferences {
 			input "cloudPercentColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"White",  multiple:false            
 		}
 		section ("Dew Point\r\n(Sometimes refered to as humidity)") {
-			input "dewPointTrigger", "number", title: "Dew Point - 캟", required: true, defaultValue:65 //Set the minumum temperature to trigger the "Cold" color
+			input "dewPointTrigger", "number", title: "Dew Point - 째F", required: true, defaultValue:65 //Set the minumum temperature to trigger the "Cold" color
 			input "dewPointColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"Orange",  multiple:false   
 			href(name: "hrefNotRequired",
 				title: "Learn more about \"Dew Point\"",
 				required: false,
 				style: "external",
 				url: "http://www.washingtonpost.com/blogs/capital-weather-gang/wp/2013/07/08/weather-weenies-prefer-dew-point-over-relative-humidity-and-you-should-too/",
-				description: "A Dew Point above 65� is generally considered \"muggy\"\r\nTap here to learn more about dew point"
+				description: "A Dew Point above 65째 is generally considered \"muggy\"\r\nTap here to learn more about dew point"
 			)
 		}
 
@@ -240,6 +240,7 @@ def getWeather() {
 
 def checkForWeather() {
 
+    //log.debug "in check for weather"
 	def d = new Date()
 	if ((d.getTime() - state.forecastTime) / 1000 / 60 > 30) {
 		unschedule()
@@ -278,12 +279,13 @@ def checkForWeather() {
 				forecastData=response.hourly.data
 				lookAheadHours=forecastRange.replaceAll(/\D/,"").toInteger()
 			}
-		
+		//log.debug "got forcasedata = $forcastData"
+        
 		for (hour in forecastData){ //Iterate over hourly data
 			if (lookAheadHours<++i) { //Break if we've processed all of the specified look ahead hours. Need to strip non-numeric characters(i.e. "hours") from string so we can cast to an integer
 				break
 			} else {
-              log.debug "in weather loop hour = $hour"
+             // log.debug "in weather loop hour = $hour"
 				if (snowColor!='Disabled' || rainColor!='Disabled' || sleetColor!='Disabled') {
 					if (hour.precipProbability.floatValue()>=0.15) { //Consider it raining/snowing if precip probabilty is greater than 15%
 						if (hour.precipType=='rain') {
@@ -318,7 +320,7 @@ def checkForWeather() {
 				if (dewPointColor!='Disabled' && hour.dewPoint>=dewPointTrigger) humid=true //Compare to user defined value for wind speed.
 			}
 		}
- log.debug "after hourly loop"
+// log.debug "after hourly loop"
  log.debug "min temp = $tempLow"
  log.debug "max temp = $tempHigh"
   log.debug "done with hour data number of alerts in report = $response.alerts!"
@@ -458,8 +460,8 @@ def checkForWeather() {
 	if (weatherAlert) {
          log.debug "Weather Alert!"
 		//When there's an active weather alert, shorten the duration that each color is shown but show the color multiple times. This will cause individual colors to flash when there is a weather alert
-		delay = 550 
-		iterations=3
+		delay = 600
+		iterations=5
 	}
 	
 	colors.each { //Iterate over each color
@@ -473,6 +475,9 @@ def checkForWeather() {
 				pause(delay)
 			}
 		}
+        // extra off
+        hues.off()
+        hues.off()
 	}
 	}
 	setLightsToOriginal() //The colors have been sent to the lamp and all colors have been shown. Now revert the lights to their original settings
@@ -552,6 +557,7 @@ def setLightsToOriginal() {
 
 /// HANDLE MOTION
 def motionHandler(evt) {
+    //log.debug "in motion handler"
 	if (evt.value == "active") {// If there is movement then trigger the weather display
 		log.debug "Motion detected, turning on light"
 		checkForWeather()
