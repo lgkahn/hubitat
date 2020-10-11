@@ -23,6 +23,7 @@ metadata {
 		capability "Sensor"
 		capability "Health Check"   
         capability "Switch"
+        capability "Configuration"
         
 	}
 
@@ -93,8 +94,13 @@ def finishClosing() {
     sendEvent(name: "contact", value: "closed")
 }
 
+def configure()
+{
+    installed()
+}
+
 def installed() {
-	log.trace "Executing 'installed'"
+	log.debug "Executing 'installed'"
 	initialize()
 }
 
@@ -107,16 +113,16 @@ refresh()
 }
 
 def updated() {
-	log.trace "Executing 'updated'"
+	log.debug "Executing 'updated'"
 	initialize()
 }
 
 private initialize() {
-	log.trace "Executing 'initialize'"
+	log.debug "Executing 'initialize'"
 
 	sendEvent(name: "DeviceWatch-DeviceStatus", value: "online")
 	sendEvent(name: "healthStatus", value: "online")
-	sendEvent(name: "DeviceWatch-Enroll", value: [protocol: "cloud", scheme:"untracked"].encodeAsJson(), displayed: false)
+	//sendEvent(name: "DeviceWatch-Enroll", value: [protocol: "cloud", scheme:"untracked"].encodeAsJson(), displayed: false)
 }
 
 def on()
