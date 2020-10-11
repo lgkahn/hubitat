@@ -32,7 +32,6 @@
 
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
-* Version 3.2 fixed typo (stray letter left in code) in turnon function in port to hubitat.
 */
 
 definition(
@@ -104,7 +103,7 @@ preferences {
      //   input("recipients", "contact", title: "Send notifications to") {
             //input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required: false
             input "sendPushMessage", "capability.notification", title: "Notification Devices: Hubitat PhoneApp or Pushover", multiple: true, required: false
-
+            input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
          
            // input "phone1", "phone", title: "Send a Text Message?", required: false
     //}
@@ -269,7 +268,7 @@ def SunsetHandler(evt)
  
 def TurnOff()
 {
-    //log.debug "In turn off"
+    if (debug) log.debug "In turn off"
    if (settings.enabled == true)
     {
         def appLabel = app.getLabel()
@@ -289,11 +288,11 @@ def TurnOffAlways()
 
 def TurnOn()
 {
-   // log.debug "In turn on"
+   if (debug) log.debug "In turn on"
     if (settings.enabled == true)
     {
      def appLabel = app.getLabel()
-     mysend("$applabel: Turning On!")
+     mysend("$appLabel: Turning On!")
      hues.on()
     }
 }
@@ -347,7 +346,7 @@ def scheduleNextSunrise(evt) {
 
 def changeHandler(evt) {
 
-	log.debug "in change handler"
+	//log.debug "in change handler"
   	// only do stuff if either switch is on (turns off at sunrise) or turned on manually
     if (hues)
     {
@@ -356,7 +355,7 @@ def changeHandler(evt) {
          def numberon = onHues.size();
          def onstr = numberon.toString() 
          
-       log.debug "found $onstr that were on!"
+       if (debug) log.debug "found $onstr that were on!"
       // log.debug "holiday mode = $settings.holidayMode"
        // log.debug "Random mode = $settings.randomMode"
     
@@ -411,8 +410,8 @@ def changeHandler(evt) {
 
 
            def int colorsEnabled = enabledColorArray.size
-           log.debug "Enabled Color Count = $colorsEnabled"
-           log.debug "Enabled Color Array = $enabledColorArray"
+           if (debug) log.debug "Enabled Color Count = $colorsEnabled"
+           if (debug) log.debug "Enabled Color Array = $enabledColorArray"
 
            if ((numberon > 1) && (settings.individualControl == true))
              {
@@ -420,7 +419,7 @@ def changeHandler(evt) {
                  for (def i=0; i<numberon; i++) 
                       {
                             def int nextValue = new Random().nextInt(colorsEnabled)
-                            log.debug "Hue: $i, Random Number = $nextValue"
+                           if (debug) log.debug "Hue: $i, Random Number = $nextValue"
                             newColor = enabledColorArray[nextValue]
 
                             log.debug("$app.label: Hue:$i - Setting Color to $newColor.")
@@ -432,10 +431,10 @@ def changeHandler(evt) {
                {
 
                 def int nextValue = new Random().nextInt(colorsEnabled)
-                log.debug "Random Number = $nextValue"
+                if (debug) log.debug "Random Number = $nextValue"
                 newColor = enabledColorArray[nextValue]
 
-                log.debug("$app.label: Setting Color to $newColor.")
+                //log.debug("$app.label: Setting Color to $newColor.")
                 hues.on()
                 sendcolor(newColor)
 
@@ -450,10 +449,10 @@ def changeHandler(evt) {
         def int nextValue = new Random().nextInt(16)
         def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
 
-        log.debug "Random Number = $nextValue"
+        if (debug) log.debug "Random Number = $nextValue"
         newColor = colorArray[nextValue]    
 
-        log.debug("$app.label: Setting Color to $newColor.")
+       // log.debug("$app.label: Setting Color to $newColor.")
         hues.on()
         sendcolor(newColor)
   
@@ -466,7 +465,7 @@ def changeHandler(evt) {
       { // not random
       
        def currentColor = state.currentColor
-       log.debug " in changeHandler got current color = $currentColor"
+       if (debug) log.debug " in changeHandler got current color = $currentColor"
 
        switch(currentColor) {
     
@@ -520,7 +519,7 @@ def changeHandler(evt) {
 			break;
                 default:
         	//log.debug "in default"
-                        newColor = "Red"
+             newColor = "Red"
 			break;
 	}
 
@@ -535,7 +534,8 @@ def changeHandler(evt) {
 }
 
 
-def sendcolor(color) { log.debug "In send color"
+def sendcolor(color) { 
+    //log.debug "In send color"
 	//Initialize the hue and saturation
 	def hueColor = 0
 	def saturation = 100
@@ -628,7 +628,7 @@ def sendcolor(color) { log.debug "In send color"
 
 def sendcolor(color,which)
 {
-        log.debug "In send color for hue $which"
+        if (debug) log.debug "In send color for hue $which"
 	//Initialize the hue and saturation
 	def hueColor = 0
 	def saturation = 100
@@ -722,16 +722,16 @@ private mysend(msg) {
     
      // check that contact book is enabled and recipients selected
     if (location.contactBookEnabled && recipients) {
-        log.debug("sending notifications to: ${recipients?.size()}")
+        if (debug) log.debug("sending notifications to: ${recipients?.size()}")
         sendNotificationToContacts(msg, recipients)
     } else {
         if (sendPushMessage) {
-         //   log.debug("Sending Push Notification...")
+            if (debug) log.debug("Sending Push Notification...")
+         
             sendPushMessage.deviceNotification(msg)
         } 
         
     }
 }
-
 
 
