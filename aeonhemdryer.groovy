@@ -24,7 +24,8 @@ metadata {
 	preferences {
        	input name: "washerRW", type: "number", title: "Washer running watts:", description: "", required: true
         input name: "dryerRW", type: "number", title: "Dryer running watts:", description: "", required: true
-        input name: "debug", type: "boolean", title: "Enable debug logging?", description: "", required:true, defaultValue: false
+       input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+       
     }
 	
     simulator {
