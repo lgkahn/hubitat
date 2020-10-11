@@ -90,7 +90,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
         	def value = encapsulatedCommand.scaledMeterValue
             def source = cmd.sourceEndPoint
             def mt = encapsulatedCommand.meterType
-            log.debug "mt = $mt value = $value, scale = $scale, source = $source, endpt = $endpt"
+           if (debug) log.debug "mt = $mt value = $value, scale = $scale, source = $source, endpt = $endpt"
 			def str = ""
             def name = ""
             def desc = ""
