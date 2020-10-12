@@ -135,7 +135,7 @@ def modeChangeHandler(evt) {
     // Have to handle when they select one mode or multiple
     if (modes.any{ it == evt.value } || modes == evt.value) {
     log.debug("scheduling check")
-	def delay = (falseAlarmThreshold != null && falseAlarmThreshold != "") ? falseAlarmThreshold * 60 : 2 * 60 
+	def Integer delay = (falseAlarmThreshold != null && falseAlarmThreshold != "") ? falseAlarmThreshold * 60 : 2 * 60 
     runIn(delay, "checkDoor")
     }
 }
