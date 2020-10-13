@@ -22,6 +22,9 @@
 * v 1.6 Add optional runtime for on battery so that you can check the UPS status fewer times and then increase
 * the times check when on battery (ie reduce the time say from 30 minutes to 10 etc.)
 * v 1.7 fix.. for yet another differing version of responses to get the UPS status. It seems there are as many differnt ups and net card firmwares and responses as days in the month!
+* v 1.8 dont change ups status to unknown when starting a check, This was nice but causes and extra firing of any rule.
+* v 1.9 add get ups temp both in celsius and f.
+
 */
 
 
@@ -34,6 +37,8 @@ attribute "version", "string"
 attribute "name", "string"
 attribute "batteryPercentage" , "number"
 attribute "currentCheckTime", "number"
+attribute "CTemp", "number"
+attribute "FTemp", "number"
 
 command "refresh"
 
@@ -60,7 +65,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.7"
+	state.version = "1.9"
 }
 
 def installed() {
@@ -91,6 +96,8 @@ def initialize() {
     sendEvent(name: "UPSStatus", value: "Unknown")
     sendEvent(name: "version", value: "1.0")
     sendEvent(name: "batteryPercentage", value: "???")
+    sendEvent(name: "FTemp", value: 0.0)
+    sendEvent(name: "CTemp", value: 0.0)
 
     if (debug) log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
     if ((UPSIP) && (UPSPort) && (Username) && (Password))
@@ -149,7 +156,7 @@ def refresh() {
 
      if (debug) log.debug "In lgk SmartUPS Status Version ($state.version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
-      sendEvent(name: "UPSStatus", value: "Unknown")
+      if (debug) sendEvent(name: "UPSStatus", value: "Unknown")
     
      if (debug) log.debug "Connecting to ${UPSIP}:${UPSPort}"
 	
@@ -200,6 +207,7 @@ def parse(String msg) {
 	        		, "detstatus -rt"
                     , "detstatus -ss"
                     , "detstatus -soc"
+                    , "detstatus -tmp"
 		        	, "quit"
 	            ]  
              def res1 = seqSend(sndMsg,500)
@@ -242,8 +250,10 @@ def parse(String msg) {
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
                      
+                    if (debug) log.debug "*********************************"
                     log.debug "Got UPS Status = $thestatus!"
-                    if (debug) log.debug ""
+                    if (debug) log.debug "*********************************"
+                     
                     sendEvent(name: "UPSStatus", value: thestatus)
                      
                    
@@ -299,8 +309,10 @@ def parse(String msg) {
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
                      
+                    if (debug) log.debug "*********************************"
                     log.debug "Got UPS Status = $thestatus!"
-                    if (debug) log.debug ""
+                    if (debug) log.debug "*********************************"
+                     
                     sendEvent(name: "UPSStatus", value: thestatus)
                      
                     if ((thestatus == "OnBattery") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTimeOnBattery))
@@ -341,11 +353,28 @@ def parse(String msg) {
                  {
                     def p4dec = p4.toDouble() / 100.0
                     int p4int = p4dec * 100
-                    if (debug) log.debug ""
+                    
+                    if (debug) log.debug "********************************"
                     log.debug "Got UPS Battery Percentage = $p4!"
-                    if (debug) log.debug ""
+                    if (debug) log.debug "*********************************"
+                   
                     sendEvent(name: "batteryPercentage", value: p4int)
+                 }  
+             
+             if ((p0 == "Battery") && (p1 == "Temperature:"))
+                 {
+                     
+                    if (debug) log.debug "********************************"
+                    log.debug "Got C Temp = $p2!"
+                    log.debug "Got F Temp = $p4!"
+                    if (debug) log.debug "********************************"
+      
+                    sendEvent(name: "CTemp", value: p2)
+                    sendEvent(name: "FTemp", value: p4)
                  }
+             
+             
+             
             } // length = 6
             
        if ((pair.length == 8) || (pair.length == 6))
@@ -364,18 +393,23 @@ def parse(String msg) {
      // looking for hours and minutes
      // Runtime Remaining: 2 hr 19 min 0 sec
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p3 == "hr"))
-                 {  if (debug) log.debug ""
+                 { 
+                     
+                    if (debug) log.debug "********************************"
                     log.debug "Got $p2 hours Remaining!"
-                    if (debug) log.debug ""
+                    if (debug) log.debug "********************************"
+                     
                     sendEvent(name: "hoursRemaining", value: p2.toInteger())
                     state.hoursRemaining = p2.toInteger()
                  }
            
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p5 == "min"))
-                 {   
-                    if (debug) log.debug ""
+                 { 
+                     
+                    if (debug) log.debug "********************************"
                     log.debug "Got $p4 minutes Remaining!"
-                    if (debug) log.debug ""
+                    if (debug) log.debug "********************************"
+                     
                     sendEvent(name: "minutesRemaining", value: p4.toInteger())
                     state.minutesRemaining = p4.toInteger()
                      
