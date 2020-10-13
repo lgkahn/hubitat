@@ -24,9 +24,12 @@
 * v 1.7 fix.. for yet another differing version of responses to get the UPS status. It seems there are as many differnt ups and net card firmwares and responses as days in the month!
 * v 1.8 dont change ups status to unknown when starting a check, This was nice but causes and extra firing of any rule.
 * v 1.9 add get ups temp both in celsius and f.
+* v 1.10 as well as internal temp and battery attributes added them as capabilties as well so you can use standard battery and temp tiles and standard rules on these.
+*    related also added a pulldown for units for temp ie C or F so the correct temp is set for the capability.
 
 */
-
+capability "Battery"
+capability "Temperature Measurement"
 
 attribute "lastCommand", "string"
 attribute "hoursRemaining", "number"
@@ -51,6 +54,7 @@ preferences {
     input("runTimeOnBattery", "integer", title: "How often to check UPS Status when on Battery (in Minutes)>", required: true, defaultValue: 10)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
     input("disable", "bool", title: "Disable?", required: false, defaultValue: false)
+    input("tempUnits", "enum", title: "Units for Temperature Capabilty?", options: ["F","C"], required: true, defaultValue: "F")
 }
 
 metadata {
@@ -65,7 +69,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.9"
+	state.version = "1.10"
 }
 
 def installed() {
@@ -98,6 +102,9 @@ def initialize() {
     sendEvent(name: "batteryPercentage", value: "???")
     sendEvent(name: "FTemp", value: 0.0)
     sendEvent(name: "CTemp", value: 0.0)
+    
+    if ((tempUnits == null) || (tempUnits == ""))
+      device.tempUnits = "F"
 
     if (debug) log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
     if ((UPSIP) && (UPSPort) && (Username) && (Password))
@@ -113,6 +120,11 @@ def initialize() {
                 device.setLabel(state.origAppName)
             }
            
+            if (tempUnits)
+            {
+                log.debug "Temp. Unit Currently: $tempUnits"
+            }
+            
             // only reset name if was not disabled
             if (state.disabled != true) state.origAppName =  device.getLabel()  
             state.disabled = false 
@@ -359,6 +371,7 @@ def parse(String msg) {
                     if (debug) log.debug "*********************************"
                    
                     sendEvent(name: "batteryPercentage", value: p4int)
+                    sendEvent(name: "battery", value: p4int, unit: "%")
                  }  
              
              if ((p0 == "Battery") && (p1 == "Temperature:"))
@@ -371,6 +384,10 @@ def parse(String msg) {
       
                     sendEvent(name: "CTemp", value: p2)
                     sendEvent(name: "FTemp", value: p4)
+                    if (tempUnits == "F")  
+                      sendEvent(name: "temperature", value: p4, unit: tempUnits)
+                    else 
+                      sendEvent(name: "temperature", value: p2, unit: tempUnits)
                  }
              
              
