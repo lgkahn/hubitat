@@ -13,7 +13,11 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  * lgk kahn@lgk.com 10/13/20 Added user selectable refresh update schedule instead of default 15 minutes.
- */
+ * also add custom lastupdate time attribute and refreshTime so that info is displayable on dashboards.
+ * also round mileage off to whole number so again it appears better on dashboard.
+ * same for temp, round off so that we can do custom colors on dashbaord based on temp.
+ * Same for temp setpoint. showing non integer makes no sens.
+*/
 metadata {
 	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley") {
 		capability "Actuator"
@@ -32,6 +36,8 @@ metadata {
         attribute "odometer", "number"
         attribute "batteryRange", "number"
         attribute "chargingState", "string"
+        attribute "refreshTime", "string"
+        attribute "lastUpdate", "string"
 
 		command "wake"
         command "setThermostatSetpoint"
@@ -97,7 +103,7 @@ metadata {
             state "default", action:"setThermostatSetpoint"
         }
         valueTile("temperature", "device.temperature", width: 2, height: 2) {
-            state("temperature", label: '${currentValue}°', unit:"dF",
+            state("temperature", label: '${currentValue}Â°', unit:"dF",
                 backgroundColors:[
                     [value: 31, color: "#153591"],
                     [value: 44, color: "#1e9cbb"],
@@ -150,13 +156,18 @@ metadata {
 
 def initialize() {
 	log.debug "Executing 'initialize'"
+     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
     
     sendEvent(name: "supportedThermostatModes", value: ["auto", "off"])
     log.debug "Refresh time currently set to: $refreshTime"
-    unschedule()
+    unschedule()  
+   
+    sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+    sendEvent(name: "refreshTime", value: refreshTime)
+    
     if (refreshTime == "1-Hour")
-       runEvery1Hour(refresh)
-     else if (refreshTime == "30-Minutes")
+      runEvery1Hour(refresh)
+      else if (refreshTime == "30-Minutes")
        runEvery30Minutes(refresh)
      else if (refreshTime == "15-Minutes")
        runEvery15Minutes(refresh)
@@ -188,7 +199,7 @@ private processData(data) {
         
         if (data.chargeState) {
         	sendEvent(name: "battery", value: data.chargeState.battery)
-            sendEvent(name: "batteryRange", value: data.chargeState.batteryRange)
+            sendEvent(name: "batteryRange", value: data.chargeState.batteryRange.toInteger())
             sendEvent(name: "chargingState", value: data.chargeState.chargingState)
         }
         
@@ -203,12 +214,12 @@ private processData(data) {
         if (data.vehicleState) {
         	sendEvent(name: "presence", value: data.vehicleState.presence)
             sendEvent(name: "lock", value: data.vehicleState.lock)
-            sendEvent(name: "odometer", value: data.vehicleState.odometer)
+            sendEvent(name: "odometer", value: data.vehicleState.odometer.toInteger())
         }
         
         if (data.climateState) {
-        	sendEvent(name: "temperature", value: data.climateState.temperature)
-            sendEvent(name: "thermostatSetpoint", value: data.climateState.thermostatSetpoint)
+        	sendEvent(name: "temperature", value: data.climateState.temperature.toInteger())
+            sendEvent(name: "thermostatSetpoint", value: data.climateState.thermostatSetpoint.toInteger())
         }
 	} else {
     	log.error "No data found for ${device.deviceNetworkId}"
@@ -217,6 +228,9 @@ private processData(data) {
 
 def refresh() {
 	log.debug "Executing 'refresh'"
+     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+   
     def data = parent.refresh(this)
 	processData(data)
 }
@@ -317,4 +331,3 @@ def updated()
    initialize()
     
 }
-
