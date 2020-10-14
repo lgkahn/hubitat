@@ -26,6 +26,7 @@
 * v 1.9 add get ups temp both in celsius and f.
 * v 1.10 as well as internal temp and battery attributes added them as capabilties as well so you can use standard battery and temp tiles and standard rules on these.
 *    related also added a pulldown for units for temp ie C or F so the correct temp is set for the capability.
+* 1.11 change for alternate etmp config
 
 */
 capability "Battery"
@@ -69,7 +70,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.10"
+	state.version = "1.11"
 }
 
 def installed() {
@@ -374,9 +375,8 @@ def parse(String msg) {
                     sendEvent(name: "battery", value: p4int, unit: "%")
                  }  
              
-             if ((p0 == "Battery") && (p1 == "Temperature:"))
-                 {
-                     
+             if (((p0 == "Internal") || (p0 == "Battery")) && (p1 == "Temperature:"))    
+                 {   
                     if (debug) log.debug "********************************"
                     log.debug "Got C Temp = $p2!"
                     log.debug "Got F Temp = $p4!"
