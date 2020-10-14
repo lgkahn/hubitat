@@ -1,5 +1,5 @@
 metadata {
-    definition (name: "Keen Home Smart Vent - lgk", namespace: "lgkapps", author: "Keen Home, lgkahn") {
+    definition (name: "Keen Home Smart Vent - lgk V2", namespace: "lgkapps", author: "Keen Home, lgkahn") {
         capability "Switch Level"
         capability "Switch"
         capability "Configuration"
@@ -10,7 +10,9 @@ metadata {
 
        // lgk modifications to add door and contact control, so you can open/close in alexa and view status as open/closed in contacts
        // also add label/words open closed when viewing from list of devices in room
-       
+       // lgk 10/20 had to modify by calling this function to get the corrected description map in Hubitat.. This was not necesary in Snmarthings so something is different in the underlying achitecture.
+       // zigbee.parseDescriptionAsMap(description) 
+        
 		capability "Door Control"
         capability "Contact Sensor"
 
@@ -31,7 +33,9 @@ metadata {
 
 preferences {
     input("TempOffset", "number", title: "Temperature Offset/Adjustment -10 to +10 in Degrees?",range: "-10..10", description: "If your temperature is innacurate this will offset/adjust it by this many degrees.", defaultValue: 0, required: false)
-   }
+    input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+ 
+}
 
     // simulator metadata
     simulator {
@@ -44,61 +48,29 @@ preferences {
         reply "zcl on-off off": "on/off: 0"
     }
 
-    // UI tile definitions
-    tiles {
-        standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: false) {
-            state "on", action: "switch.off",   label: "Open", icon: "st.vents.vent-open-text", backgroundColor: "#53a7c0"
-            state "off", action: "switch.on",  label: "Closed", icon: "st.vents.vent-closed", backgroundColor: "#ffffff"
-            state "obstructed", action: "clearObstruction", icon: "st.vents.vent-closed", backgroundColor: "#ff0000"
-            state "clearing", action: "", icon: "st.vents.vent-closed", backgroundColor: "#ffff33"
-        }
-        controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false) {
-            state "level", action:"switch level.setLevel"
-        }
-        standardTile("refresh", "device.power", inactiveLabel: false, decoration: "flat") {
-            state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
-        }
-        valueTile("temperature", "device.temperature", inactiveLabel: false) {
-            state "temperature", label:'${currentValue}°',
-            backgroundColors:[
-                [value: 31, color: "#153591"],
-                [value: 44, color: "#1e9cbb"],
-                [value: 59, color: "#90d2a7"],
-                [value: 74, color: "#44b621"],
-                [value: 84, color: "#f1d801"],
-                [value: 95, color: "#d04e00"],
-                [value: 96, color: "#bc2323"]
-            ]
-        }
-        valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
-            state "battery", label: 'Battery ${currentValue}%', backgroundColor:"#ffffff"
-        }
-        valueTile("zigbeeId", "device.zigbeeId", inactiveLabel: true, decoration: "flat") {
-            state "serial", label:'${currentValue}', backgroundColor:"#ffffff"
-        }
-        standardTile("configure", "device.configure", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-            state "configure", label:'', action:"configuration.configure", icon:"st.secondary.configure"
-        }
-        main "switch"
-        details(["switch","refresh","temperature","levelSliderControl","battery",  "configure"])
-    }
 }
 
 /**** PARSE METHODS ****/
-def parse(String description) {
-    log.debug "description: $description"
+def parse(String description)
+{
+   if (debug) log.debug "in parse"
+   if (debug) log.debug "description: $description"
 
     Map map = [:]
-    if (description?.startsWith('catchall:')) {
+    if (description?.startsWith('catchall:'))
+    {
         map = parseCatchAllMessage(description)
     }
-    else if (description?.startsWith('read attr -')) {
+    else if (description?.startsWith('read attr -'))
+    {
         map = parseReportAttributeMessage(description)
     }
-    else if (description?.startsWith('temperature: ') || description?.startsWith('humidity: ')) {
+    else if (description?.startsWith('temperature: ') || description?.startsWith('humidity: ')) 
+    {
         map = parseCustomMessage(description)
     }
-    else if (description?.startsWith('on/off: ')) {
+    else if (description?.startsWith('on/off: '))
+    {
         map = parseOnOffMessage(description)
     }
 
@@ -107,12 +79,12 @@ def parse(String description) {
 }
 
 private Map parseCatchAllMessage(String description) {
-    log.debug "parseCatchAllMessage"
+   if (debug)  log.debug "parseCatchAllMessage"
 
     def cluster = zigbee.parse(description)
-    log.debug "cluster: ${cluster}"
+  if (debug)  log.debug "cluster: ${cluster}"
     if (shouldProcessMessage(cluster)) {
-        log.debug "processing message"
+       
         switch(cluster.clusterId) {
             case 0x0001:
                 return makeBatteryResult(cluster.data.last())
@@ -148,29 +120,49 @@ private boolean shouldProcessMessage(cluster) {
 }
 
 private Map parseReportAttributeMessage(String description) {
-    log.debug "parseReportAttributeMessage"
+    if (debug) log.debug "parseReportAttributeMessage"
 
     Map descMap = (description - "read attr - ").split(",").inject([:]) { map, param ->
         def nameAndValue = param.split(":")
         map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
     }
-    log.debug "Desc Map: $descMap"
+   if (debug) log.debug "Desc Map: $descMap"
 
     if (descMap.cluster == "0006" && descMap.attrId == "0000") {
-        return makeOnOffResult(Int.parseInt(descMap.value));
+        if (debug) {
+            log.debug "in cluster 0006 case "
+            log.debug "map = $descMap"
+            log.debug "value = $descMap.value"
+        }
+            //return makeOnOffResult(Int.parseInt(descMap.value));
+         return makeOnOffResult(descMap.value)
+       
     }
     else if (descMap.cluster == "0008" && descMap.attrId == "0000") {
         return makeLevelResult(descMap.value)
     }
     else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
-        def value = convertTemperatureHex(descMap.value)
+        if (debug) log.debug "in 0402 case"
+        if (debug) log.debug "orig map = $descMap"
+        
+         // lgk need to call this in hubitat to get correct converted map
+        def descMapNew = zigbee.parseDescriptionAsMap(description) 
+        if (debug) log.debug "Corrected map = $descMapNew"
+       
+        def value = convertTemperatureHex(descMapNew.value)
         return makeTemperatureResult(value)
     }
     else if (descMap.cluster == "0001" && descMap.attrId == "0021") {
         return makeBatteryResult(Integer.parseInt(descMap.value, 16))
     }
     else if (descMap.cluster == "0403" && descMap.attrId == "0020") {
-        return makePressureResult(Integer.parseInt(descMap.value, 16))
+        if (debug) log.debug "***************************in 0403 case"
+        if (debug) log.debug "orig map = $descMap"
+       
+        // lgk fix here as well 
+        def descMapNew = zigbee.parseDescriptionAsMap(description) 
+        if (debug) log.debug "new map = $descMapNew"  
+        return makePressureResult(Integer.parseInt(descMapNew.value, 16))
     }
     else if (descMap.cluster == "0000" && descMap.attrId == "0006") {
         return makeSerialResult(new String(descMap.value.decodeHex()))
@@ -178,16 +170,18 @@ private Map parseReportAttributeMessage(String description) {
 
     // shouldn't get here
     return [:]
+    
 }
 
 private Map parseCustomMessage(String description) {
     Map resultMap = [:]
     if (description?.startsWith('temperature: ')) {
-        // log.debug "${description}"
-        // def value = zigbee.parseHATemperatureValue(description, "temperature: ", getTemperatureScale())
-        // log.debug "split: " + description.split(": ")
+         log.debug "${description}"
+         def oldvalue = zigbee.parseHATemperatureValue(description, "temperature: ", getTemperatureScale())
+          
+        log.debug "split: " + description.split(": ")
         def value = Double.parseDouble(description.split(": ")[1])
-        // log.debug "${value}"
+       log.debug "${value}" 
         resultMap = makeTemperatureResult(convertTemperature(value))
     }
     return resultMap
@@ -203,7 +197,7 @@ private Map parseOnOffMessage(String description) {
 }
 
 private Map makeOnOffResult(rawValue) {
-    log.debug "makeOnOffResult: ${rawValue}"
+   if (debug) log.debug "makeOnOffResult: ${rawValue}"
     def linkText = getLinkText(device)
     def value = rawValue == 1 ? "on" : "off"
     return [
@@ -266,25 +260,27 @@ private Map makeBatteryResult(rawValue) {
     ]
 }
 
+
 private Map makeTemperatureResult(value) {
-    // log.debug 'makeTemperatureResult'
+    
+     if (debug) log.debug 'makeTemperatureResult'
+   
     def linkText = getLinkText(device)
 
-    log.debug "tempOffset: ${settings.TempOffset}"
     if (settings.TempOffset != null) {
         def offset = settings.TempOffset as BigDecimal
       
-        log.debug "raw temp value = $value"
+        if (debug) log.debug "raw temp value = $value"
         def v = value + offset as BigDecimal
-       // log.debug "v: ${v}"
-      // value = v + offset
+       
+       value = v + offset
       
        def dispval =  String.format("%5.1f", v)
-      // log.debug "display = $dispval"
+       
        def finalval = dispval as BigDecimal
-      // log.debug "finalval = $finalval"
+       
        value = finalval
-       //log.debug "value:= $value"
+       if (debug) log.debug "value:= $value"
           
     }
 
@@ -297,27 +293,34 @@ private Map makeTemperatureResult(value) {
 
 /**** HELPER METHODS ****/
 private def convertTemperatureHex(value) {
-    // log.debug "convertTemperatureHex(${value})"
+  //  log.debug "in coverttemphex calling new fx"
+   
+    
+    if (debug)
+    {
+        log.debug "convertTemperatureHex(${value})"
+        log.debug "scale = $getTemperatureScale()"
+    }
+    
     def celsius = Integer.parseInt(value, 16).shortValue() / 100
-    // log.debug "celsius: ${celsius}"
-
+    
     return convertTemperature(celsius)
 }
 
 private def convertTemperature(celsius) {
-    // log.debug "convertTemperature()"
+    if (debug) log.debug "convertTemperature()"
 
     if(getTemperatureScale() == "C"){
         return celsius
     } else {
         def fahrenheit = Math.round(celsiusToFahrenheit(celsius) * 100) /100
-        // log.debug "converted to F: ${fahrenheit}"
+       if (debug)  log.debug "converted to F: ${fahrenheit}"
         return fahrenheit
     }
 }
 
 private def makeSerialResult(serial) {
-    log.debug "makeSerialResult: " + serial
+   if (debug) log.debug "makeSerialResult: " + serial
 
     def linkText = getLinkText(device)
     sendEvent([
@@ -565,4 +568,3 @@ def configure() {
 
     return configCmds + refresh()
 }
-
