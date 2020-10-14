@@ -168,7 +168,7 @@ def refresh() {
 
      if (debug) log.debug "In lgk SmartUPS Status Version ($state.version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
-      if (debug) sendEvent(name: "UPSStatus", value: "Unknown")
+      //if (debug) sendEvent(name: "UPSStatus", value: "Unknown")
     
      if (debug) log.debug "Connecting to ${UPSIP}:${UPSPort}"
 	
