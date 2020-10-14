@@ -17,6 +17,8 @@
  * also round mileage off to whole number so again it appears better on dashboard.
  * same for temp, round off so that we can do custom colors on dashbaord based on temp.
  * Same for temp setpoint. showing non integer makes no sens.
+ 
+ * lgk new versino, not letting the car sleep, add option to disable and schedule it between certain times.
 */
 metadata {
 	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley") {
@@ -52,105 +54,14 @@ metadata {
 		// TODO: define status and reply messages here
 	}
 
-	tiles(scale: 2) {
-		valueTile("main", "device.battery", canChangeBackground: true) {
-            state("default", label:'${currentValue}%',
-                backgroundColors:[
-                    [value: 75, color: "#153591"],
-                    [value: 65, color: "#1e9cbb"],
-                    [value: 55, color: "#90d2a7"],
-                    [value: 45, color: "#44b621"],
-                    [value: 35, color: "#f1d801"],
-                    [value: 25, color: "#d04e00"],
-                    [value: 15, color: "#bc2323"]
-                ]
-            )
-        }
-        standardTile("state", "device.state", width: 2, height: 2) {
-            state "asleep", label: "Asleep", backgroundColor: "#eeeeee", action: "wake", icon: "st.Bedroom.bedroom2"
-            state "online", label: "Online", backgroundColor: "#00a0dc", icon: "st.tesla.tesla-front"
-        }
-        valueTile("help", "device.state", width: 4, height: 2) {
-            state "default", label: 'In order to use the various commands, your vehicle must first be awakened.'
-		}
-        standardTile("chargingState", "device.chargingState", width: 2, height: 2) {
-            state "default", label: '${currentValue}', icon: "st.Transportation.transportation6" //, backgroundColor: "#cccccc"
-            state "stopped", label: '${currentValue}', icon: "st.Transportation.transportation6", action: "startCharge", backgroundColor: "#ffffff"
-            state "charging", label: '${currentValue}', icon: "st.Transportation.transportation6", action: "stopCharge", backgroundColor: "#00a0dc"
-            state "complete", label: '${currentValue}', icon: "st.Transportation.transportation6", backgroundColor: "#44b621"
-        }
-        valueTile("battery", "device.battery", width: 2, height: 1) {
-            state("default", label:'${currentValue}% battery' /*
-                backgroundColors:[
-                    [value: 75, color: "#153591"],
-                    [value: 65, color: "#1e9cbb"],
-                    [value: 55, color: "#90d2a7"],
-                    [value: 45, color: "#44b621"],
-                    [value: 35, color: "#f1d801"],
-                    [value: 25, color: "#d04e00"],
-                    [value: 15, color: "#bc2323"]
-                ] */
-            )
-        }
-        valueTile("batteryRange", "device.batteryRange", width: 2, height: 1) {
-            state("default", label:'${currentValue} mi range')
-        }
-        standardTile("thermostatMode", "device.thermostatMode", width: 2, height: 2) {
-        	state "auto", label: "On", action: "off", icon: "st.tesla.tesla-hvac", backgroundColor: "#00a0dc"
-            state "off", label: "Off", action: "auto", icon: "st.tesla.tesla-hvac", backgroundColor: "#ffffff"
-        }
-        controlTile("thermostatSetpoint", "device.thermostatSetpoint", "slider", width: 2, height: 2, range:"(60..85)") {
-            state "default", action:"setThermostatSetpoint"
-        }
-        valueTile("temperature", "device.temperature", width: 2, height: 2) {
-            state("temperature", label: '${currentValue}°', unit:"dF",
-                backgroundColors:[
-                    [value: 31, color: "#153591"],
-                    [value: 44, color: "#1e9cbb"],
-                    [value: 59, color: "#90d2a7"],
-                    [value: 74, color: "#44b621"],
-                    [value: 84, color: "#f1d801"],
-                    [value: 95, color: "#d04e00"],
-                    [value: 96, color: "#bc2323"]
-                ]
-            )
-        }
-        standardTile("lock", "device.lock", width: 2, height: 2) {
-            state "locked", label: "Locked", action: "unlock", icon: "st.tesla.tesla-locked", backgroundColor: "#ffffff"
-            state "unlocked", label: "Unlocked", action: "lock", icon: "st.tesla.tesla-unlocked", backgroundColor: "#00a0dc"
-        }
-        valueTile("trunkLabel", "device.state", width: 2, height: 1) {
-			state "default", label: 'Open Trunk >'
-		}
-        standardTile("frontTrunk", "device.state") {
-            state "default", label: "Front", action: "openFrontTrunk"
-        }
-        standardTile("rearTrunk", "device.state") {
-        	state "default", label: "Rear", action: "openRearTrunk"
-        }
-		standardTile("motion", "device.motion", width: 2, height: 1) {
-            state "inactive", label: "Parked", icon: "st.motion.acceleration.inactive"
-            state "active", label: "Driving", icon: "st.motion.acceleration.active"
-        }
-        valueTile("speed", "device.speed", width: 2, height: 1) {
-			state "default", label: '${currentValue} mph'
-		}
-		standardTile("refresh", "device.state", decoration: "flat", width: 2, height: 2) {
-			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
-		}
-        valueTile("odometer", "device.odometer", width: 2, height: 1) {
-			state "default", label: 'ODO    ${currentValue}'
-		}
-        valueTile("vin", "device.vin", width: 4, height: 1) {
-			state "default", label: '${currentValue}'
-		}
-        
-        main("main")
-        details("state", "help", "chargingState", "battery", "motion", "batteryRange", "speed", "thermostatMode", "thermostatSetpoint", "temperature", "lock", "trunkLabel", "frontTrunk", "rearTrunk", "odometer", "refresh", "vin")
-	}
+
     preferences
     {
-       input "refreshTime", "enum", title: "How often to refresh?",options: ["1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"  
+       input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"
+       input "AllowSleep", "bool", title: "Schedule a time to disable/reenable to allow the car to sleep?", required: true, defaultValue: false
+       input "fromTime", "time", title: "From", required:false, width: 6, submitOnChange:true
+       input "toTime", "time", title: "To", required:false, width: 6 
+       input "debug", "bool", title: "Turn on Debug Logging?", required:true, defaultValue: false   
     }
 }
 
@@ -175,11 +86,39 @@ def initialize() {
        runEvery10Minutes(refresh)
      else if (refreshTime == "5-Minutes")
        runEvery5Minutes(refresh)
+    else if (refreshTime == "Disabled")
+    {
+        log.debug "Disabling..."
+    }
       else 
       { 
           log.debug "Unknown refresh time specified.. defaulting to 15 Minutes"
           runEvery15Minutes(refresh)
       }
+    // now handle scheduling to turn on and off to allow sleep
+    if ((AllowSleep == true) && (fromTime != null) && (toTime != null))
+    {
+       log.debug "Scheduling disable and re-enable times to allow sleep!" 
+        schedule(fromTime, disable)
+        schedule(toTime, reenable)       
+    }
+}
+
+
+def disable()
+{
+    log.debug "Disabling to allow sleep!"
+    unschedule()
+    // schedule reenable time
+    if (toTime != null)
+     schedule(toTime, reenable)
+}
+
+def reenable()
+{
+    log.debug "Waking up app in re-enable!"
+    // now schedule the sleep again
+    initialize()  
 }
 
 // parse events into attributes
@@ -187,6 +126,11 @@ def parse(String description) {
 	log.debug "Parsing '${description}'"
 }
 
+def logsOff() {
+    log.info "${app.label} - Debug logging auto disabled"
+    app?.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+    
 private processData(data) {
 	if(data) {
     	log.debug "processData: ${data}"
