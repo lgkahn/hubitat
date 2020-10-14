@@ -74,7 +74,7 @@ def parse(String description)
         map = parseOnOffMessage(description)
     }
 
-    log.debug "Parse returned $map"
+    if (debug) log.debug "Parse returned $map"
     return map ? createEvent(map) : null
 }
 
@@ -134,8 +134,7 @@ private Map parseReportAttributeMessage(String description) {
             log.debug "map = $descMap"
             log.debug "value = $descMap.value"
         }
-            //return makeOnOffResult(Int.parseInt(descMap.value));
-         return makeOnOffResult(descMap.value)
+            return makeOnOffResult(Integer.parseInt(descMap.value));  
        
     }
     else if (descMap.cluster == "0008" && descMap.attrId == "0000") {
@@ -188,6 +187,7 @@ private Map parseCustomMessage(String description) {
 }
 
 private Map parseOnOffMessage(String description) {
+   if (debug) log.debug "in parse on off"
     Map resultMap = [:]
     if (description?.startsWith('on/off: ')) {
         def value = Integer.parseInt(description - "on/off: ")
@@ -235,7 +235,7 @@ private Map makeLevelResult(rawValue) {
 }
 
 private Map makePressureResult(rawValue) {
-    log.debug 'makePressureResut'
+    if (debug) log.debug 'makePressureResut'
     def linkText = getLinkText(device)
 
     def pascals = rawValue / 10
@@ -359,9 +359,11 @@ def on() {
   // LGK
     sendEvent(name: "contact", value: "open")
     sendEvent(name: "door", value: "open")
+    sendEvent(name: "level", value: 100)
 
     sendEvent(makeOnOffResult(1))
     "st cmd 0x${device.deviceNetworkId} 1 6 1 {}"
+    setLevel(100)
     
   
 }
@@ -379,10 +381,13 @@ def off() {
   
     // lgk
     sendEvent(name: "contact", value: "closed")
-    sendEvent(name: "door", value: "closed")
+    sendEvent(name: "door", value: "closed") 
+    sendEvent(name: "level", value: 0)
+    
 
 	sendEvent(makeOnOffResult(0))
     "st cmd 0x${device.deviceNetworkId} 1 6 0 {}"
+    setLevel(0)
   
 }
 
@@ -420,9 +425,14 @@ def setLevel(value) {
     sendEvent(name: "level", value: value)
     if (value > 0) {
         sendEvent(name: "switch", value: "on", descriptionText: "${linkText} is on by setting a level")
+        sendEvent(name: "contact", value: "open")
+        sendEvent(name: "door", value: "open")  
     }
     else {
         sendEvent(name: "switch", value: "off", descriptionText: "${linkText} is off by setting level to 0")
+        sendEvent(name: "contact", value: "closed")
+        sendEvent(name: "door", value: "closed")
+
     }
 
     makeLevelCommand(value)
