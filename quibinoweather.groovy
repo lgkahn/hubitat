@@ -117,7 +117,7 @@ metadata {
 	tiles(scale: 2) {
 		multiAttributeTile(name:"temperature", type:"generic", width:6, height:4, canChangeIcon: false) {
   			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
-    			attributeState("default", label:'${currentValue} °F', unit: "°F", icon: "st.Weather.weather2",
+    			attributeState("default", label:'${currentValue} Â°F', unit: "Â°F", icon: "st.Weather.weather2",
                      backgroundColors:[
                 	[value: 1,  color: "#c8e3f9"],
                 	[value: 10, color: "#dbdee2"],
@@ -132,7 +132,7 @@ metadata {
 			])
             }
              tileAttribute("device.windChillTemperature", key: "SECONDARY_CONTROL") {
-    			attributeState("default", label:'Wind Chill ${currentValue} °F', unit:"°F")
+    			attributeState("default", label:'Wind Chill ${currentValue} Â°F', unit:"Â°F")
                 }
   		
         }   
@@ -140,7 +140,7 @@ metadata {
     /*
     tiles(scale: 2) {
 		valueTile("temperature", "device.temperature") {
-			state("temperature", label:'${currentValue} °F', unit:"°F", icon: "st.Weather.weather2", backgroundColors: [
+			state("temperature", label:'${currentValue} Â°F', unit:"Â°F", icon: "st.Weather.weather2", backgroundColors: [
 			 	// Celsius Color Range
 				[value: 0, color: "#153591"],
 				[value: 7, color: "#1e9cbb"],
@@ -166,7 +166,7 @@ metadata {
 		}	
         
 		standardTile("temperatureCh1", "device.temperatureCh1", width: 3, height: 2) {
-			state("temperatureCh1", label:'Temp. Ch1:\n${currentValue} °F', unit:'°F', icon: 'st.Weather.weather2',
+			state("temperatureCh1", label:'Temp. Ch1:\n${currentValue} Â°F', unit:'Â°F', icon: 'st.Weather.weather2',
             	backgroundColors:[
                 	[value: 1,  color: "#c8e3f9"],
                 	[value: 10, color: "#dbdee2"],
@@ -209,7 +209,7 @@ metadata {
                 )
 		}
 		standardTile("windTemperature", "device.windTemperature", width: 3, height: 2) {
-			state("windTemperature", label:'Outdoor Temp.\n${currentValue} °F', unit:'°F', icon: 'st.Weather.weather2',
+			state("windTemperature", label:'Outdoor Temp.\n${currentValue} Â°F', unit:'Â°F', icon: 'st.Weather.weather2',
          backgroundColors:[
                 	[value: 1,  color: "#c8e3f9"],
                 	[value: 10, color: "#dbdee2"],
@@ -225,7 +225,7 @@ metadata {
 				])   
 		}
 		standardTile("windChillTemperature", "device.windChillTemperature", width: 3, height: 2) {
-			state("windChillTemperature", label:'Wind Chill:\n${currentValue} °F', unit:'°F', icon: 'st.Weather.weather2',
+			state("windChillTemperature", label:'Wind Chill:\n${currentValue} Â°F', unit:'Â°F', icon: 'st.Weather.weather2',
             backgroundColors:[
                 	[value: 1,  color: "#c8e3f9"],
                 	[value: 10, color: "#dbdee2"],
@@ -255,7 +255,7 @@ metadata {
          ]        
          )	}
 		standardTile("temperatureCh2", "device.temperatureCh2", width: 3, height: 2) {
-			state("temperatureCh2", label:'Temp. Ch2:\n${currentValue} °F', unit:'°F', icon: 'st.Weather.weather2',
+			state("temperatureCh2", label:'Temp. Ch2:\n${currentValue} Â°F', unit:'Â°F', icon: 'st.Weather.weather2',
             	backgroundColors:[
                 	[value: 1,  color: "#c8e3f9"],
                 	[value: 10, color: "#dbdee2"],
@@ -302,10 +302,10 @@ metadata {
             state "default", label: 'Max Wind Gust:\n ${currentValue} mph' }
          
             valueTile("maxOutdoorTemp", "device.maxOutdoorTemp", width: 3, height: 1) {
-            state "default", label: 'Max Outdoor Temp:\n ${currentValue} °F' }
+            state "default", label: 'Max Outdoor Temp:\n ${currentValue} Â°F' }
       
             valueTile("minOutdoorTemp", "device.minOutdoorTemp", width: 3, height: 1) {
-            state "default", label: 'Min Outdoor Temp:\n ${currentValue} °F' }
+            state "default", label: 'Min Outdoor Temp:\n ${currentValue} Â°F' }
             
             valueTile("maxRain", "device.maxRain", width: 3, height: 1) {
             state "default", label: 'Max Rain:\n ${currentValue} inches/h' }
@@ -667,48 +667,63 @@ def setConfigurationParams() {
 	log.debug "Qubino Weatherstation: setConfigurationParams()"
 	def configSequence = []
 	if(settings.param1 != null){
+        log.debug "setting param 1 = $settings.param1"
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 1, size: 2, scaledConfigurationValue: settings.param1.toInteger()).format()
 	}
-	if(settings.param2 != null){
+	if(settings.param2 != null){ 
+        log.debug "setting param 2 = $settings.param2"
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 2, size: 2, scaledConfigurationValue: settings.param2.toInteger()).format()
 	}
-	if(settings.param3 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 3, size: 1, scaledConfigurationValue: settings.param3.toInteger()).format()
+	if(settings.param3 != null){ 
+        log.debug "setting param 3 = $settings.param3"
+        configSequence << zwave.configurationV1.configurationSet(parameterNumber: 3, size: 1, scaledConfigurationValue: settings.param3.toInteger()).format()
 	}
-	if(settings.param4 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 4, size: 1, scaledConfigurationValue: settings.param4.toInteger()).format()
+	if(settings.param4 != null){ 
+        log.debug "setting param 4 = $settings.param4"
+        configSequence << zwave.configurationV1.configurationSet(parameterNumber: 4, size: 1, scaledConfigurationValue: settings.param4.toInteger()).format()
 	}
 	if(settings.param5 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 5, size: 1, scaledConfigurationValue: settings.param5.toInteger()).format()
+		 log.debug "setting param 5 = $settings.param5"
+         configSequence << zwave.configurationV1.configurationSet(parameterNumber: 5, size: 1, scaledConfigurationValue: settings.param5.toInteger()).format()
 	}
 	if(settings.param6 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 6, size: 1, scaledConfigurationValue: settings.param6.toInteger()).format()
+		 log.debug "setting param 6 = $settings.param6"
+        configSequence << zwave.configurationV1.configurationSet(parameterNumber: 6, size: 1, scaledConfigurationValue: settings.param6.toInteger()).format()
 	}
 	if(settings.param7 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 7, size: 1, scaledConfigurationValue: settings.param7.toInteger()).format()
+		 log.debug "setting param 7 = $settings.param7"
+        configSequence << zwave.configurationV1.configurationSet(parameterNumber: 7, size: 1, scaledConfigurationValue: settings.param7.toInteger()).format()
 	}
 	if(settings.param8 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 8, size: 1, scaledConfigurationValue: settings.param8.toInteger()).format()
+		 log.debug "setting param 8 = $settings.param8"
+        configSequence << zwave.configurationV1.configurationSet(parameterNumber: 8, size: 1, scaledConfigurationValue: settings.param8.toInteger()).format()
 	}
 	if(settings.param9 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 9, size: 1, scaledConfigurationValue: settings.param9.toInteger()).format()
+		 log.debug "setting param 9 = $settings.param9"
+        configSequence << zwave.configurationV1.configurationSet(parameterNumber: 9, size: 1, scaledConfigurationValue: settings.param9.toInteger()).format()
 	}
 	if(settings.param10 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 10, size: 1, scaledConfigurationValue: settings.param10.toInteger()).format()
+		 log.debug "setting param 10 = $settings.param10"
+         configSequence << zwave.configurationV1.configurationSet(parameterNumber: 10, size: 1, scaledConfigurationValue: settings.param10.toInteger()).format()
 	}
 	if(settings.param11 != null){
+         log.debug "setting param 11 = $settings.param11"
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 11, size: 1, scaledConfigurationValue: settings.param11.toInteger()).format()
 	}
 	if(settings.param12 != null){
+         log.debug "setting param 12 = $settings.param12"
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 12, size: 1, scaledConfigurationValue: settings.param12.toInteger()).format()
 	}
 	if(settings.param13 != null){
+         log.debug "setting param 13 = $settings.param13"
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 13, size: 1, scaledConfigurationValue: settings.param13.toInteger()).format()
 	}
 	if(settings.param14 != null){
+         log.debug "setting param 14 = $settings.param14"
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 14, size: 1, scaledConfigurationValue: settings.param14.toInteger()).format()
 	}
 	if(settings.param15 != null){
+         log.debug "setting param 15 = $settings.param15"
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 15, size: 1, scaledConfigurationValue: settings.param15.toInteger()).format()
 	}	
 	if(configSequence.size() > 0){
@@ -725,7 +740,7 @@ def setConfigurationParams() {
  * @return Parsed result of the received bytes.
 */
 def parse(String description) {
-    
+    log.debug "in parse"
 
 	log.debug "Qubino Weatherstation: Parsing '${description}'"
 	def result = null
@@ -744,14 +759,17 @@ def parse(String description) {
  * @param cmd Type physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap received command.
  * @return List of events that will update UI elements for data display.
 */
-def zwaveEvent(hubitat.zwave.commands.multiinstancev1.MultiInstanceCmdEncap cmd) {
-//def zwaveEvent(physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
+//def zwaveEvent(hubitat.zwave.commands.multiinstancev3.MultiInstanceCmdEncap cmd) {
+ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd)
+{   log.debug "in enacp"
+    
+
 //def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiInstanceCmdEncap cmd) {
 	def encapsulatedCommand = cmd.encapsulatedCommand([0x30: 1, 0x31: 1])
 	def tempScale = location.temperatureScale
 	def resultEvents = []
     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-   
+   log.debug "in muliinstancecmdendcap cmd = $cmd"
 	switch (cmd.sourceEndPoint) {
 		default:
 				break;
@@ -764,16 +782,16 @@ def zwaveEvent(hubitat.zwave.commands.multiinstancev1.MultiInstanceCmdEncap cmd)
                 def dispval =  String.format("%5.1f", adjval)
                 def finalval = dispval as BigDecimal
                 
-                resultEvents << createEvent(name:"temperatureCh1", value: finalval, unit:" °"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" °F")
-				resultEvents << createEvent(name:"temperature", value: finalval, unit:" °"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" °F", displayed: false)
-			    // resultEvents << createEvent(name:"temperatureCh1", value: convertDegrees(tempScale,encapsulatedCommand) + settings.TempOffsetCh1, unit:" °"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" °F")
-				//resultEvents << createEvent(name:"temperature", value: convertDegrees(tempScale,encapsulatedCommand) + settings.TempOffsetCh1, unit:" °"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" °F", displayed: false)
+                resultEvents << createEvent(name:"temperatureCh1", value: finalval, unit:" Â°"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°F")
+				resultEvents << createEvent(name:"temperature", value: finalval, unit:" Â°"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°F", displayed: false)
+			    // resultEvents << createEvent(name:"temperatureCh1", value: convertDegrees(tempScale,encapsulatedCommand) + settings.TempOffsetCh1, unit:" Â°"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°F")
+				//resultEvents << createEvent(name:"temperature", value: convertDegrees(tempScale,encapsulatedCommand) + settings.TempOffsetCh1, unit:" Â°"+location.temperatureScale, descriptionText: "Temperature Ch1: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°F", displayed: false)
 				break;
 		case 2:
 		        sendEvent(name: "lastUpdateWind", value: now, descriptionText: "Wind Last Update: $now")
 
 				if(settings.windvane){
-					resultEvents << createEvent(name:"windDirection", value: encapsulatedCommand.scaledSensorValue.toString(), unit:"°", descriptionText: "Wind Direction: "+encapsulatedCommand.scaledSensorValue.toString()+"°")
+					resultEvents << createEvent(name:"windDirection", value: encapsulatedCommand.scaledSensorValue.toString(), unit:"Â°", descriptionText: "Wind Direction: "+encapsulatedCommand.scaledSensorValue.toString()+"Â°")
 				}else{
 					resultEvents << createEvent(name:"windDirection", value: convertDirection(encapsulatedCommand), unit:"", descriptionText: "Wind Direction: "+convertDirection(encapsulatedCommand))
 				}			
@@ -801,12 +819,12 @@ def zwaveEvent(hubitat.zwave.commands.multiinstancev1.MultiInstanceCmdEncap cmd)
                 checkMinOutdoorTemp(lvalue)
                 checkMaxOutdoorTemp(lvalue)
 
-				resultEvents << createEvent(name:"windTemperature", value: convertDegrees(tempScale,encapsulatedCommand), unit:"°"+location.temperatureScale, descriptionText: "Wind Gauge - Out Temperature: "+convertDegrees(tempScale,encapsulatedCommand)+" °"+location.temperatureScale)
+				resultEvents << createEvent(name:"windTemperature", value: convertDegrees(tempScale,encapsulatedCommand), unit:"Â°"+location.temperatureScale, descriptionText: "Wind Gauge - Out Temperature: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°"+location.temperatureScale)
 				break;
 		case 6:
 		        sendEvent(name: "lastUpdateWind", value: now, descriptionText: "Wind Last Update: $now")
 
-				resultEvents << createEvent(name:"windChillTemperature", value: convertDegrees(tempScale,encapsulatedCommand), unit:"°"+location.temperatureScale, descriptionText: "Wind Chill: "+convertDegrees(tempScale,encapsulatedCommand)+" °"+location.temperatureScale)
+				resultEvents << createEvent(name:"windChillTemperature", value: convertDegrees(tempScale,encapsulatedCommand), unit:"Â°"+location.temperatureScale, descriptionText: "Wind Chill: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°"+location.temperatureScale)
 				break;
 		case 7:	
 		        sendEvent(name: "lastUpdateRain", value: now, descriptionText: "Rain Last Update: $now")
@@ -835,8 +853,8 @@ def zwaveEvent(hubitat.zwave.commands.multiinstancev1.MultiInstanceCmdEncap cmd)
                 def dispval =  String.format("%5.1f", adjval)
                 def finalval = dispval as BigDecimal
 
-    		    resultEvents << createEvent(name:"temperatureCh2", value: finalval, unit:"°"+location.temperatureScale, descriptionText: "Temperature Ch2: "+convertDegrees(tempScale,encapsulatedCommand)+" °"+location.temperatureScale)
-				//resultEvents << createEvent(name:"temperatureCh2", value: convertDegrees(tempScale,encapsulatedCommand) + settings.TempOffsetCh2, unit:"°"+location.temperatureScale, descriptionText: "Temperature Ch2: "+convertDegrees(tempScale,encapsulatedCommand)+" °"+location.temperatureScale)
+    		    resultEvents << createEvent(name:"temperatureCh2", value: finalval, unit:"Â°"+location.temperatureScale, descriptionText: "Temperature Ch2: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°"+location.temperatureScale)
+				//resultEvents << createEvent(name:"temperatureCh2", value: convertDegrees(tempScale,encapsulatedCommand) + settings.TempOffsetCh2, unit:"Â°"+location.temperatureScale, descriptionText: "Temperature Ch2: "+convertDegrees(tempScale,encapsulatedCommand)+" Â°"+location.temperatureScale)
 				break;
 		case 10:
 		        sendEvent(name: "lastUpdateCh2", value: now, descriptionText: "Ch2 Last Update: $now")
@@ -888,7 +906,7 @@ def zwaveEvent(hubitat.zwave.commands.multiinstancev1.MultiInstanceCmdEncap cmd)
    if ((lval < mint) && (lval != -326.2) && (lval > -80.0))
    {
      def valstr = String.format("%5.1f",lval)
-     def minStr =  "Min Outdoor Temp: ${valstr} °F\n ${now1}"
+     def minStr =  "Min Outdoor Temp: ${valstr} Â°F\n ${now1}"
      
      sendEvent(name: "minOutdoorTemp", value: lval, descriptionText: "Min Outdoor Temp reset to $cval ", isStateChange: true)
      sendEvent(name: "tempMinDate", value: now1, descriptionText: "Outdor Temp Min Date Update: $now1")
@@ -915,7 +933,7 @@ def zwaveEvent(hubitat.zwave.commands.multiinstancev1.MultiInstanceCmdEncap cmd)
    {
   
      def valstr = String.format("%5.1f",lval)
-     def maxStr =  "Max Outdoor Temp: ${valstr} °F\n ${now1}"
+     def maxStr =  "Max Outdoor Temp: ${valstr} Â°F\n ${now1}"
     
      sendEvent(name: "maxOutdoorTemp", value: lval, descriptionText: "Max Outdoor Temp reset to $cval ", isStateChange: true)
      sendEvent(name: "tempMaxDate", value: now1, descriptionText: "Outdor Temp Max Date Update: $now1")
