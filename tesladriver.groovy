@@ -17,6 +17,7 @@
  * also round mileage off to whole number so again it appears better on dashboard.
  * same for temp, round off so that we can do custom colors on dashbaord based on temp.
  * Same for temp setpoint. showing non integer makes no sens.
+ * 10/18/20 added unlock/open charge port command
  
  * lgk new versino, not letting the car sleep, add option to disable and schedule it between certain times.
 */
@@ -47,6 +48,7 @@ metadata {
         command "stopCharge"
         command "openFrontTrunk"
         command "openRearTrunk"
+        command "unlockandOpenChargePort"
 	}
 
 
@@ -267,6 +269,13 @@ def openRearTrunk() {
 	log.debug "Executing 'openRearTrunk'"
     def result = parent.openTrunk(this, "rear")
     // if (result) { refresh() }
+}
+
+def unlockandOpenChargePort() {
+	log.debug "Executing 'unock and open charge port'"
+    def result = parent.unlockandOpenChargePort(this)
+    // if (result) { refresh() }
+    
     
 }  
 def updated()
