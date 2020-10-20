@@ -1,0 +1,16 @@
+{
+  "packageName": "Cooper Eaton RF9500",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "27222e21-2f22-44af-b6c5-367319fd4eb1",
+      "name": "Cooper RF9500 Stock new",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/rf9500.groovey",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "packageName": "Dim With Me",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "apps": [
+    {
+      "id": "c3c7c179-ee1b-47b7-ab7b-ed1ecb36307e",
+      "name": "Dim With Me",
+      "namespace": "wackware",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/dimwithme.groovy",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}

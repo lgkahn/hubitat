@@ -1,0 +1,18 @@
+{
+  "packageName": "Color Coord",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "apps": [
+    {
+      "id": "2ec80302-fe86-40ae-bd1f-3324c291641a",
+      "name": "Color Coordinator",
+      "namespace": "MichaelStruck",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/colorcoordinator.groovy",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}

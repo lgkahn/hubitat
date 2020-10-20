@@ -1,0 +1,16 @@
+{
+  "packageName": "Aeon Smartstrip",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "5f1b1d65-13e5-428e-be79-7c32e27a49dc",
+      "name": "Aeon SmartStrip LGK",
+      "namespace": "smartthings",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/aeonsmartstrip.groovey",
+      "required": true
+    }
+  ]
+}

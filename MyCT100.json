@@ -1,0 +1,16 @@
+{
+  "packageName": "CT100 Driver",
+  "author": "Larry Kahn",
+  "version": "1.0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "3a213f75-05d6-4c04-83f1-c6a920d74b72",
+      "name": "My CT100 Thermostat",
+      "namespace": "smartthings",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/myct100.groovy",
+      "required": true
+    }
+  ]
+}

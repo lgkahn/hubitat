@@ -1,0 +1,16 @@
+{
+  "packageName": "Keen Vent Driver for Hubitat with temp/pressure added",
+  "author": "Larry Kahn",
+  "version": "1.0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "3656f1c2-eb3d-402a-a6c2-b80a30041bf4",
+      "name": "Keen Home Smart Vent - lgk V2",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/keenventlgk.groovy",
+      "required": true
+    }
+  ]
+}

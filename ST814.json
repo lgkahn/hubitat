@@ -1,0 +1,16 @@
+{
+  "packageName": "EverSource St814 temp sensor",
+  "author": "Larry Kahn",
+  "version": "4.0.0",
+  "minimumHEVersion": "4.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "bd6c93b8-88e6-49b5-8afe-94ff9ee9a4bc",
+      "name": "EverSpring ST814 V4",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/stg814v4.groovey",
+      "required": true
+    }
+  ]
+}

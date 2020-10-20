@@ -1,0 +1,16 @@
+{
+  "packageName": "LGK Smart UPS Status",
+  "author": "Larry Kahn",
+  "version": "1.11",
+  "minimumHEVersion": "1.11",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "60175215-9bf3-4a24-a10c-42cc7f95c68e",
+      "name": "LGK SmartUPS Status",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKUPSStatus.groovy",
+      "required": true
+    }
+  ]
+}

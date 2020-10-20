@@ -1,0 +1,16 @@
+{
+  "packageName": "Homey/Heiman Gas Detector",
+  "author": "Larry Kahn",
+  "version": "1.0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "f27e6969-dbad-4118-a3ef-2d5081d3c8c0",
+      "name": "Homi Gas Detector",
+      "namespace": "jrhbcn",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/homeygas.groovy",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "packageName": "Color Cast Weather Alerts with Lights on Weather",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "apps": [
+    {
+      "id": "f8407b5a-6f95-43f7-a2ed-9794f65df054",
+      "name": "ColorCast Weather Lamp",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/colorcastweather.groovy",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}

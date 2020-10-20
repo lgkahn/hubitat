@@ -1,0 +1,18 @@
+{
+  "packageName": "Total Comfort Old API",
+  "author": "Larry Kahn",
+  "version": "1.2.3",
+  "minimumHEVersion": "1.2.3",
+  "dateReleased": "2020-10-19",
+  "apps": [
+    {
+      "id": "67ac9a79-6191-4f30-b40b-c0236a93c005",
+      "name": "Total Comfort API C",
+      "namespace": "Total Comfort API",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/totalcomfortapic.groovy",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}

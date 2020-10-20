@@ -1,0 +1,18 @@
+{
+  "packageName": "Garden Hue Color Light Show",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "apps": [
+    {
+      "id": "d9d4013d-a4e5-408a-ae9c-68e22615dd6f",
+      "name": "Garden Hue",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/gardenhue.groovey",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}

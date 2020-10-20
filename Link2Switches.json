@@ -1,0 +1,18 @@
+{
+  "packageName": "Link 2 Switches",
+  "author": "Larry Kahn",
+  "version": "1.0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "apps": [
+    {
+      "id": "9b26924b-e58e-40b0-8354-066f9c3a387f",
+      "name": "Link Two Switches",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/linktwoswitches.groovy",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}

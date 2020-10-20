@@ -1,0 +1,16 @@
+{
+  "packageName": "EnerWave ZW15sm power monitoring switch",
+  "author": "Larry Kahn",
+  "version": "1,0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "2e2606e9-8109-467b-b694-40c12920330d",
+      "name": "Enerwave ZW15SM Metering Switch",
+      "namespace": "smartthings",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/zw15sm.groovey",
+      "required": true
+    }
+  ]
+}

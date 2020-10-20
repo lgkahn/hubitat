@@ -1,0 +1,16 @@
+{
+  "packageName": "Zigbee white color temp bulb driver",
+  "author": "Larry Kahn",
+  "version": "1,0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "1c77e83c-6fa5-4bfa-8e27-36ac668146e1",
+      "name": "ZigBee White Color Temperature Bulb - LGK Modified",
+      "namespace": "smartthings",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/zigbeewhitecolortemp.groovy",
+      "required": true
+    }
+  ]
+}

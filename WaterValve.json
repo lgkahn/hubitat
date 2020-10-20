@@ -1,0 +1,16 @@
+{
+  "packageName": "Water Valve (evb105 and others) with switch and contact added",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "e2769777-62c8-4bd5-8cfc-a9ee611871b4",
+      "name": "Econet EBV105 Water Valve",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/evb105watervalue.groovey",
+      "required": true
+    }
+  ]
+}

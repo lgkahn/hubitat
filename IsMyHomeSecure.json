@@ -1,0 +1,18 @@
+{
+  "packageName": "Is My Home Secure - checks doors locks after mode change",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "apps": [
+    {
+      "id": "580948b8-d671-4bcd-86c2-3c71af68a2a1",
+      "name": "Is my home secure?",
+      "namespace": "tslagle13",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/secure.groovey",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}

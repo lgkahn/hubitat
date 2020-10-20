@@ -1,0 +1,16 @@
+{
+  "packageName": "Z wave garage door with added switch for alexa",
+  "author": "Larry Kahn",
+  "version": "1.0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "9befb4c0-1983-4527-95e5-043ce659aa42",
+      "name": "Z-Wave Garage Door Opener - LGK",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/garagedoorlgk.groovy",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "packageName": "Spruce V1 (non wifi) Controller",
+  "author": "Larry Kahn",
+  "version": "2.1.0",
+  "minimumHEVersion": "2.1.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "e14a104d-2864-4853-aa7b-b480e8b23c61",
+      "name": "",
+      "namespace": "",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/sprucecontrollerdevice.groovy",
+      "required": true
+    }
+  ],
+  "apps": [
+    {
+      "id": "2382e06a-f5e7-4f15-96cb-23be3f91b981",
+      "name": "Spruce Smart Zone",
+      "namespace": "plaidsystems",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/sprucesmartapp.groovy",
+      "required": true,
+      "oauth": true,
+      "primary": false
+    }
+  ]
+}

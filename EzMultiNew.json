@@ -1,0 +1,16 @@
+{
+  "packageName": "EZ Multi aka HSM200 Driver",
+  "author": "Larry Kahn",
+  "version": "1.0.1",
+  "minimumHEVersion": "1.0.1",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "f10ae02a-0173-4f48-a208-2b98a8efa8d7",
+      "name": "EZmultiPli new",
+      "namespace": "erocm123",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ezmultinew.groovy",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "packageName": "Util Tech Siren",
+  "author": "Larry Kahn",
+  "version": "1.0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "b129009b-629b-44ac-9642-888962423575",
+      "name": "My Utilitech Z-Wave Siren",
+      "namespace": "jscgs350",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/myutiltechsiren.groovy",
+      "required": true
+    }
+  ]
+}

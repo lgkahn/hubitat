@@ -1,0 +1,27 @@
+{
+  "packageName": "Alexa Text To Speach",
+  "author": "Larry Kahn",
+  "version": "1,0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "fcd6dc78-a4a7-4e0d-9466-ba863a58ce30",
+      "name": "Child Alexa TTS",
+      "namespace": "ogiewon",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/alexattschild.groovy",
+      "required": true
+    }
+  ],
+  "apps": [
+    {
+      "id": "629a89ac-8645-49b7-9fb0-69da6b831562",
+      "name": "Alexa TTS Manager",
+      "namespace": "ogiewon",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/alexattsparentv0.6.groovy",
+      "required": true,
+      "oauth": true,
+      "primary": false
+    }
+  ]
+}

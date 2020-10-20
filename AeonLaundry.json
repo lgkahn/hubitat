@@ -1,0 +1,16 @@
+{
+  "packageName": "Aeon HEM Dryer",
+  "author": "Larry Kahn",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "d06e8a17-4728-434e-82e3-aac08aa4ffde",
+      "name": "Aeon HEM V1 Laundry DTH",
+      "namespace": "MikeMaxwell",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/aeonhemdryer.groovy",
+      "required": true
+    }
+  ]
+}

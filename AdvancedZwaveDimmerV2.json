@@ -1,0 +1,16 @@
+{
+  "packageName": "Advance Dimmer With Color Control",
+  "author": "Larry Kahn",
+  "version": "2.0",
+  "minimumHEVersion": "2.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "851db8fa-89bf-4bc3-98a2-a6fef847da2b",
+      "name": "Advanced Zwave Dimmer Switch w Color Control V2",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/advzwavedimmerlgkv2.groovy",
+      "required": true
+    }
+  ]
+}

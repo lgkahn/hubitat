@@ -1,0 +1,16 @@
+{
+  "packageName": "Hubitat Smart Alarm Notification Device",
+  "author": "Larry Kahn",
+  "version": "1.0.0",
+  "minimumHEVersion": "1.0.0",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "bb9ff403-45d3-4f30-a30a-2c72da38b14f",
+      "name": "Hubitat Smart Alarm Notification Device",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/hubitatsmartalarmdevicetype.groovy",
+      "required": true
+    }
+  ]
+}
