@@ -21,6 +21,7 @@
 // v0.0.9 - jrs - got the temp and luminance to work. Motion works. Debugging the color wheel.
 // v0.0.8 - DrZWave 2/25/2015 - change the color control to be tiles since there are only 8 colors.
 // v0.0.7 - jrs - 02/23/2015 - Jim Sulin
+// 1.0.1 lgkhan
 
 metadata {
         definition (name: "EZmultiPli new", namespace: "erocm123", author: "Eric Maycock", oauth: true) {
