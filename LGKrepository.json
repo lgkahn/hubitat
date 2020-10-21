@@ -8,7 +8,7 @@
       "name": "Advanced Zwave Dimmer Device Handler",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/AdvancedZwaveDimmerV2.json",
-      "description": "an Advanced Switch device habndler that addes dimming and color control even if the switch does not have these capabilities. It allows switches hooked up without a load to control color bulbs from a dashboard or app",
+      "description": "an Advanced Switch device handler that adds dimming and color control even if the switch does not have these capabilities. It allows switches hooked up without a load to control color bulbs from a dashboard or app",
       "tags": [
         "Lights & Switches"
       ]
@@ -18,7 +18,7 @@
       "name": "Aeon Laundry",
       "category": "Convenience",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/AeonLaundry.json",
-      "description": "Laundry Monitor via Aeon Home Energy Probes",
+      "description": "Laundry Monitor via Aeon Home Energy Probes, set watt levels and turns on a switch when washer or dryer is done. You put one probe on washer circuit, one od dryer.",
       "tags": [
         "Monitoring",
         "Energy Monitoring"
@@ -102,7 +102,7 @@
       "name": "EZMulti aka hsm200 device handler",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/EzMultiNew.json",
-      "description": "Motion Sensor - Temperature - Light level - Color Indicator LED - Z-Wave Range Extender - Wall Powered",
+      "description": "Motion Sensor - Temperature - Light level - Color Indicator LED - Z-Wave Range Extender - Wall Powered, Features missing in stock device handler",
       "tags": [
         "Lights & Switches"
       ]
@@ -112,7 +112,7 @@
       "name": "Stock Zwave Garage Door Handler with switch capability added",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/GarageDoorLGK.json",
-      "description": "Stock garage door handler port from smartthings with switch added to work in Alexa",
+      "description": "Stock garage door handler port from smartthings with switch capablity added to work in Alexa",
       "tags": [
         "Garage Doors"
       ]
@@ -122,7 +122,7 @@
       "name": "Garden Hue Smartapp",
       "category": "Convenience",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/GardenHue.json",
-      "description": "\\App originally written for Lightify Garden spot to allow color cycling and user selectable times, comes on automatically as sunset etc. but works with any color lights, can also set colors for holidays",
+      "description": "App originally written for Lightify Garden spots to allow color cycling and user selectable times, comes on automatically as sunset etc. but works with any color lights, can also set colors for holidays",
       "tags": [
         "Lights & Switches"
       ]
@@ -154,7 +154,7 @@
       "name": "Is My Home Secure",
       "category": "Notifications",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/IsMyHomeSecure.json",
-      "description": "A smartapp ported for smartthings that checks various door windows etc on mode change and alerts if secure or open, and will try to re-lock doors if unlocked.",
+      "description": "An App ported from smartthings that checks various door windows etc on mode change and alerts if secure or open, and will try to re-lock doors if unlocked.",
       "tags": [
         "Safety & Security"
       ]
@@ -164,7 +164,7 @@
       "name": "Keen Vent LGK",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/KeenVentLGK.json",
-      "description": "Keen Smart Vent Device Handler that adds temp and pressure monitoring not in the stock device handler, also adds switch, contact and door capabilities",
+      "description": "Keen Smart Vent Device Handler that adds temp. and pressure monitoring not in the stock device handler, also adds switch, contact and door capabilities",
       "tags": [
         "Climate Control"
       ]
@@ -174,7 +174,7 @@
       "name": "Hubitat Native SendMail implementation",
       "category": "Notifications",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKSendMailV2.json",
-      "description": "Sendmail implemented natively in Hubitat, with or without authenticaion, uses internal telnet",
+      "description": "Sendmail implemented natively in Hubitat, with or without authentication, uses internal telnet",
       "tags": [
         "Tools & Utilities",
         "Notifications"
@@ -185,7 +185,7 @@
       "name": "LGK APC Smart UPS Status",
       "category": "Notifications",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKSmartUPSStatus.json",
-      "description": "A Device handler to connect direct to APC Smart UPS's ie smt1500 with network cards via telnet, reports on battery level, runtime, temp and whether on battery or power, can be use to automate shutdowns when runtime/battery is low",
+      "description": "A Device handler to connect direct to APC Smart UPS's ie smt1500 with network cards via telnet, reports on battery level, runtime, temp. and whether on battery or power, can be use to automate shutdowns when runtime/battery is low",
       "tags": [
         "Monitoring",
         "Tools & Utilities",
@@ -197,7 +197,7 @@
       "name": "LGK Virtual Garage Door APP",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKVirtualGarageDoorApp.json",
-      "description": "Port of the original app from smartthings to link a switch/relay and contact/tilt sensor together and make it look like a standard garage door control device includes app and drivers",
+      "description": "Port of the original app from smartthings to link a switch/relay and contact/tilt sensor together and make it look like a standard garage door control device. Includes app and drivers",
       "tags": [
         "Garage Doors"
       ]
@@ -247,7 +247,7 @@
       "name": "Roof Coil Controller",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/RoofCoilController.json",
-      "description": "A smart app written to turn on/off a switch(s) between two date ranges, and temperature ranges. I use it to turn on roof coil switch beween dec-apr when temp is betwen 30-40 but customizable. Used to prevent ice dams if I forget to turn switch on",
+      "description": "A smart app written to turn on/off a switch between two date ranges, and temperature ranges. I use it to turn on roof coil switch between dec-apr when temp. is between 30-40, but settings are customizable. Used to prevent ice dams if I forget to turn heater switch on",
       "tags": [
         "Lights & Switches",
         "Safety & Security",
@@ -259,7 +259,7 @@
       "name": "Eversource ST814 Temp and humidity device handler",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ST814.json",
-      "description": "A custom device handler for the Eversource st814 temp/humidity device. The only one I know temp reated to go in freezers. It has 3 AA Batteries",
+      "description": "A custom device handler for the Eversource st814 temp/humidity device. The only one I know temp rated to go in freezers. It has 3 AA Batteries",
       "tags": [
         "Monitoring",
         "Multi Sensors",
@@ -271,7 +271,7 @@
       "name": "Spruce Controller",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/SpruceController.json",
-      "description": "A port of the Spruce version (zwave non-wifi) smartapp scheduler and device handler from smartthings to Hubitat",
+      "description": "A port of the Spruce version 1 (zwave non-wifi) smartapp scheduler and device handler from smartthings to Hubitat",
       "tags": [
         "Valves",
         "Irrigation"
@@ -300,7 +300,7 @@
     },
     {
       "id": "8b0ca677-abd0-4b37-9331-207b917852b5",
-      "name": "Zwave water Valed device handler",
+      "name": "Zwave water Valve device handler",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/WaterValve.json",
       "description": "A Zwave valve device handler originally written for the evb105 valve but works with any. Tested with dome and leakgopgher and leaksmart. Adds Switch Door Contol (ie open close) and contact sensor capiblity. Also light on/off control",
@@ -322,7 +322,7 @@
     },
     {
       "id": "8c8db075-ee3e-461e-ae2d-47d98ecee151",
-      "name": "Zigbee Wither Color Temp Device Handler",
+      "name": "Zigbee White Color Temp Device Handler",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ZigbeeWhiteColorTemp.json",
       "description": "A generic Zigbee white temperature contolleable bulb device handler, with custom capabilities/tiles for various temps. orignially written for lightify A19 bulbs",
