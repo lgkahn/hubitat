@@ -1,0 +1,334 @@
+{
+  "author": "Larry Kahn",
+  "gitHubUrl": "https://github.com/lgkahn/hubitat",
+  "payPalUrl": "https://www.paypal.com/donate?hosted_button_id=UZ6CYYAGXKAUG",
+  "packages": [
+    {
+      "id": "e6999bcb-bb44-40f9-b02d-da734e7fd6cd",
+      "name": "Advanced Zwave Dimmer Device Handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/AdvancedZwaveDimmerV2.json",
+      "description": "an Advanced Switch device habndler that addes dimming and color control even if the switch does not have these capabilities. It allows switches hooked up without a load to control color bulbs from a dashboard or app",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "68432d3d-c967-41f9-8d54-10a8c8f402f0",
+      "name": "Aeon Laundry",
+      "category": "Convenience",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/AeonLaundry.json",
+      "description": "Laundry Monitor via Aeon Home Energy Probes",
+      "tags": [
+        "Monitoring",
+        "Energy Monitoring"
+      ]
+    },
+    {
+      "id": "e2d98e4f-3397-46b3-9da6-4b7a5bd587d1",
+      "name": "Aeon SmartStrip",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/AeonSmartStrip.json",
+      "description": "Aeon SmartStrip Device Handler",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "241afec3-cdb3-4819-8b5f-c9849a01ebc8",
+      "name": "Alexa TTS APP and Driver w volume",
+      "category": "Notifications",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/AlexaATT.json",
+      "description": "Alexa Voice TTS. not Written by me, but modified to add messages on cookie renew success or failure and setVolume Control",
+      "tags": [
+        "Notifications",
+        "Voice Assistants"
+      ]
+    },
+    {
+      "id": "043333a5-e26b-4ecf-b9d1-bfa1150547a9",
+      "name": "Battery Monitor APP",
+      "category": "Convenience",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/BatteryMonitor.json",
+      "description": "Nightly Battery Report",
+      "tags": [
+        "Monitoring",
+        "Notifications"
+      ]
+    },
+    {
+      "id": "559a5ccc-d003-4a76-babb-bd565d6fa983",
+      "name": "Color Cast Weather",
+      "category": "Convenience",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ColorCastWeather.json",
+      "description": "Monitors Weather and alerts various types of Alerts via different color lights",
+      "tags": [
+        "Monitoring",
+        "Notifications"
+      ]
+    },
+    {
+      "id": "e0399d63-5dc9-479a-a78d-e88ef39155d7",
+      "name": "Color Coordinator",
+      "category": "Control",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ColorCoord.json",
+      "description": "Coordinates color changes from one switch to other switches",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "da981ce4-0bd7-47ff-8c91-fc5ba4b42ff7",
+      "name": "RF9500 Switch Handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/CooperEatonRF9500.json",
+      "description": "Cooper Eaton RF9500 Battery Powered Zwave button/switch driver to make it appear as a standard switch",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "6c8fd90c-82f6-443a-bbe4-0b62631d6b57",
+      "name": "Dim with Me",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/DimWithMe.json",
+      "description": "App to make multiple dimmers follow one main dimmer",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "756047d0-3a16-408c-8a3b-2c8d8b2eaf41",
+      "name": "EZMulti aka hsm200 device handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/EzMultiNew.json",
+      "description": "Motion Sensor - Temperature - Light level - Color Indicator LED - Z-Wave Range Extender - Wall Powered",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "41d3047a-a492-49ae-8862-8c8439675977",
+      "name": "Stock Zwave Garage Door Handler with switch capability added",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/GarageDoorLGK.json",
+      "description": "Stock garage door handler port from smartthings with switch added to work in Alexa",
+      "tags": [
+        "Garage Doors"
+      ]
+    },
+    {
+      "id": "26f75101-0fb5-4cce-95e1-1b95f29c4493",
+      "name": "Garden Hue Smartapp",
+      "category": "Convenience",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/GardenHue.json",
+      "description": "\\App originally written for Lightify Garden spot to allow color cycling and user selectable times, comes on automatically as sunset etc. but works with any color lights, can also set colors for holidays",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "eb737e97-7622-44e8-9fcd-64941c07646d",
+      "name": "Homi Heiman Natural Gas Sensor Device Handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/HomiHeimanGas.json",
+      "description": "Homi Heiman Gas sensor device handler, alerts as standard smoke as Hubitat has no natural gas capability",
+      "tags": [
+        "Monitoring",
+        "Safety & Security"
+      ]
+    },
+    {
+      "id": "8ab6a7b4-ced7-4ad0-a097-8c061aaf60b2",
+      "name": "Hubitat Smart Alarm",
+      "category": "Notifications",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/HubitatSmartAlarm.json",
+      "description": "A Special notication device for hubitat that gets preformated strings for various alerts and allows you to use its attributes on tiles",
+      "tags": [
+        "Notifications",
+        "Safety & Security"
+      ]
+    },
+    {
+      "id": "a7f7ba47-a636-4a49-8b53-805d41f87a8b",
+      "name": "Is My Home Secure",
+      "category": "Notifications",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/IsMyHomeSecure.json",
+      "description": "A smartapp ported for smartthings that checks various door windows etc on mode change and alerts if secure or open, and will try to re-lock doors if unlocked.",
+      "tags": [
+        "Safety & Security"
+      ]
+    },
+    {
+      "id": "0b16800d-2d53-4fa1-b6fe-a11cf7aa8a77",
+      "name": "Keen Vent LGK",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/KeenVentLGK.json",
+      "description": "Keen Smart Vent Device Handler that adds temp and pressure monitoring not in the stock device handler, also adds switch, contact and door capabilities",
+      "tags": [
+        "Climate Control"
+      ]
+    },
+    {
+      "id": "305a4180-c9e0-4951-bf40-fc9a7be8caf6",
+      "name": "Hubitat Native SendMail implementation",
+      "category": "Notifications",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKSendMailV2.json",
+      "description": "Sendmail implemented natively in Hubitat, with or without authenticaion, uses internal telnet",
+      "tags": [
+        "Tools & Utilities",
+        "Notifications"
+      ]
+    },
+    {
+      "id": "f0e38304-c3e4-4a8a-a29e-418668814039",
+      "name": "LGK APC Smart UPS Status",
+      "category": "Notifications",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKSmartUPSStatus.json",
+      "description": "A Device handler to connect direct to APC Smart UPS's ie smt1500 with network cards via telnet, reports on battery level, runtime, temp and whether on battery or power, can be use to automate shutdowns when runtime/battery is low",
+      "tags": [
+        "Monitoring",
+        "Tools & Utilities",
+        "Notifications"
+      ]
+    },
+    {
+      "id": "f6a75b90-9d9e-4a08-b1cc-a53fd174875e",
+      "name": "LGK Virtual Garage Door APP",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKVirtualGarageDoorApp.json",
+      "description": "Port of the original app from smartthings to link a switch/relay and contact/tilt sensor together and make it look like a standard garage door control device includes app and drivers",
+      "tags": [
+        "Garage Doors"
+      ]
+    },
+    {
+      "id": "89b2fe88-6f3b-4e63-b245-8fcb70ef14df",
+      "name": "Link 2 Switches",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/Link2Switches.json",
+      "description": "An App that Makes one switch follow another",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "cb0d39b6-8296-47ed-b12f-ca52a053a652",
+      "name": "Ct100 Thermastat Device Handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/MyCT100.json",
+      "description": "My ct100 Thermatat device handler originally written for smartthings",
+      "tags": [
+        "Climate Control"
+      ]
+    },
+    {
+      "id": "993ddac1-a3cd-4841-9ac6-fb2cd68f19d3",
+      "name": "UtilTech Siren Device Handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/MyUtilTechSiren.json",
+      "description": "UtilTech Siren Device Handler but works with any Zwave Siren",
+      "tags": [
+        "Safety & Security"
+      ]
+    },
+    {
+      "id": "2933cbe1-9443-4f78-9378-c7a4a9fbb978",
+      "name": "Qubino Weather Station",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/QubinoWeatherStation.json",
+      "description": "A Port of my customized Qubino weather station device handler, from smartthings with min/max added (Currently loads but no data is coming in)",
+      "tags": [
+        "Temperature & Humidity"
+      ]
+    },
+    {
+      "id": "26bb5d7a-b00b-4855-8653-976ffb580e06",
+      "name": "Roof Coil Controller",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/RoofCoilController.json",
+      "description": "A smart app written to turn on/off a switch(s) between two date ranges, and temperature ranges. I use it to turn on roof coil switch beween dec-apr when temp is betwen 30-40 but customizable. Used to prevent ice dams if I forget to turn switch on",
+      "tags": [
+        "Lights & Switches",
+        "Safety & Security",
+        "Climate Control"
+      ]
+    },
+    {
+      "id": "ac0fd99d-cc6c-4d52-96d7-7b69dfcbf1e7",
+      "name": "Eversource ST814 Temp and humidity device handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ST814.json",
+      "description": "A custom device handler for the Eversource st814 temp/humidity device. The only one I know temp reated to go in freezers. It has 3 AA Batteries",
+      "tags": [
+        "Monitoring",
+        "Multi Sensors",
+        "Temperature & Humidity"
+      ]
+    },
+    {
+      "id": "527a85ca-3032-4492-927d-8d6ddf9812c8",
+      "name": "Spruce Controller",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/SpruceController.json",
+      "description": "A port of the Spruce version (zwave non-wifi) smartapp scheduler and device handler from smartthings to Hubitat",
+      "tags": [
+        "Valves",
+        "Irrigation"
+      ]
+    },
+    {
+      "id": "fd94e448-3f2d-47a9-adbf-40268c7e6636",
+      "name": "Honeywell Total Comfort API",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/TotalComfort.json",
+      "description": "The older version of the honeywell API total control Thermastat driver (non child device handler) Newer one is not working for me",
+      "tags": [
+        "Climate Control"
+      ]
+    },
+    {
+      "id": "a3f15a9c-8756-4d6b-8c1b-13f72c73c439",
+      "name": "Tesla App and Driver",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/Tesla.json",
+      "description": "The smart connect app and driver for the tesla monitoring and control. Not written by me but modified by me to add variable poll time, lockout times when it stops polling to allow sleep and charage port lock/unlock custom capability",
+      "tags": [
+        "Monitoring",
+        "Presence & Location"
+      ]
+    },
+    {
+      "id": "8b0ca677-abd0-4b37-9331-207b917852b5",
+      "name": "Zwave water Valed device handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/WaterValve.json",
+      "description": "A Zwave valve device handler originally written for the evb105 valve but works with any. Tested with dome and leakgopgher and leaksmart. Adds Switch Door Contol (ie open close) and contact sensor capiblity. Also light on/off control",
+      "tags": [
+        "Valves",
+        "Safety & Security"
+      ]
+    },
+    {
+      "id": "abfa31aa-1322-42b2-82e1-908b7407d589",
+      "name": "Enerwave ZW15SM high amperage switch device handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ZW15SM.json",
+      "description": "Enerwave Zw15sm zwave and zwave plus high amp energy monitoring switch device handler",
+      "tags": [
+        "Lights & Switches",
+        "Energy Monitoring"
+      ]
+    },
+    {
+      "id": "8c8db075-ee3e-461e-ae2d-47d98ecee151",
+      "name": "Zigbee Wither Color Temp Device Handler",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/ZigbeeWhiteColorTemp.json",
+      "description": "A generic Zigbee white temperature contolleable bulb device handler, with custom capabilities/tiles for various temps. orignially written for lightify A19 bulbs",
+      "tags": [
+        "Lights & Switches"
+      ]
+    }
+  ]
+}
