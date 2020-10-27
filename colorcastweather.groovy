@@ -267,6 +267,7 @@ def checkForWeather() {
 	if ((d.getTime() - state.forecastTime) / 1000 / 60 > 65)
     {
         
+        log.debug "Weather not checked for more than an hour! Rescheduling Job!"
 		//unschedule()
 		//schedule("0 0/15 * * * ?", getWeather)
         
