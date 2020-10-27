@@ -264,10 +264,31 @@ def checkForWeather() {
 
     //log.debug "in check for weather"
 	def d = new Date()
-	if ((d.getTime() - state.forecastTime) / 1000 / 60 > 30) {
-		unschedule()
-		schedule("0 0/15 * * * ?", getWeather)
-		getWeather()
+	if ((d.getTime() - state.forecastTime) / 1000 / 60 > 65)
+    {
+        
+		//unschedule()
+		//schedule("0 0/15 * * * ?", getWeather)
+        
+      log.debug "Refresh time currently set to: $refreshTime"
+      unschedule()  
+   
+      if (refreshTime == "1-Hour")
+       schedule("33 0 0/1 * * ?", getWeather)
+      else if (refreshTime == "30-Minutes")
+       schedule("10 0/30 * * * ?", getWeather)
+      else if (refreshTime == "15-Minutes")
+       schedule("10 0/15 * * * ?", getWeather)
+      else if (refreshTime == "10-Minutes")
+       schedule("10 0/10 * * * ?", getWeather)
+      else if (refreshTime == "5-Minutes")
+       schedule("10 0/5 * * * ?", getWeather)
+    else if (refreshTime == "Disabled")
+    {
+        log.debug "Disabling..."
+    }
+      if (refreshTime != "Disabled")
+         getWeather()
 	}
 
 	state.current.clear()
