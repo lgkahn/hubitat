@@ -30,6 +30,7 @@
  * modified by lgk to be able to disable the all clear. ie no light on.
  * location is quite a bit off in smartthings allow location override
  */
+// lgk new version with option to decide how often the weather update runs.. used to be every 15 minutes.. Motion triggers still the same.
 import java.util.regex.*
 
 definition(
@@ -60,6 +61,8 @@ preferences {
 			description: "tap to view Forecast.io website in mobile browser")
 	
 			input "apiKey", "text", title: "Enter your new key", required:true
+              input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"
+      
 		}
 	}
 	
@@ -196,7 +199,26 @@ def initialize() {
 	state.current = []
 
 	getWeather()
-	schedule("0 0/15 * * * ?", getWeather)
+    
+    log.debug "Refresh time currently set to: $refreshTime"
+    unschedule()  
+   
+    if (refreshTime == "1-Hour")
+    schedule("33 0 0/1 * * ?", getWeather)
+      else if (refreshTime == "30-Minutes")
+     schedule("10 0/30 * * * ?", getWeather)
+     else if (refreshTime == "15-Minutes")
+      schedule("10 0/15 * * * ?", getWeather)
+     else if (refreshTime == "10-Minutes")
+     schedule("10 0/10 * * * ?", getWeather)
+     else if (refreshTime == "5-Minutes")
+     schedule("10 0/5 * * * ?", getWeather)
+    else if (refreshTime == "Disabled")
+    {
+        log.debug "Disabling..."
+    }
+    
+	//schedule("0 0/15 * * * ?", getWeather)
 
 	subscribe(motion_detector, "motion", motionHandler)
 	if (tapTrigger) subscribe(app, appTouchHandler)
@@ -326,6 +348,7 @@ def checkForWeather() {
   log.debug "done with hour data number of alerts in report = $response.alerts!"
    
 		if (response.alerts) { //See if Alert data is included in response
+            log.debug "in alert loop!"
 			response.alerts.each { //If it is iterate through all Alerts
 				def thisAlert=it.title;
 				log.debug thisAlert
@@ -471,6 +494,7 @@ def checkForWeather() {
 			if (weatherAlert) {
 				//If there's a weather alert, turn off the light for the same amount of time it was on
 				//When a weather alert is active, each color will be looped x times, creating the blinking effect by turning the light on then off x times
+                
 				hues.off()
 				pause(delay)
 			}
