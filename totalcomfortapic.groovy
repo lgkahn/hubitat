@@ -44,6 +44,8 @@
  * lgk version 4 supports celsius and fahrenheit with option, and now colors.
  * lgk v 3 added optional outdoor temp sensors and preferences for it, also made api login required.
  *
+ * lgk continue supporting this old version as the new one is too complicated and doesnt work right
+ * 1.2.5 go back to old equipment status for heat vs cold as new changed method is not working. changed debug turn off to an 2 hours .. 1/2 is too short to try and debug when this runs very infrequently
 */
 
 metadata {
@@ -78,7 +80,7 @@ metadata {
        input name: "honeywelldevice", type: "text", title: "Device ID", description: "Your Device ID", required: true
        input name: "enableOutdoorTemps", type: "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
        input name: "setPermHold", type: "enum", title: "Will Setpoints be temporary or permanent?", options: ["Temporary", "Permanent"], required: false, defaultValue: "Temporary"
-	 input name: "pollIntervals", type: "enum", title: "Set the Poll Interval.", options: [0:"off", 60:"1 minute", 120:"2 minutes", 300:"5 minutes",600:"10 minutes",900:"15 minutes",1800:"30 minutes",3600:"60 minutes"], required: true, defaultValue: "600"
+	   input name: "pollIntervals", type: "enum", title: "Set the Poll Interval.", options: [0:"off", 60:"1 minute", 120:"2 minutes", 300:"5 minutes",600:"10 minutes",900:"15 minutes",1800:"30 minutes",3600:"60 minutes"], required: true, defaultValue: "600"
        input name: "debugOutput", type: "bool", title: "Enable debug logging?", defaultValue: true
        input name: "txtEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true
     }
@@ -86,11 +88,13 @@ metadata {
 
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def setVersion(){
-    state.Version = "1.2.3"
+ 
+    state.Version = "1.2.5"
     state.InternalName = "HoneywellThermoTCC_C"
-    sendEvent(name: "DriverAuthor", value: "cSteele")
-    sendEvent(name: "DriverVersion", value: state.version)
-    sendEvent(name: "DriverStatus", value: state.Status)
+    sendEvent(name: "DriverAuthor", value: "lgKahn")
+    sendEvent(name: "DriverVersion", value: state.Version)
+    sendEvent(name: "DriverStatus", value: "Current")
+   
 }
 
 def coolLevelUp() {
@@ -508,10 +512,11 @@ def getStatus() {
             def vacationHold = response.data.latestData.uiData.IsInVacationHoldMode
 
             // reset display units as above doesntg work
+             log.debug "got temp = $curTemp"
              log.debug "got humidity = $curHumidity"
-            log.debug "got outdoor temp = $curOutdoorTemp"
-            log.debug "got outdoor humidity = $curOutdoorHumidity"
-            log.debug "got display units = $displayUnits"
+          //  log.debug "got outdoor temp = $curOutdoorTemp"
+            //log.debug "got outdoor humidity = $curOutdoorHumidity"
+           // log.debug "got display units = $displayUnits"
             
             
             logDebug "got holdTime = $holdTime"
@@ -534,12 +539,12 @@ def getStatus() {
             logDebug "displayUnits = $displayUnits"
             state.DisplayUnits = $displayUnits
             //reset display unitgs as blank
-            log.debug "here"
+            //log.debug "here"
             if ($displayunits == "")
             {
                 displayUnits = "F"
                 state.DisplayUnits = $displayUnits
-                log.debug "reset display units = $displayUnits"
+                logDebug "reset display units = $displayUnits"
             }
 
             //Operating State Section 
@@ -550,19 +555,36 @@ def getStatus() {
 
             // set fan and operating state
             def fanState = "Unknown"
-
+            logDebug "status heat = $statusHeat cool = $statusCool"
+            logDebug"equipstatus = $equipmentStatus fanisrunning = $fanIsRunning "
+         
             if (fanIsRunning == true) {
                 fanState = "On";
-                if (mode == "heat") {
-                    operatingState = "heating"
-                } else {
-                    operatingState = "cooling"
-                }
-            } else {
-                fanState = "Idle";
-                operatingState = "Idle"
+                operatingState = "fan"
             }
-
+              //  if (mode == "heat") {
+               //     operatingState = "heating"
+              //  } else {
+              //      operatingState = "coolin   // lgk old method now use equipment status
+        if (equipmentStatus == 1)
+        {
+            operatingState = "heating"
+        } 
+        else if (equipmentStatus == 2)
+         {
+            operatingState = "cooling"
+         } 
+        else if (equipmentStatus == 0) 
+        {
+             operatingState = "idle"
+             fanState = "Idle"
+         }
+        else
+         {
+             operatingState = "Unknown"
+         }
+         
+          
             logInfo("Set Operating State to: ${operatingState}")
 
             //fan mode 0=auto, 2=circ, 1=on
@@ -588,9 +610,9 @@ def getStatus() {
             sendEvent(name: 'fanOperatingState', value: fanState)
             sendEvent(name: 'thermostatFanMode', value: fanMode)
             sendEvent(name: 'thermostatMode', value: switchPos)
-            sendEvent(name: 'coolingSetpoint', value: coolSetPoint,  unit: "°F")
-            sendEvent(name: 'heatingSetpoint', value: heatSetPoint,  unit: "°F")
-            sendEvent(name: 'temperature', value: curTemp, state: switchPos,  unit: "°F")
+            sendEvent(name: 'coolingSetpoint', value: coolSetPoint,  unit: "Â°F")
+            sendEvent(name: 'heatingSetpoint', value: heatSetPoint,  unit: "Â°F")
+            sendEvent(name: 'temperature', value: curTemp, state: switchPos,  unit: "Â°F")
             sendEvent(name: 'humidity', value: curHumidity as Integer, unit: "%")
 
 
@@ -751,7 +773,6 @@ def login() {
                     }
                 }
             }
-            //       logDebug "cookies: $device.data.cookiess"
         }
     } catch (e) {
         log.warn "Something went wrong during login: $e"
@@ -783,12 +804,13 @@ def updated() {
     logDebug "debug logging is: ${debugOutput == true}"
     log.warn "description logging is: ${txtEnable == true}"
     unschedule()
-    if (debugOutput) runIn(1800,logsOff)   
+    if (debugOutput) runIn(7200,logsOff)   
     if (setPermHold == "Permanent") { state.PermHold = 2 } else { state.PermHold = 1 }
     logDebug "PermHold now = ${state.PermHold}"
 
     poll()
     version()
+    setVersion()
 }
 
 def installed() {
@@ -812,54 +834,11 @@ private logInfo(msg) {
 
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def version(){
-    schedule("0 0 8 ? * FRI *", updateCheck)  // Cron schedule - How often to perform the update check - (This example is 8am every Friday)
+   // schedule("0 0 8 ? * FRI *", updateCheck)  // Cron schedule - How often to perform the update check - (This example is 8am every Friday)
     updateCheck()
 }
 
 def updateCheck(){
     setVersion()
-	 def paramsUD = [uri: "https://hubitatcommunity.github.io/HoneywellThermo-TCC/versions.json" ]  // This is the URI & path to your hosted JSON file
-       try {
-           httpGet(paramsUD) { respUD ->
-//           log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
-           def copyrightRead = (respUD.data.copyright)
-           state.Copyright = copyrightRead
-           def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
-           def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
-           def currentVer = state.Version.replace(".", "")
-           state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
-           state.author = (respUD.data.author)
-           
-           if(newVer == "NLS"){
-               state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
-               log.warn "** This driver is no longer supported by $state.author **"      
-           }           
-           else if(currentVer < newVer){
-               state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
-               log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
-               log.warn "** $state.UpdateInfo **"
-	     }
-           else if(currentVer > newVer){
-               state.Status = "<b>You are using a Test version of this Driver (Version: $newVerRaw)</b>"
-           } else { 
-           	state.Status = "Current"
-           	logInfo "You are using the current version of this driver"
-           }
-         }
-       } 
-
-       catch (e) {
-           log.warn "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
-           }
-           
-       if(state.Status == "Current"){
-           state.UpdateInfo = "N/A"
-           sendEvent(name: "DriverUpdate", value: state.UpdateInfo)
-           sendEvent(name: "DriverStatus", value: state.Status)
-       } else {
-           sendEvent(name: "DriverUpdate", value: state.UpdateInfo)
-           sendEvent(name: "DriverStatus", value: state.Status)
-       }   
- 	 sendEvent(name: "DriverAuthor", value: state.author)
-    	 sendEvent(name: "DriverVersion", value: state.Version)
+	
 }
