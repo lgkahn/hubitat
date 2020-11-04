@@ -1,7 +1,7 @@
 {
   "packageName": "Alexa Text To Speach",
   "author": "Larry Kahn",
-  "version": "1,0",
+  "version": "1.01",
   "minimumHEVersion": "1.0",
   "dateReleased": "2020-10-19",
   "drivers": [
