@@ -43,6 +43,7 @@
  *     v0.5.8   2020-01-07  Marco Felicio   Added support for Brazil
  *     v0.5.9   2020-01-26  Dan Ogorchock   Changed automatic cookie refresh time to 1am to avoid hub maintenance window
  *     v0.6.0   2020-10-25  lg kahn         add mesg if cookie updated sucessfully, also add setvolume command called from each indiv. device.
+ *     v0.6.1   2020-11-04  lg kahn         support for ecobee via greg.. thanks
  */
 
 definition(
@@ -360,9 +361,15 @@ def getDevices() {
                         //log.debug "${it.accountName} is valid"
                         validDevices << it.accountName
                     }
-                    if (it.deviceFamily == "THIRD_PARTY_AVS_MEDIA_DISPLAY" && it.capabilities.contains("AUDIBLE")) {
+                    else if (it.deviceFamily == "THIRD_PARTY_AVS_MEDIA_DISPLAY" && it.capabilities.contains("AUDIBLE")) {
                         validDevices << it.accountName
                     }
+                    else if (it.deviceFamily == "UNKNOWN" && it.capabilities.contains("AUDIO_PLAYER")) {
+                        validDevices << it.accountName
+                    }  
+                    
+                    
+                    
                 }
                 log.debug "getDevices(): validDevices = ${validDevices}"
                 return validDevices
