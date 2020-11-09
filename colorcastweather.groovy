@@ -31,6 +31,8 @@
  * location is quite a bit off in smartthings allow location override
  */
 // lgk new version with option to decide how often the weather update runs.. used to be every 15 minutes.. Motion triggers still the same.
+// lgk new version with options for number of blinks and delay settings for alerts. Also remove tap trigger .. not avail in hubitat on apps
+
 import java.util.regex.*
 
 definition(
@@ -113,14 +115,19 @@ preferences {
 			], required: true, defaultValue:"Current conditions"
 		}
 
-		section() {
-			input "tapTrigger", "bool", title: "Enable App Tap Trigger?"
+	/* lgk  no tap trigger avail on hubitat
+       section() {
+			input "tapTrigger", "bool", title: "Enable App Tap Trigger?" 
+         
 		}
-
+ */
 		section([mobileOnly:true]) {
 			label title: "Assign a name", required: false //Allow custom name for app. Usefull if the app is installed multiple times for different modes
 			mode title: "Set for specific mode(s)", required: false //Allow app to be assigned to different modes. Usefull if user wants different setting for different modes
-		}
+	       input "numberOfBlinks", "integer", title: "Number of times to blink for alerts?", required: true, defaultValue: 5
+           input "delayBetweenBlinks", "integer" , title: "Delay in Miliseconds between each blink", required: true, defaultValue: 600
+              
+        }
 
 	}
 	page(name: "pageTriggers", title: "Set Weather Triggers", install: true, uninstall: true) {
@@ -221,7 +228,7 @@ def initialize() {
 	//schedule("0 0/15 * * * ?", getWeather)
 
 	subscribe(motion_detector, "motion", motionHandler)
-	if (tapTrigger) subscribe(app, appTouchHandler)
+	// no tap trigger aval on hubitat no commands avail for apps, if (tapTrigger) subscribe(app, appTouchHandler)
 }
 
 def updated() {
@@ -505,8 +512,8 @@ def checkForWeather() {
 	if (weatherAlert) {
          log.debug "Weather Alert!"
 		//When there's an active weather alert, shorten the duration that each color is shown but show the color multiple times. This will cause individual colors to flash when there is a weather alert
-		delay = 600
-		iterations=5
+		delay = delayBetweenBlinks.toInteger()
+		iterations=numberOfBlinks.toInteger()
 	}
 	
 	colors.each { //Iterate over each color
