@@ -44,6 +44,7 @@
  *     v0.5.9   2020-01-26  Dan Ogorchock   Changed automatic cookie refresh time to 1am to avoid hub maintenance window
  *     v0.6.0   2020-10-25  lg kahn         add mesg if cookie updated sucessfully, also add setvolume command called from each indiv. device.
  *     v0.6.1   2020-11-04  lg kahn         support for ecobee via greg.. thanks
+ *     v0.6.2   2020-10-10  lg kahn         custom version with auto exponential backoff retry on 429 too many request failure.
  */
 
 definition(
@@ -224,7 +225,8 @@ def setVolume(Integer newVolume, String device)
     }
 
 
-def speakMessage(String message, String device) {
+def speakMessage(String message, String device, Integer currentDelay = 0) {
+   // log.debug "in send message = $message delay = $currentDelay"
     
     if (overrideSwitch != null && overrideSwitch.currentSwitch == 'off') {
         log.info "${overrideSwitch} is off, AlexaTTS will not speak message '${message}'"
@@ -309,7 +311,27 @@ def speakMessage(String message, String device) {
                 }
                catch (groovyx.net.http.HttpResponseException hre) {
                     //Noticed an error in parsing the http response.  For now, catch it to prevent errors from being logged
-                    if (hre.getResponse().getStatus() != 200) {
+                      // lgk add retry after delay on error 429 rate limited
+                    def statusCode = hre.getResponse().getStatus()
+                    if (statusCode == 429)
+                     {
+                       def newDelay
+                       if (currentDelay == 0)
+                          newDelay = 5
+                       else newDelay = currentDelay * 2
+                       
+                       if (newDelay >= 20)
+                         {
+                           log.debug "Already tried repeated command 3 times ... Giving Up!"
+                         }
+                       else
+                        {
+                         log.debug "Got Alexa rate limiting error (429) delaying for $newDelay and Retrying!"	
+                         runIn(newDelay,"speakMessage",[data: [message, device,newDelay]])
+                        }        
+                     }   
+                   
+                    else if (statusCode != 200) {
                         log.error "'speakMessage()': Error making Call (Data): ${hre.getResponse().getData()}"
                         log.error "'speakMessage()': Error making Call (Status): ${hre.getResponse().getStatus()}"
                         log.error "'speakMessage()': Error making Call (getMessage): ${hre.getMessage()}"
