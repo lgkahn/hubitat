@@ -1,13 +1,15 @@
 /**
-*   simple sendmail no authentication .. lg kahn kahn@lgk.com
+*   simple sendmail  .. lg kahn kahn@lgk.com
 *  You should have received a copy of the GNU General Public License
 *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 * v 2.1 added desciprtive text and cleaned up debugging
+* v 2.2 added hostname option and lookup ip if blank.
 */
 
 
 attribute "lastCommand", "string"
+attribute "myHostName", "string"
 
 preferences {
 	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
@@ -15,16 +17,17 @@ preferences {
 	input("From", "text", title: "From:", description: "", required: true)
 	input("To", "text", title: "To:", description: "", required: true)
 	input("Subject", "text", title: "Subject:", description: "")
-        input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-        input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
-        input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
-        input("Password", "text", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
+    input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", requierd: false)
+    input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+    input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
+    input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
+    input("Password", "text", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
 }
 
 metadata {
     definition (name: "LGK Sendmail V2", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
-        capability "Notification"
-        capability "Actuator"
+    capability "Notification"
+    capability "Actuator"
 	capability "Telnet"
 	capability "Configuration"
     }
@@ -45,14 +48,33 @@ def configure()
 
 
 def initialize() {
- 	state.lastMsg = ""
+
+    state.lastMsg = ""
 	state.LastCode = 0
 	state.EmailBody = ""
+    
+    if ((!myHostName) || (myHostName == ""))
+    {
+        log.debug "User specified hostname is blank using IP instead."
+        def hub = location.hubs[0]
+	    def myName =  "[" + hub.getDataValue("localIP") + "]"
+    
+        state.myHostName = myName
+        sendEvent(name: "myHostName", value: myName)
+    }
+    
+    else
+    {
+        state.myHostName = myHostName
+        sendEvent(name: "myHostName", value: myHostName)  
+    }
+    
+    
 }
 
 def deviceNotification(message) {
 
-def version = "2.1"
+def version = "2.2"
 
 if (debug) log.debug "In lgk sendmail Version ($version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
@@ -98,7 +120,7 @@ def parse(String msg) {
              if (response == "220")
                  {
                      sendEvent(name: "lastCommand", value: "helo")       
-                     def res1 = sendData("helo",500)
+                     def res1 = sendData("helo $state.myHostName",500)
                  }
                  else
                  {
@@ -113,7 +135,7 @@ def parse(String msg) {
      if (debug) log.debug "In auth response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "Got auth response now sending username = $Username"
+       if (debug) log.debug "Got auth response now sending username"
        sendEvent(name: "lastCommand", value: "Username")
        def res1 = sendData("$Username",500)
      }
@@ -130,7 +152,7 @@ def parse(String msg) {
      if (debug) log.debug "In Username response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "Got username response now sending password = $Password"
+       if (debug) log.debug "Got username response now sending password"
        sendEvent(name: "lastCommand", value: "Password")
        def res1 = sendData("$Password",500)
      }
@@ -176,7 +198,8 @@ def parse(String msg) {
 	        	emlSubject = (Subject != null ? "${Subject}" : "")
 	        }
    
-    
+           
+               
 	        def sndMsg =[
 	        		"MAIL FROM: ${From}"
 	        		, "RCPT TO: ${To}"
@@ -191,7 +214,10 @@ def parse(String msg) {
 	        		, "."
 		        	, "quit"
 	            ]  
-             def res1 = seqSend(sndMsg,500)
+                 
+                 def res1 = seqSend(sndMsg,500)
+              
+              
          }
          }
          else
@@ -280,5 +306,4 @@ boolean seqSend(msgs, Integer millisec)
 			seqSent = true
 	return seqSent
 }
-
 
