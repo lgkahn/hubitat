@@ -5,6 +5,7 @@
 * 
 * v 2.1 added desciprtive text and cleaned up debugging
 * v 2.2 added hostname option and lookup ip if blank.
+* v 2.3 added better checking for end of send to make sure it is closing cleanly
 */
 
 
@@ -74,7 +75,7 @@ def initialize() {
 
 def deviceNotification(message) {
 
-def version = "2.2"
+def version = "2.3"
 
 if (debug) log.debug "In lgk sendmail Version ($version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
@@ -243,13 +244,13 @@ def parse(String msg) {
                      closeConnection()
                  }
                 }
-       else if (lastComamnd == "quit")
+       else if ((lastComamnd == "quit") || ((response == "221") && (value == "bye")))
         {
           if (debug) log.debug "in quit case"
                if (response == "220" || response == "221")
                  { 
                    sendEvent(name: "lastCommand", value: "sent ok")      
-                   CloseConnection()
+                   closeConnection()
                  }
                  else
                  {
