@@ -11,6 +11,9 @@
 * v 2.4.1 ignore stream is closed errors in telnetStatus fx as the is a system callback and is not working correctly , intermittantly i get a call
 *       to this function telling me socket is closed but it obviously is not because responses are still asynchronously coming basck after!
 *      This "Stream is closed" messages seems to always come out after the quit command so it appears to be a status message not really an error
+* v 2.4.2. try to workaround the check i had for the goodbye/bye message .. I was checkiong the value string on code 221 which was not a good
+*          approach as various servers can return differnent strings here. Unfortunately 221 just means remote server is closing so need to check
+*          that the message was sent and it is 221,
 *
 */
 
@@ -98,8 +101,11 @@ def runAgain(String message)
 
 def deviceNotification(String message) {
 
-def version = "2.4.1"
+def version = "2.4.2"
 def Boolean goOn = true
+state.messageSent = false  
+sendEvent(name: "telnet", value: "Ok")
+
 
 if (state.lastCommand == null)
     {
@@ -174,6 +180,8 @@ def parse(String msg) {
          if (debug)    log.debug "In initialConnect case"
              if (response == "220")
                  {
+                     
+                     sendEvent([name: "telnet", value: "Ok"])
                      state.lastCommand = "helo"
                      sendEvent(name: "lastCommand", value: "helo") 
                      def res1 = sendData("helo $state.myHostName",500)
@@ -279,7 +287,8 @@ def parse(String msg) {
 		        	, "quit"
 	            ]  
                  
-                 def res1 = seqSend(sndMsg,500)             
+                 def res1 = seqSend(sndMsg,500) 
+                 state.messageSent = true
          }
          }
          else
@@ -303,13 +312,17 @@ def parse(String msg) {
                     closeOnError()
                  }
                 }
-       else if ((lastComamnd == "quit") || ((response == "221") && ((value == "bye") || (value == "2.0.0") || (value = "Goodbye"))))
+       else if ((lastComamnd == "quit") || ((response == "221") && (lastCommand == "other")))
+                                            //&& ((value == "bye") || (value == "2.0.0") || (value = "Goodbye"))))
         {
           if (debug) log.debug "In quit case"
                if (response == "220" || response == "221")
                  { 
-                   state.lastCommand = "Sent Ok"
-                   sendEvent(name: "lastCommand", value: "Sent Ok")      
+                   if (state.messageSent)
+                     {
+                      state.lastCommand = "Sent Ok"
+                      sendEvent(name: "lastCommand", value: "Sent Ok")  
+                     }
                    closeConnection()
                  }
                  else
@@ -319,16 +332,14 @@ def parse(String msg) {
            } 
         else 
         {
-            if (response == "250" || response == "354" || response == "221")
+            if (response == "250" || response == "354")
+            //|| response == "221")
             {
                 state.lastCommand = "other"
                 sendEvent(name: "lastCommand", value: "other")
             }
             else
             {
-                log.debug "response = "
-                log.debug "$resonse"
-                log.debug "*************"
                 closeOnError()
             }
         }         
