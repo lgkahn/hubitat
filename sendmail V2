@@ -8,6 +8,10 @@
 * v 2.3 added better checking for end of send to make sure it is closing cleanly
 * v 2.4 add serial queueing so that a new connect waits while old finishes.. set timeout to 1 minute to wait. if email is not finished by
 *       then close connection and start new one. Also add state.lastCommand to follow the attribute as that seems more reliable.
+* v 2.4.1 ignore stream is closed errors in telnetStatus fx as the is a system callback and is not working correctly , intermittantly i get a call
+*       to this function telling me socket is closed but it obviously is not because responses are still asynchronously coming basck after!
+*      This "Stream is closed" messages seems to always come out after the quit command so it appears to be a status message not really an error
+*
 */
 
 
@@ -15,11 +19,11 @@ attribute "lastCommand", "string"
 attribute "myHostName", "string"
 
 preferences {
-    input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
-    input("EmailPort", "integer", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
-    input("From", "text", title: "From:", description: "", required: true)
-    input("To", "text", title: "To:", description: "", required: true)
-    input("Subject", "text", title: "Subject:", description: "")
+	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
+	input("EmailPort", "integer", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
+	input("From", "text", title: "From:", description: "", required: true)
+	input("To", "text", title: "To:", description: "", required: true)
+	input("Subject", "text", title: "Subject:", description: "")
     input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", requierd: false)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
     input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
@@ -31,8 +35,8 @@ metadata {
     definition (name: "LGK Sendmail V2", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
     capability "Notification"
     capability "Actuator"
-    capability "Telnet"
-    capability "Configuration"
+	capability "Telnet"
+	capability "Configuration"
     }
 }
 
@@ -53,15 +57,15 @@ def configure()
 def initialize() {
 
     state.lastMsg = ""
-    state.LastCode = 0
-    state.EmailBody = ""
+	state.LastCode = 0
+	state.EmailBody = ""
     state.lastCommand = "quit"
     
     if ((!myHostName) || (myHostName == ""))
     {
         log.debug "User specified hostname is blank using IP instead."
         def hub = location.hubs[0]
-	def myName =  "[" + hub.getDataValue("localIP") + "]"
+	    def myName =  "[" + hub.getDataValue("localIP") + "]"
     
         state.myHostName = myName
         sendEvent(name: "myHostName", value: myName)
@@ -94,7 +98,7 @@ def runAgain(String message)
 
 def deviceNotification(String message) {
 
-def version = "2.4"
+def version = "2.4.1"
 def Boolean goOn = true
 
 if (state.lastCommand == null)
@@ -117,7 +121,8 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
             log.debug "Existing state ($oldState) indicates last run did not complete. Waiting 1 minute then trying again!"
             runIn(60,"runAgain",[data: [message]])
          }
-	 
+
+  
        if (goOn)
         {
           if (debug) log.debug "Found ok initial state... going on!"
@@ -130,7 +135,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
         
            if (debug) log.debug "Connecting to ${EmailServer}:${EmailPort}"
 	
-	       telnetClose()
+	       //telnetClose()
 	       telnetConnect(EmailServer, EmailPort.toInteger(), null, null)  
         }
 }
@@ -288,6 +293,7 @@ def parse(String msg) {
        if (debug) log.debug "In send message case"
              if (response == "220")
                  {
+                     log.debug "sending quit"
                      state.lastCommand = "quit"
                      sendEvent(name: "lastCommand", value: "quit")     
                      def res1 = sendData("quit",500)
@@ -313,15 +319,16 @@ def parse(String msg) {
            } 
         else 
         {
-         if (debug)   log.debug "In fall through case looking for 250 or 354 or 221 (bye)"
             if (response == "250" || response == "354" || response == "221")
             {
-                // all ok
                 state.lastCommand = "other"
                 sendEvent(name: "lastCommand", value: "other")
             }
             else
             {
+                log.debug "response = "
+                log.debug "$resonse"
+                log.debug "*************"
                 closeOnError()
             }
         }         
@@ -331,8 +338,13 @@ def parse(String msg) {
 }
 
 def telnetStatus(status) {
-    if (debug) log.debug "telnetStatus: ${status}"
-    sendEvent([name: "telnet", value: "${status}"])
+    // comment out telent status as it is not working correctly and the system is telling me the socket is closed and other
+    // response are still returned on the socket after. ignore stream is closed errors.
+    if (status != "receive error: Stream is closed") 
+    {    
+        if (debug) log.debug "telnetStatus: ${status} lastcommand is ($state.lastCommand)"
+        sendEvent([name: "telnet", value: "${status}"])
+    }
 }
 
 
