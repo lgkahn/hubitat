@@ -15,11 +15,11 @@ attribute "lastCommand", "string"
 attribute "myHostName", "string"
 
 preferences {
-	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
-	input("EmailPort", "integer", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
-	input("From", "text", title: "From:", description: "", required: true)
-	input("To", "text", title: "To:", description: "", required: true)
-	input("Subject", "text", title: "Subject:", description: "")
+    input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
+    input("EmailPort", "integer", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
+    input("From", "text", title: "From:", description: "", required: true)
+    input("To", "text", title: "To:", description: "", required: true)
+    input("Subject", "text", title: "Subject:", description: "")
     input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", requierd: false)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
     input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
@@ -31,8 +31,8 @@ metadata {
     definition (name: "LGK Sendmail V2", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
     capability "Notification"
     capability "Actuator"
-	capability "Telnet"
-	capability "Configuration"
+    capability "Telnet"
+    capability "Configuration"
     }
 }
 
@@ -53,15 +53,15 @@ def configure()
 def initialize() {
 
     state.lastMsg = ""
-	state.LastCode = 0
-	state.EmailBody = ""
+    state.LastCode = 0
+    state.EmailBody = ""
     state.lastCommand = "quit"
     
     if ((!myHostName) || (myHostName == ""))
     {
         log.debug "User specified hostname is blank using IP instead."
         def hub = location.hubs[0]
-	    def myName =  "[" + hub.getDataValue("localIP") + "]"
+	def myName =  "[" + hub.getDataValue("localIP") + "]"
     
         state.myHostName = myName
         sendEvent(name: "myHostName", value: myName)
@@ -117,8 +117,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
             log.debug "Existing state ($oldState) indicates last run did not complete. Waiting 1 minute then trying again!"
             runIn(60,"runAgain",[data: [message]])
          }
-
-  
+	 
        if (goOn)
         {
           if (debug) log.debug "Found ok initial state... going on!"
