@@ -303,7 +303,8 @@ def parse(String msg) {
                     closeOnError()
                  }
                 }
-       else if ((lastComamnd == "quit") || ((response == "221") && ((value == "bye") || (value == "2.0.0"))))
+       else if ((lastComamnd == "quit") || (response == "221"))
+                //&& ((value == "bye") || (value == "2.0.0"))))
         {
           if (debug) log.debug "In quit case"
                if (response == "220" || response == "221")
