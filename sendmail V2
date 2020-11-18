@@ -6,6 +6,8 @@
 * v 2.1 added desciprtive text and cleaned up debugging
 * v 2.2 added hostname option and lookup ip if blank.
 * v 2.3 added better checking for end of send to make sure it is closing cleanly
+* v 2.4 add serial queueing so that a new connect waits while old finishes.. set timeout to 1 minute to wait. if email is not finished by
+*       then close connection and start new one. Also add state.lastCommand to follow the attribute as that seems more reliable.
 */
 
 
@@ -53,6 +55,7 @@ def initialize() {
     state.lastMsg = ""
 	state.LastCode = 0
 	state.EmailBody = ""
+    state.lastCommand = "quit"
     
     if ((!myHostName) || (myHostName == ""))
     {
@@ -73,20 +76,66 @@ def initialize() {
     
 }
 
-def deviceNotification(message) {
-
-def version = "2.3"
-
-if (debug) log.debug "In lgk sendmail Version ($version)"
-      sendEvent(name: "lastCommand", value: "initialConnect")
+def runAgain(String message)
+{
+    def oldState = state.lastCommand
+    if (debug) log.debug "Staring up... Initial state found: ($oldState)"
     
-	state.EmailBody = "${message}"
-	state.LastCode = 0
-        if (debug) log.debug "Connecting to ${EmailServer}:${EmailPort}"
-	
-	telnetClose()
-	telnetConnect(EmailServer, EmailPort.toInteger(), null, null)
+    if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")) ) 
+      { 
+       log.debug "Existing State still ($oldstate)... Last message appears to have failed. Force closing existing connection and sending new message."
+       closeConnection()
+       state.lastCommand = "Force Closed" 
+       sendEvent(name: "lastCommand", value: "Force Closed")
+      }
+    
+     deviceNotification(message)   
 }
+
+def deviceNotification(String message) {
+
+def version = "2.4"
+def Boolean goOn = true
+
+if (state.lastCommand == null)
+    {
+        state.lastCommand = "quit"
+    }
+    
+if (debug) log.debug "-------> In lgk sendmail Version ($version)"
+    
+    // lgk now check if we are already in middle of a message and if so wait for a minute.. if after that we still are force close the connection and resume this
+    // message
+    
+    def oldState = state.lastCommand
+    
+    if (debug) log.debug "Initial state found: ($oldState)"
+    
+    if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")))   
+      { 
+            goOn = false
+            log.debug "Existing state ($oldState) indicates last run did not complete. Waiting 1 minute then trying again!"
+            runIn(60,"runAgain",[data: [message]])
+         }
+
+  
+       if (goOn)
+        {
+          if (debug) log.debug "Found ok initial state... going on!"
+        
+           state.lastCommand = "initialConnect"
+           sendEvent(name: "lastCommand", value: "initialConnect")
+    
+	       state.EmailBody = "${message}"
+	       state.LastCode = 0
+        
+           if (debug) log.debug "Connecting to ${EmailServer}:${EmailPort}"
+	
+	       telnetClose()
+	       telnetConnect(EmailServer, EmailPort.toInteger(), null, null)  
+        }
+}
+
 
 def sendData(String msg, Integer millsec) {
  if (debug) log.debug "$msg"
@@ -99,13 +148,14 @@ def sendData(String msg, Integer millsec) {
 
 def parse(String msg) {
 	 
-    def lastCommand = device.currentValue("lastCommand")
+    //def lastCommand = device.currentValue("lastCommand")
+    def lastCommand = state.lastCommand
     
     if (debug) {
         log.debug "In parse - ${msg}"
+        log.debug "lastCommand = $lastCommand"
     }
         
-  if (debug)  log.debug "lastCommand = $lastCommand"
     
     def pair = msg.split(" ")
 
@@ -120,14 +170,13 @@ def parse(String msg) {
          if (debug)    log.debug "In initialConnect case"
              if (response == "220")
                  {
-                     sendEvent(name: "lastCommand", value: "helo")       
+                     state.lastCommand = "helo"
+                     sendEvent(name: "lastCommand", value: "helo") 
                      def res1 = sendData("helo $state.myHostName",500)
                  }
                  else
                  {
-                     log.debug "Got bad response = $response"
-                     sendEvent(name: "lastCommand", value: "send failed")  
-                     closeConnection()
+                    closeOnError()
                  }
                 }
     
@@ -137,13 +186,17 @@ def parse(String msg) {
      if (response == "334")
      {
        if (debug) log.debug "Got auth response now sending username"
-       sendEvent(name: "lastCommand", value: "Username")
-       def res1 = sendData("$Username",500)
+ 
+        state.lastCommand = "Username"
+        sendEvent(name: "lastCommand", value: "Username")
+ 
+        def res1 = sendData("$Username",500)
      }
     else  
     {
          log.debug "Got bad response for auth = $response"
-         sendEvent(name: "lastCommand", value: "send failed")  
+         state.lastCommand = "Send Failed"
+         sendEvent(name: "lastCommand", value: "Send Failed")  
          closeConnection()
      }
     }   
@@ -154,26 +207,30 @@ def parse(String msg) {
      if (response == "334")
      {
        if (debug) log.debug "Got username response now sending password"
+       state.lastCommand = "Password"
        sendEvent(name: "lastCommand", value: "Password")
        def res1 = sendData("$Password",500)
      }
     else  
     {
          log.debug "Got bad response for Username = $response"
-         sendEvent(name: "lastCommand", value: "send failed")  
+         state.lastCommand = "Send Failed"
+         sendEvent(name: "lastCommand", value: "Send Failed")  
          closeConnection()
      }
     }   
      
     else if ((lastCommand == "helo") || (lastCommand == "Password"))
         {
-        if (debug)    log.debug "In helo/Password case"
+        if (debug) log.debug "In helo/Password case"
         if ((response == "250") || (response == "235"))
          {
         
           if ((lastCommand == "helo") && (Authenticate) && (Username) && (Password))
           {
            if (debug) log.debug "Trying authentication"
+              
+           state.lastCommand = "Auth"
            sendEvent(name: "lastCommand", value: "Auth")
            def res1 = sendData("auth login",500)
           }
@@ -181,9 +238,11 @@ def parse(String msg) {
          else
            {
            if (debug) "Either got 250 for helo or 235 for password, Now Sending Message"
+               
+            state.lastCommand = "sendmessage"
             sendEvent(name: "lastCommand", value: "sendmessage") 
                     
-                def msgData = "${state.EmailBody}"
+            def msgData = "${state.EmailBody}"
 	        def emlBody = ""
 	        def emlSubject = ""
 	        def emlDateTime = new Date()
@@ -216,16 +275,12 @@ def parse(String msg) {
 		        	, "quit"
 	            ]  
                  
-                 def res1 = seqSend(sndMsg,500)
-              
-              
+                 def res1 = seqSend(sndMsg,500)             
          }
          }
          else
          {
-             log.debug "Got bad response = $response"
-             sendEvent(name: "lastCommand", value: "send failed")  
-             closeConnection()
+             closeOnError()
          }
         }
     
@@ -234,29 +289,27 @@ def parse(String msg) {
        if (debug) log.debug "In send message case"
              if (response == "220")
                  {
-                     sendEvent(name: "lastCommand", value: "quit" )     
+                     state.lastCommand = "quit"
+                     sendEvent(name: "lastCommand", value: "quit")     
                      def res1 = sendData("quit",500)
                  }
                  else
                  {
-                     log.debug "Got bad response = $response"
-                      sendEvent(name: "lastCommand", value: "send failed")  
-                     closeConnection()
+                    closeOnError()
                  }
                 }
        else if ((lastComamnd == "quit") || ((response == "221") && (value == "bye")))
         {
-          if (debug) log.debug "in quit case"
+          if (debug) log.debug "In quit case"
                if (response == "220" || response == "221")
                  { 
-                   sendEvent(name: "lastCommand", value: "sent ok")      
+                   state.lastCommand = "Sent Ok"
+                   sendEvent(name: "lastCommand", value: "Sent Ok")      
                    closeConnection()
                  }
                  else
                  {
-                      log.debug "Got bad response = $response"
-                      sendEvent(name: "lastCommand", value: "send failed")  
-                      closeConnection()
+                      closeOnError()
                  }
            } 
         else 
@@ -265,13 +318,12 @@ def parse(String msg) {
             if (response == "250" || response == "354" || response == "221")
             {
                 // all ok
+                state.lastCommand = "other"
                 sendEvent(name: "lastCommand", value: "other")
             }
             else
             {
-               log.debug "Got bad response = $response"
-                sendEvent(name: "lastCommand", value: "send failed")  
-                closeConnection()
+                closeOnError()
             }
         }         
                   
@@ -290,6 +342,8 @@ def closeConnection()
     if (closeTelnet){
                 try {
                     telnetClose()
+                    state.lastCommand = "Connection Closed"
+                    sendEvent(name: "lastCommand", value: "Connection Closed")
                 } catch(e) {
                     if (debug) log.debug("Connection Closed")
                 }
@@ -308,3 +362,10 @@ boolean seqSend(msgs, Integer millisec)
 	return seqSent
 }
 
+def closeOnError()
+{
+     log.debug "Got bad response = $response"
+     state.lastCommand = "Send Failed"
+     sendEvent(name: "lastCommand", value: "Send Failed")  
+     closeConnection()    
+}
