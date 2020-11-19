@@ -18,7 +18,9 @@
 *         tested with up to 8 messages
 *         When one message finishes it checks the queue, and delivers any other remaining.. also schedules a rerun when busy and one is added to the queue.
 *         also serialize the setting and checking of the state.lastCommand as this is used to keep track of the async status of the commands
-*         
+* 
+*  v 2.5 changes were enough to signify new version. Found one bug in last one when reviewing code. a synchrozie insize a synchronize on same semaphore.
+*         Did not seem to be causing issues so I assume the system is smart enough to avoid it but fixed anyway.
 */
 
 attribute "lastCommand", "string"
@@ -184,14 +186,14 @@ def runAgain(String message)
 
 def deviceNotification(String message) {
 
-def version = "2.4.3"
+def version = "2.5"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
   
 synchronized (lastStateMutex)
     {
-     if (state.lastCommand == null) synchronize(state.lastCommand = "quit")
+     if (state.lastCommand == null) state.lastCommand = "quit"
     }
     
 if (debug) log.debug "-------> In lgk sendmail Version ($version)"
