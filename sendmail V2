@@ -14,12 +14,25 @@
 * v 2.4.2. try to workaround the check i had for the goodbye/bye message .. I was checkiong the value string on code 221 which was not a good
 *          approach as various servers can return differnent strings here. Unfortunately 221 just means remote server is closing so need to check
 *          that the message was sent and it is 221,
-*
+* v 2.4.3 true concurrency and queue using a thread safe data structure concurrentlinkedqueue and also mutex (thanks to erktrek)
+*         tested with up to 8 messages
+*         When one message finishes it checks the queue, and delivers any other remaining.. also schedules a rerun when busy and one is added to the queue.
+*         also serialize the setting and checking of the state.lastCommand as this is used to keep track of the async status of the commands
+*         
 */
-
 
 attribute "lastCommand", "string"
 attribute "myHostName", "string"
+
+import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
+import groovy.transform.Field
+import java.util.concurrent.ConcurrentLinkedQueue
+
+@Field static java.util.concurrent.Semaphore mutex = new java.util.concurrent.Semaphore(1)
+@Field static java.util.concurrent.Semaphore lastStateMutex = new java.util.concurrent.Semaphore(1)
+
+@Field static lqueue = new java.util.concurrent.ConcurrentLinkedQueue()
 
 preferences {
 	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
@@ -63,6 +76,8 @@ def initialize() {
 	state.LastCode = 0
 	state.EmailBody = ""
     state.lastCommand = "quit"
+     
+    mutex.release()
     
     if ((!myHostName) || (myHostName == ""))
     {
@@ -80,19 +95,87 @@ def initialize() {
         sendEvent(name: "myHostName", value: myHostName)  
     }
     
-    
 }
+
+def processQueue()
+{
+    def Integer waitTime = 30000
+    def Boolean doprocess  = false
+    def String msg = []
+  
+      if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
+       {  
+        def isempty = lqueue.isEmpty()
+        if (debug) log.debug "in process queue current empty = $isempty"
+
+        if (!isempty)
+         {
+          if (debug) 
+             {
+                 log.debug "Getting item to process"
+     	         log.debug "Got mutex"
+             }
+             
+           msg = lqueue.poll()
+           if (debug) log.debug "Got item $msg to process."
+           mutex.release()   
+           doProcess = true
+         }
+       }        
+   
+    else
+    {
+        log.debug "Lock Acquire failed ... Aborting!"
+        mutex.release()
+        exit
+    }
+    
+    mutex.release()  
+    if (doProcess) deviceNotification(msg) 
+    
+    if (debug) log.debug "after run queue = $lqueue"
+}     
+
+
+def addToQueue(String message)
+
+{
+    if (debug) log.debug "in add to queue current queue = $lqueue"
+    if (debug) log.debug("Acquiring semaphore.")
+    def Integer waitTime = 30000
+		
+    if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
+    {    
+        
+       def isempty = lqueue.isEmpty()
+       if (debug) log.debug "in process queue current empty = $empty"
+       lqueue.add(message)
+    }
+    else
+    {
+        log.debug "Lock Acquire failed ... Aborting"
+         mutex.release()
+        exit
+    }
+    
+    mutex.release()
+    if (debug) log.debug "after queue = $state.queue"
+}
+
 
 def runAgain(String message)
 {
-    def oldState = state.lastCommand
+    
+    def oldState
+    synchronized (lastStateMutex) { oldState = state.lastCommand }
+   
     if (debug) log.debug "Staring up... Initial state found: ($oldState)"
     
     if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")) ) 
       { 
        log.debug "Existing State still ($oldstate)... Last message appears to have failed. Force closing existing connection and sending new message."
        closeConnection()
-       state.lastCommand = "Force Closed" 
+       synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
        sendEvent(name: "lastCommand", value: "Force Closed")
       }
     
@@ -101,39 +184,39 @@ def runAgain(String message)
 
 def deviceNotification(String message) {
 
-def version = "2.4.2"
+def version = "2.4.3"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
-
-
-if (state.lastCommand == null)
+  
+synchronized (lastStateMutex)
     {
-        state.lastCommand = "quit"
+     if (state.lastCommand == null) synchronize(state.lastCommand = "quit")
     }
     
 if (debug) log.debug "-------> In lgk sendmail Version ($version)"
     
     // lgk now check if we are already in middle of a message and if so wait for a minute.. if after that we still are force close the connection and resume this
     // message
-    
-    def oldState = state.lastCommand
+    def oldState
+    synchronized (lastStateMutex) { oldState = state.lastCommand }
     
     if (debug) log.debug "Initial state found: ($oldState)"
     
     if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")))   
       { 
             goOn = false
-            log.debug "Existing state ($oldState) indicates last run did not complete. Waiting 1 minute then trying again!"
-            runIn(60,"runAgain",[data: [message]])
+            log.debug "Existing state ($oldState) indicates last run did not complete.  Adding to queue, Waiting 30 secs.then trying again!"
+            addToQueue(message)
+            runIn(30,"processQueue", [overwrite: false])   
+           // runIn(60,"runAgain",[data: [message]])
          }
 
-  
        if (goOn)
         {
           if (debug) log.debug "Found ok initial state... going on!"
-        
-           state.lastCommand = "initialConnect"
+             
+           synchronized (lastStateMutex) { state.lastCommand = "initialConnect" }
            sendEvent(name: "lastCommand", value: "initialConnect")
     
 	       state.EmailBody = "${message}"
@@ -141,7 +224,6 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
         
            if (debug) log.debug "Connecting to ${EmailServer}:${EmailPort}"
 	
-	       //telnetClose()
 	       telnetConnect(EmailServer, EmailPort.toInteger(), null, null)  
         }
 }
@@ -159,22 +241,22 @@ def sendData(String msg, Integer millsec) {
 def parse(String msg) {
 	 
     //def lastCommand = device.currentValue("lastCommand")
-    def lastCommand = state.lastCommand
+    
+  
+    def lastCommand
+    synchronized (lastStateMutex) { lastCommand = state.lastCommand }
     
     if (debug) {
         log.debug "In parse - ${msg}"
         log.debug "lastCommand = $lastCommand"
     }
-        
-    
-    def pair = msg.split(" ")
 
-     def response = pair[0]
-     def value = pair[1]
+    def pair = msg.split(" ")
+    def response = pair[0]
+    def value = pair[1]
     
    if (debug) log.debug "Got server response $response value = $value lastCommand = ($lastCommand)"
     
- 
    if (lastCommand == "initialConnect")
         {
          if (debug)    log.debug "In initialConnect case"
@@ -182,7 +264,7 @@ def parse(String msg) {
                  {
                      
                      sendEvent([name: "telnet", value: "Ok"])
-                     state.lastCommand = "helo"
+                     synchronized (lastStateMutex) { state.lastCommand = "helo" }
                      sendEvent(name: "lastCommand", value: "helo") 
                      def res1 = sendData("helo $state.myHostName",500)
                  }
@@ -199,15 +281,14 @@ def parse(String msg) {
      {
        if (debug) log.debug "Got auth response now sending username"
  
-        state.lastCommand = "Username"
-        sendEvent(name: "lastCommand", value: "Username")
- 
-        def res1 = sendData("$Username",500)
+       synchronized (lastStateMutex) { state.lastCommand = "Username" }
+       sendEvent(name: "lastCommand", value: "Username")
+       def res1 = sendData("$Username",500)
      }
     else  
     {
          log.debug "Got bad response for auth = $response"
-         state.lastCommand = "Send Failed"
+         synchronized (lastStateMutex) { state.lastCommand = "Send Failed" }
          sendEvent(name: "lastCommand", value: "Send Failed")  
          closeConnection()
      }
@@ -219,14 +300,14 @@ def parse(String msg) {
      if (response == "334")
      {
        if (debug) log.debug "Got username response now sending password"
-       state.lastCommand = "Password"
+       synchronized (lastStateMutex) { state.lastCommand = "Password" }
        sendEvent(name: "lastCommand", value: "Password")
        def res1 = sendData("$Password",500)
      }
     else  
     {
          log.debug "Got bad response for Username = $response"
-         state.lastCommand = "Send Failed"
+        synchronized (lastStateMutex) { state.lastCommand = "Send Failed" }
          sendEvent(name: "lastCommand", value: "Send Failed")  
          closeConnection()
      }
@@ -242,7 +323,7 @@ def parse(String msg) {
           {
            if (debug) log.debug "Trying authentication"
               
-           state.lastCommand = "Auth"
+           synchronized (lastStateMutex) { state.lastCommand = "Auth" }
            sendEvent(name: "lastCommand", value: "Auth")
            def res1 = sendData("auth login",500)
           }
@@ -251,7 +332,7 @@ def parse(String msg) {
            {
            if (debug) "Either got 250 for helo or 235 for password, Now Sending Message"
                
-            state.lastCommand = "sendmessage"
+            synchronized (lastStateMutex) { state.lastCommand = "sendmessage" }
             sendEvent(name: "lastCommand", value: "sendmessage") 
                     
             def msgData = "${state.EmailBody}"
@@ -303,7 +384,7 @@ def parse(String msg) {
              if (response == "220")
                  {
                      log.debug "sending quit"
-                     state.lastCommand = "quit"
+                     synchronized (lastStateMutex) { state.lastCommand = "quit" } 
                      sendEvent(name: "lastCommand", value: "quit")     
                      def res1 = sendData("quit",500)
                  }
@@ -320,10 +401,11 @@ def parse(String msg) {
                  { 
                    if (state.messageSent)
                      {
-                      state.lastCommand = "Sent Ok"
+                      synchronized (lastStateMutex) { state.lastCommand = "Sent Ok" }
                       sendEvent(name: "lastCommand", value: "Sent Ok")  
                      }
                    closeConnection()
+                   processQueue()
                  }
                  else
                  {
@@ -335,8 +417,8 @@ def parse(String msg) {
             if (response == "250" || response == "354")
             //|| response == "221")
             {
-                state.lastCommand = "other"
-                sendEvent(name: "lastCommand", value: "other")
+               synchronized (lastStateMutex) { state.lastCommand = "other" }
+               sendEvent(name: "lastCommand", value: "other")
             }
             else
             {
@@ -364,7 +446,7 @@ def closeConnection()
     if (closeTelnet){
                 try {
                     telnetClose()
-                    state.lastCommand = "Connection Closed"
+                    synchronized (lastStateMutex) { state.lastCommand = "Connection Closed" }
                     sendEvent(name: "lastCommand", value: "Connection Closed")
                 } catch(e) {
                     if (debug) log.debug("Connection Closed")
@@ -387,7 +469,7 @@ boolean seqSend(msgs, Integer millisec)
 def closeOnError()
 {
      log.debug "Got bad response = $response"
-     state.lastCommand = "Send Failed"
+     synchronized (lastStateMutex) { state.lastCommand = "Send Failed" }
      sendEvent(name: "lastCommand", value: "Send Failed")  
      closeConnection()    
 }
