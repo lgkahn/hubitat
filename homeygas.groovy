@@ -33,22 +33,6 @@ metadata {
 
 	preferences {}
  
-	tiles(scale:2) {
-		multiAttributeTile(name:"smoke", type: "generic", width: 6, height: 4) {
-			tileAttribute ("device.smoke", key: "PRIMARY_CONTROL") {
-           		attributeState("clear", label:'clear', icon:"st.alarm.smoke.clear", backgroundColor:"#ffffff")
-            	attributeState("detected", label:'GAS', icon:"st.alarm.smoke.smoke", backgroundColor:"#e86d13")   
- 			}
-		}
-        standardTile("configure", "device.configure", inactiveLabel: false, decoration: "flat", width: 1, height: 1) {
-			state "default", action:"configuration.configure", icon:"st.secondary.configure"
-		} 		
-        standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 1, height: 1) {
-			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
-		}        
-		main (["smoke"])
-		details(["smoke","refresh","configure"])
-	}
 }
  
 def parse(String description) {
