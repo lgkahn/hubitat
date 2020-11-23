@@ -22,6 +22,7 @@
 *  v 2.5 changes were enough to signify new version. Found one bug in last one when reviewing code. a synchrozie insize a synchronize on same semaphore.
 *         Did not seem to be causing issues so I assume the system is smart enough to avoid it but fixed anyway.
 * v 2.5.1 mine got stuck in weird state and kept re-running with failure.. added an unschedule to fix it in certain cases and reset states. Also removed a function no longer called.
+*         Also reset state variable when it finds queue empty.
 *
 */
 
@@ -101,13 +102,18 @@ def initialize() {
     
 }
 
+def restartFromRunIn()
+{  
+    processQueue(true)
+}
+
 def processQueue(Boolean fromRunIn = false)
 {
     def Integer waitTime = 30000
     def Boolean doprocess  = false
     def String msg = []
     
-      if (debug) log.debug "in process queue queue = $lqueue"
+      if (debug) log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
       if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
        {  
         def isempty = lqueue.isEmpty()
@@ -126,6 +132,12 @@ def processQueue(Boolean fromRunIn = false)
            mutex.release()   
            doProcess = true
          }
+       else
+           {
+               // queue is empty so reset state just in case
+               synchronized (lastStateMutex) { state.lastCommand = "Sent Ok" }
+               sendEvent(name: "lastCommand", value: "Sent Ok")  
+           }
        }        
    
     else
@@ -206,7 +218,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
                 goOn = false
                 log.debug "Existing state ($oldState) indicates last run did not complete.  Adding to queue, Waiting 30 secs.then trying again!"
                 addToQueue(message)
-                runIn(30,"processQueue", [overwrite: false]) 
+                runIn(30,"restartFromRunIn", [overwrite: false]) 
               }
          }
 
