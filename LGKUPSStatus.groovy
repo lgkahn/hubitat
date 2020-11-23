@@ -474,7 +474,7 @@ def parse(String msg) {
                   
                if ((p0 == "Self-Test") && (p1 == "Result:"))
                   {
-                    def theResult = p2 + " " +p3 + " " + p4 + " " + p4
+                    def theResult = p2 + " " +p3 + " " + p4 + " " + p5
                     sendEvent(name: "lastSelfTestResult", value: theResult)
                     log.debug "Last Self Test Result: $theResult"
                   }   
@@ -586,4 +586,3 @@ boolean seqSend(msgs, Integer millisec)
 			seqSent = true
 	return seqSent
 }
-
