@@ -21,6 +21,8 @@
 * 
 *  v 2.5 changes were enough to signify new version. Found one bug in last one when reviewing code. a synchrozie insize a synchronize on same semaphore.
 *         Did not seem to be causing issues so I assume the system is smart enough to avoid it but fixed anyway.
+* v 2.5.1 mine got stuck in weird state and kept re-running with failure.. added an unschedule to fix it in certain cases and reset states. Also removed a function no longer called.
+*
 */
 
 attribute "lastCommand", "string"
@@ -99,12 +101,13 @@ def initialize() {
     
 }
 
-def processQueue()
+def processQueue(Boolean fromRunIn = false)
 {
     def Integer waitTime = 30000
     def Boolean doprocess  = false
     def String msg = []
-  
+    
+      if (debug) log.debug "in process queue queue = $lqueue"
       if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
        {  
         def isempty = lqueue.isEmpty()
@@ -129,6 +132,7 @@ def processQueue()
     {
         log.debug "Lock Acquire failed ... Aborting!"
         mutex.release()
+        unschedule()
         exit
     }
     
@@ -157,6 +161,7 @@ def addToQueue(String message)
     {
         log.debug "Lock Acquire failed ... Aborting"
          mutex.release()
+        unschedule()
         exit
     }
     
@@ -164,29 +169,9 @@ def addToQueue(String message)
     if (debug) log.debug "after queue = $state.queue"
 }
 
+def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def runAgain(String message)
-{
-    
-    def oldState
-    synchronized (lastStateMutex) { oldState = state.lastCommand }
-   
-    if (debug) log.debug "Staring up... Initial state found: ($oldState)"
-    
-    if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")) ) 
-      { 
-       log.debug "Existing State still ($oldstate)... Last message appears to have failed. Force closing existing connection and sending new message."
-       closeConnection()
-       synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
-       sendEvent(name: "lastCommand", value: "Force Closed")
-      }
-    
-     deviceNotification(message)   
-}
-
-def deviceNotification(String message) {
-
-def version = "2.5"
+def version = "2.5.1"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -207,11 +192,22 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
     
     if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")))   
       { 
-            goOn = false
-            log.debug "Existing state ($oldState) indicates last run did not complete.  Adding to queue, Waiting 30 secs.then trying again!"
-            addToQueue(message)
-            runIn(30,"processQueue", [overwrite: false])   
-           // runIn(60,"runAgain",[data: [message]])
+          if (fromRunIn == true)
+            {  
+             log.debug "2nd attempt to run failed aftter sleeping... Clearing scheduling, resetting states, re-adding to the queue and aborting!"
+             unschedule()
+             sendEvent(name: "lastCommand", value: "Force Closed")
+             addToQueue(message)
+             synchronized (lastStateMutex) { oldState = state.lastCommand }
+             goOn = false
+            }
+         else
+              {
+                goOn = false
+                log.debug "Existing state ($oldState) indicates last run did not complete.  Adding to queue, Waiting 30 secs.then trying again!"
+                addToQueue(message)
+                runIn(30,"processQueue", [overwrite: false]) 
+              }
          }
 
        if (goOn)
