@@ -27,6 +27,7 @@
 * v 1.10 as well as internal temp and battery attributes added them as capabilties as well so you can use standard battery and temp tiles and standard rules on these.
 *    related also added a pulldown for units for temp ie C or F so the correct temp is set for the capability.
 * 1.11 change for alternate etmp config
+* v 2 added all kinds of new power and battery attributes. Not all UPS cards have all this info, It will report what it can.
 
 */
 capability "Battery"
@@ -43,6 +44,21 @@ attribute "batteryPercentage" , "number"
 attribute "currentCheckTime", "number"
 attribute "CTemp", "number"
 attribute "FTemp", "number"
+
+attribute "outputVoltage", "number"
+attribute "inputVoltage", "number"
+attribute "outputFrequency", "number"
+attribute "inputFrequency", "number"
+attribute "outputWattsPercent", "number"
+attribute "outoutVAPercent", "number"
+attribute "outputCurrent", "number"
+attribute "outputEnergy", "number"
+attribute "batteryVoltage", "number"
+attribute "lastSelfTestResult", "string"
+attribute "lastSelfTestDate", "string"
+attribute "nextBatteryReplacementDate", "string"
+
+
 
 command "refresh"
 
@@ -70,7 +86,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "1.11"
+	state.version = "2.00"
 }
 
 def installed() {
@@ -221,6 +237,7 @@ def parse(String msg) {
                     , "detstatus -ss"
                     , "detstatus -soc"
                     , "detstatus -tmp"
+                    , "detstatus -all"
 		        	, "quit"
 	            ]  
              def res1 = seqSend(sndMsg,500)
@@ -238,15 +255,108 @@ def parse(String msg) {
             
        if (debug) log.debug "In getstatus case length = $pair.length"
       
-       if (pair.length == 4)
+       if (pair.length == 5)
             {
-              if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3"
- 
+              
              def p0 = pair[0]
              def p1 = pair[1]
              def p2 = pair[2]
              def p3 = pair[3]
-       
+             def p4 = pair[4]
+                
+             if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
+          
+              if (p0 == "Output")
+                 {
+                    if ((p1 == "Watts") && (p2 == "Percent:"))
+                     {
+                        sendEvent(name: "outputWattsPercent", value: p3) 
+                        log.debug "Output Watts Percent: $p3"
+                     }      
+                    else if ((p1 == "VA") && (p2 == "Percent:"))
+                    {
+                       sendEvent(name: "ouputVAPercent", value: p3)
+                       log.debug "Output VA Percent: $p3" 
+                    }
+                 }
+               else if ((p0 == "Next") && (p1 == "Battery") && (p2 == "Replacement") && (p3 == "Date:")) 
+               {
+                   sendEvent(name: "nextBatteryReplacmentDate", value: p4)
+                   log.debug "Next Battery Replacment Date: $p4"
+               }                
+            }  // length = 5        
+        
+       if (pair.length == 3)
+            {
+                
+             def p0 = pair[0]
+             def p1 = pair[1]
+             def p2 = pair[2]
+            
+             if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2"
+           
+              if ((p0 == "Self-Test") && (p1 == "Date:"))
+                {
+                         sendEvent(name: "lastSelfTestDate", value: p2) 
+                         log.debug "Last Self Test Date: $p2"
+                } 
+            } // length = 3
+            
+       if (pair.length == 4)
+            {
+           
+             def p0 = pair[0]
+             def p1 = pair[1]
+             def p2 = pair[2]
+             def p3 = pair[3]
+                
+             if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3"
+           
+              if (p0 == "Output")
+                 {
+                    if (p1 == "Voltage:")
+                     {
+                         sendEvent(name: "outputVoltage", value: p2) 
+                         log.debug "Output Voltage: $p2"
+                     }  
+                    else if (p1 == "Frequency:")
+                    {
+                        sendEvent(name: "outputFrequency", value: p2)
+                        log.debug "Output Frequency: $p2"  
+                    } 
+                    else if (p1 == "Current:")
+                    {
+                        sendEvent(name: "outputCurrent", value: p2)
+                        log.debug "Output Current: $p2"
+                    }
+                    else if (p1 == "Energy:")
+                    {
+                        sendEvent(name: "outputEnergy", value: p2)  
+                        log.debug "Output Energy: $p2"
+                    }     
+                 }
+                
+               else if (p0 == "Input")
+                  {
+                    if (p1 == "Voltage:")
+                      {
+                          sendEvent(name: "inputVoltage", value: p2)
+                          log.debug "Input Voltage: $p2"
+                      }
+                    else if (p1 == "Frequency:")
+                    {
+                        sendEvent(name: "inputFrequency", value: p2) 
+                        log.debug "Input Frequency: $p2"  
+                    }
+                  }
+                
+                else if ((p0 == "Battery") && (p1 == "Voltage:"))
+                  {
+                    sendEvent(name: "batteryVoltage", value: p2)
+                    log.debug "Battery Voltage: $p2"  
+                  }          
+  
+              
            
              if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
                  {
@@ -268,8 +378,7 @@ def parse(String msg) {
                     if (debug) log.debug "*********************************"
                      
                     sendEvent(name: "UPSStatus", value: thestatus)
-                     
-                   
+                                  
                   if ((thestatus == "OnBattery") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTimeOnBattery))
                      {
                          log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
@@ -359,8 +468,16 @@ def parse(String msg) {
            def p2 = pair[2]
            def p3 = pair[3]
            def p4 = pair[4]
+           def p5 = pair[5]
              
-      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
+      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5"
+                  
+               if ((p0 == "Self-Test") && (p1 == "Result:"))
+                  {
+                    def theResult = p2 + " " +p3 + " " + p4 + " " + p4
+                    sendEvent(name: "lastSelfTestResult", value: theResult)
+                    log.debug "Last Self Test Result: $theResult"
+                  }   
 
              if ((p0 == "Battery") && (p1 == "State") && (p3 == "Charge:"))
                  {
@@ -368,7 +485,7 @@ def parse(String msg) {
                     int p4int = p4dec * 100
                     
                     if (debug) log.debug "********************************"
-                    log.debug "Got UPS Battery Percentage = $p4!"
+                    log.debug "UPS Battery Percentage: $p4!"
                     if (debug) log.debug "*********************************"
                    
                     sendEvent(name: "batteryPercentage", value: p4int)
@@ -389,9 +506,7 @@ def parse(String msg) {
                     else 
                       sendEvent(name: "temperature", value: p2, unit: tempUnits)
                  }
-             
-             
-             
+   
             } // length = 6
             
        if ((pair.length == 8) || (pair.length == 6))
