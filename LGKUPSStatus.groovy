@@ -306,7 +306,7 @@ def parse(String msg) {
                      }      
                     else if ((p1 == "VA") && (p2 == "Percent:"))
                     {
-                       sendEvent(name: "ouputVAPercent", value: p3)
+                       sendEvent(name: "outputVAPercent", value: p3)
                        if (getloglevel() > 0) log.debug "Output VA Percent: $p3" 
                     }
                  }
