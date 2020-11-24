@@ -1,7 +1,7 @@
 {
   "packageName": "LGK Smart UPS Status",
   "author": "Larry Kahn",
-  "version": "2.0",
+  "version": "2.1",
   "minimumHEVersion": "1.11",
   "dateReleased": "2020-10-19",
   "drivers": [
