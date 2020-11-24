@@ -29,6 +29,7 @@
 * 1.11 change for alternate etmp config
 * v 2 added all kinds of new power and battery attributes. Not all UPS cards have all this info, It will report what it can.
 * v 2.1 added two log levels, and auto turn off after 30 minutes.
+* v 2.2 fixed typo in attribute name.
 *
 */
 capability "Battery"
@@ -86,7 +87,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "2.1"
+	state.version = "2.2"
 }
 
 def installed() {
@@ -311,7 +312,7 @@ def parse(String msg) {
                  }
                else if ((p0 == "Next") && (p1 == "Battery") && (p2 == "Replacement") && (p3 == "Date:")) 
                {
-                   sendEvent(name: "nextBatteryReplacmentDate", value: p4)
+                   sendEvent(name: "nextBatteryReplacementDate", value: p4)
                    if (getloglevel() > 0) log.debug "Next Battery Replacment Date: $p4"
                }                
             }  // length = 5        
