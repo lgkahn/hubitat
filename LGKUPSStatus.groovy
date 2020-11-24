@@ -28,7 +28,8 @@
 *    related also added a pulldown for units for temp ie C or F so the correct temp is set for the capability.
 * 1.11 change for alternate etmp config
 * v 2 added all kinds of new power and battery attributes. Not all UPS cards have all this info, It will report what it can.
-
+* v 2.1 added two log levels, and auto turn off after 30 minutes.
+*
 */
 capability "Battery"
 capability "Temperature Measurement"
@@ -69,7 +70,7 @@ preferences {
     input("Password", "text", title: "Password for Login?", required: true, defaultValue: "")
     input("runTime", "integer", title: "How often to check UPS Status  (in Minutes)>", required: true, defaultValue: 30)  
     input("runTimeOnBattery", "integer", title: "How often to check UPS Status when on Battery (in Minutes)>", required: true, defaultValue: 10)
-    input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+    input("logLevel", "enum", title: "Logging Level (off,minimial,maximum) ?", options: ["off","minimal", "maximum"], required: true, defaultValue: "off")
     input("disable", "bool", title: "Disable?", required: false, defaultValue: false)
     input("tempUnits", "enum", title: "Units for Temperature Capabilty?", options: ["F","C"], required: true, defaultValue: "F")
 }
@@ -83,10 +84,9 @@ metadata {
     }
 }
 
-
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "2.00"
+	state.version = "2.1"
 }
 
 def installed() {
@@ -99,37 +99,60 @@ def updated() {
 
 def configure()
 {
-   initialize()
-    
+   initialize()   
 }
 
+def getloglevel()
+{
+    if (logLevel == "off")
+    return(0)
+    else if (logLevel == "minimal")
+     return(1)
+    else return(2)
+}
+
+def logsOff()
+{
+    device.updateSetting("logLevel", [value:"off", type:"enum"])
+    log.warn "Debug logging disabled!"
+}
 
 def initialize() {  
     
     def scheduleString
  
     setversion()
-    log.debug "$state.name, Version $state.version startng - IP = $UPSIP, Port = $UPSPort, debug/logging = $debug, Status update will run every $runTime minutes."
+    log.debug "$state.name, Version $state.version startng - IP = $UPSIP, Port = $UPSPort, debug/logging = $logLevel, Status update will run every $runTime minutes."
  	state.lastMsg = ""
     sendEvent(name: "lastCommand", value: "")
     sendEvent(name: "hoursRemaining", value: 1000)
     sendEvent(name: "minutesRemaining",value: 1000)
-    sendEvent(name: "UPSStatus", value: "Unknown")
+    //sendEvent(name: "UPSStatus", value: "Unknown")
     sendEvent(name: "version", value: "1.0")
     sendEvent(name: "batteryPercentage", value: "???")
     sendEvent(name: "FTemp", value: 0.0)
     sendEvent(name: "CTemp", value: 0.0)
     
+   
+    
+    
     if ((tempUnits == null) || (tempUnits == ""))
       device.tempUnits = "F"
 
-    if (debug) log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
+    log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
     if ((UPSIP) && (UPSPort) && (Username) && (Password))
     {
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
     
     unschedule()
+        
+     if (getloglevel() > 0) 
+      {
+        log.debug "Scheduling logging to turn off in 30 minutes."
+        runIn(1800,logsOff)
+      }
+        
     if (!disable)
         {
           if ((state.origAppName) && (state.origAppName != "") && (state.origAppName != device.getLabel()))
@@ -150,7 +173,7 @@ def initialize() {
             sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
              
             scheduleString = "0 */" + runTime.toString() + " * ? * * *"
-            if (debug) log.debug "Schedule string = $scheduleString"
+            if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
             
            schedule(scheduleString, refresh)
            sendEvent(name: "lastCommand", value: "Scheduled")     
@@ -161,6 +184,13 @@ def initialize() {
     {
       log.debug "App. Disabled!"
       unschedule()
+             
+     if (getloglevel() > 0) 
+      {
+        log.debug "Scheduling logging to turn off in 30 minutes."
+        runIn(60,logsOff)
+      }
+        
       if ((state.origAppName) && (state.origAppName != "")) 
      // change name if disbled or enabled
     
@@ -183,11 +213,10 @@ def refresh() {
     if (!disable)
     {
 
-     if (debug) log.debug "In lgk SmartUPS Status Version ($state.version)"
+     if (getloglevel() > 0) log.debug "lgk SmartUPS Status Version ($state.version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
-      //if (debug) sendEvent(name: "UPSStatus", value: "Unknown")
-    
-     if (debug) log.debug "Connecting to ${UPSIP}:${UPSPort}"
+   
+     if (getloglevel() > 0) log.debug "Connecting to ${UPSIP}:${UPSPort}"
 	
 	telnetClose()
 	telnetConnect(UPSIP, UPSPort.toInteger(), null, null)
@@ -199,7 +228,7 @@ def refresh() {
  }
 
 def sendData(String msg, Integer millsec) {
- if (debug) log.debug "$msg"
+ if (getloglevel() > 1) log.debug "$msg"
 	
 	def hubCmd = sendHubCommand(new hubitat.device.HubAction("${msg}", hubitat.device.Protocol.TELNET))
 	pauseExecution(millsec)
@@ -211,15 +240,16 @@ def parse(String msg) {
 	 
     def lastCommand = device.currentValue("lastCommand")
     
-    if (debug) {
+    if (getloglevel() > 1) 
+     {
         log.debug "In parse - (${msg})"
-    }
-        
-  if (debug)  log.debug "lastCommand = $lastCommand"
+        log.debug "lastCommand = $lastCommand"
+     }
     
     def pair = msg.split(" ")
   
-    if (debug){
+    if (getloglevel() > 1)
+    {
         log.debug ""
         log.debug "Got server response $msg value = $value lastCommand = ($lastCommand) length = ($pair.length)"
         log.debug ""
@@ -253,7 +283,7 @@ def parse(String msg) {
    else 
         {
             
-       if (debug) log.debug "In getstatus case length = $pair.length"
+       if (getloglevel() > 1) log.debug "In getstatus case length = $pair.length"
       
        if (pair.length == 5)
             {
@@ -264,25 +294,25 @@ def parse(String msg) {
              def p3 = pair[3]
              def p4 = pair[4]
                 
-             if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
+             if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
           
               if (p0 == "Output")
                  {
                     if ((p1 == "Watts") && (p2 == "Percent:"))
                      {
                         sendEvent(name: "outputWattsPercent", value: p3) 
-                        log.debug "Output Watts Percent: $p3"
+                        if (getloglevel() > 0) log.debug "Output Watts Percent: $p3"
                      }      
                     else if ((p1 == "VA") && (p2 == "Percent:"))
                     {
                        sendEvent(name: "ouputVAPercent", value: p3)
-                       log.debug "Output VA Percent: $p3" 
+                       if (getloglevel() > 0) log.debug "Output VA Percent: $p3" 
                     }
                  }
                else if ((p0 == "Next") && (p1 == "Battery") && (p2 == "Replacement") && (p3 == "Date:")) 
                {
                    sendEvent(name: "nextBatteryReplacmentDate", value: p4)
-                   log.debug "Next Battery Replacment Date: $p4"
+                   if (getloglevel() > 0) log.debug "Next Battery Replacment Date: $p4"
                }                
             }  // length = 5        
         
@@ -293,12 +323,12 @@ def parse(String msg) {
              def p1 = pair[1]
              def p2 = pair[2]
             
-             if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2"
+             if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2"
            
               if ((p0 == "Self-Test") && (p1 == "Date:"))
                 {
                          sendEvent(name: "lastSelfTestDate", value: p2) 
-                         log.debug "Last Self Test Date: $p2"
+                         if (getloglevel() > 0) log.debug "Last Self Test Date: $p2"
                 } 
             } // length = 3
             
@@ -310,29 +340,29 @@ def parse(String msg) {
              def p2 = pair[2]
              def p3 = pair[3]
                 
-             if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3"
+             if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3"
            
               if (p0 == "Output")
                  {
                     if (p1 == "Voltage:")
                      {
                          sendEvent(name: "outputVoltage", value: p2) 
-                         log.debug "Output Voltage: $p2"
+                         if (getloglevel() > 0) log.debug "Output Voltage: $p2"
                      }  
                     else if (p1 == "Frequency:")
                     {
                         sendEvent(name: "outputFrequency", value: p2)
-                        log.debug "Output Frequency: $p2"  
+                        if (getloglevel() > 0) log.debug "Output Frequency: $p2"  
                     } 
                     else if (p1 == "Current:")
                     {
                         sendEvent(name: "outputCurrent", value: p2)
-                        log.debug "Output Current: $p2"
+                        if (getloglevel() > 0) log.debug "Output Current: $p2"
                     }
                     else if (p1 == "Energy:")
                     {
                         sendEvent(name: "outputEnergy", value: p2)  
-                        log.debug "Output Energy: $p2"
+                        if (getloglevel() > 0) log.debug "Output Energy: $p2"
                     }     
                  }
                 
@@ -341,19 +371,19 @@ def parse(String msg) {
                     if (p1 == "Voltage:")
                       {
                           sendEvent(name: "inputVoltage", value: p2)
-                          log.debug "Input Voltage: $p2"
+                          if (getloglevel() > 0) log.debug "Input Voltage: $p2"
                       }
                     else if (p1 == "Frequency:")
                     {
                         sendEvent(name: "inputFrequency", value: p2) 
-                        log.debug "Input Frequency: $p2"  
+                        if (getloglevel() > 0) log.debug "Input Frequency: $p2"  
                     }
                   }
                 
                 else if ((p0 == "Battery") && (p1 == "Voltage:"))
                   {
                     sendEvent(name: "batteryVoltage", value: p2)
-                    log.debug "Battery Voltage: $p2"  
+                    if (getloglevel() > 0) log.debug "Battery Voltage: $p2"  
                   }          
   
               
@@ -361,7 +391,7 @@ def parse(String msg) {
              if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
                  {
                     def thestatus = p3
-                    if (debug) log.debug ""
+                    if (getloglevel() > 1) log.debug ""
                      // handle on line versus online case combiner p3 and p4
                     if ((p3 == "OnLine") || (p3 == "Online"))
                      {
@@ -373,9 +403,10 @@ def parse(String msg) {
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
                      
-                    if (debug) log.debug "*********************************"
+                 
+                    if (getloglevel() > 1) log.debug "*********************************"
                     log.debug "Got UPS Status = $thestatus!"
-                    if (debug) log.debug "*********************************"
+                    if (getloglevel() > 1) log.debug "*********************************"
                      
                     sendEvent(name: "UPSStatus", value: thestatus)
                                   
@@ -384,7 +415,7 @@ def parse(String msg) {
                          log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
                          unschedule()
                          scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
-                         if (debug) log.debug "Schedule string = $scheduleString"
+                         if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                          state.currentCheckTime = runTimeOnBattery
                          sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
                          schedule(scheduleString, refresh)
@@ -394,7 +425,7 @@ def parse(String msg) {
                        log.debug "UPS Back Online, so Resetting Check time to $runTime Minutes!"
                        unschedule()
                        scheduleString = "0 */" + runTime.toString() + " * ? * * *"
-                       if (debug) log.debug "Schedule string = $scheduleString"
+                       if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                        state.currentCheckTime = runTime
                        sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
                        schedule(scheduleString, refresh)
@@ -416,7 +447,7 @@ def parse(String msg) {
              if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
                  {
                     def thestatus = p3
-                    if (debug) log.debug ""
+                   if (getloglevel() > 1) log.debug ""
                      // handle on line versus online case combiner p3 and p4
                     if ((p3 == "OnLine") || (p3 == "Online"))
                      {
@@ -431,9 +462,9 @@ def parse(String msg) {
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
                      
-                    if (debug) log.debug "*********************************"
+                    if (getloglevel() > 1) log.debug "*********************************"
                     log.debug "Got UPS Status = $thestatus!"
-                    if (debug) log.debug "*********************************"
+                    if (getloglevel() > 1) log.debug "*********************************"
                      
                     sendEvent(name: "UPSStatus", value: thestatus)
                      
@@ -442,7 +473,7 @@ def parse(String msg) {
                          log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
                          unschedule()
                          scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
-                         if (debug) log.debug "Schedule string = $scheduleString"
+                        if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                          state.currentCheckTime = runTimeOnBattery
                          sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
                          schedule(scheduleString, refresh)
@@ -452,7 +483,7 @@ def parse(String msg) {
                        log.debug "UPS Back Online, so Resetting Check time to $runTime Minutes!"
                        unschedule()
                        scheduleString = "0 */" + runTime.toString() + " * ? * * *"
-                       if (debug) log.debug "Schedule string = $scheduleString"
+                       if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                        state.currentCheckTime = runTime
                        sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
                        schedule(scheduleString, refresh)
@@ -470,13 +501,13 @@ def parse(String msg) {
            def p4 = pair[4]
            def p5 = pair[5]
              
-      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5"
+               if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5"
                   
                if ((p0 == "Self-Test") && (p1 == "Result:"))
                   {
                     def theResult = p2 + " " +p3 + " " + p4 + " " + p5
                     sendEvent(name: "lastSelfTestResult", value: theResult)
-                    log.debug "Last Self Test Result: $theResult"
+                    if (getloglevel() > 0) log.debug "Last Self Test Result: $theResult"
                   }   
 
              if ((p0 == "Battery") && (p1 == "State") && (p3 == "Charge:"))
@@ -484,9 +515,9 @@ def parse(String msg) {
                     def p4dec = p4.toDouble() / 100.0
                     int p4int = p4dec * 100
                     
-                    if (debug) log.debug "********************************"
+                    if (getloglevel() > 1) log.debug "********************************"
                     log.debug "UPS Battery Percentage: $p4!"
-                    if (debug) log.debug "*********************************"
+                    if (getloglevel() > 1) log.debug "*********************************"
                    
                     sendEvent(name: "batteryPercentage", value: p4int)
                     sendEvent(name: "battery", value: p4int, unit: "%")
@@ -494,10 +525,13 @@ def parse(String msg) {
              
              if (((p0 == "Internal") || (p0 == "Battery")) && (p1 == "Temperature:"))    
                  {   
-                    if (debug) log.debug "********************************"
-                    log.debug "Got C Temp = $p2!"
-                    log.debug "Got F Temp = $p4!"
-                    if (debug) log.debug "********************************"
+                   if (getloglevel() > 1) log.debug "********************************"
+                   if (getloglevel() > 0) 
+                     {
+                         log.debug "Got C Temp = $p2!"
+                         log.debug "Got F Temp = $p4!"
+                     }
+                    if (getloglevel() > 1) log.debug "********************************"
       
                     sendEvent(name: "CTemp", value: p2)
                     sendEvent(name: "FTemp", value: p4)
@@ -520,27 +554,25 @@ def parse(String msg) {
        def p5 = pair[5]
       
 
-      if (debug) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5"
+      if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5"
 
      // looking for hours and minutes
      // Runtime Remaining: 2 hr 19 min 0 sec
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p3 == "hr"))
-                 { 
-                     
-                    if (debug) log.debug "********************************"
+                 {    
+                    if (getloglevel() > 1) log.debug "********************************"
                     log.debug "Got $p2 hours Remaining!"
-                    if (debug) log.debug "********************************"
+                    if (getloglevel() > 1) log.debug "********************************"
                      
                     sendEvent(name: "hoursRemaining", value: p2.toInteger())
                     state.hoursRemaining = p2.toInteger()
                  }
            
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p5 == "min"))
-                 { 
-                     
-                    if (debug) log.debug "********************************"
-                    log.debug "Got $p4 minutes Remaining!"
-                    if (debug) log.debug "********************************"
+                 {   
+                   if (getloglevel() > 1) log.debug "********************************"
+                   log.debug "Got $p4 minutes Remaining!"
+                   if (getloglevel() > 1) log.debug "********************************"
                      
                     sendEvent(name: "minutesRemaining", value: p4.toInteger())
                     state.minutesRemaining = p4.toInteger()
@@ -559,7 +591,7 @@ def parse(String msg) {
 }
 
 def telnetStatus(status) {
-    if (debug) log.debug "telnetStatus: ${status}"
+    if (getloglevel() > 1) log.debug "telnetStatus: ${status}"
     sendEvent([name: "telnet", value: "${status}"])
 }
 
@@ -570,7 +602,7 @@ def closeConnection()
                 try {
                     telnetClose()
                 } catch(e) {
-                    if (debug) log.debug("Connection Closed")
+                   if (getloglevel() > 1) log.debug("Connection Closed")
                 }
                 
 			}
@@ -578,7 +610,7 @@ def closeConnection()
     
 boolean seqSend(msgs, Integer millisec)
 {
-    if (debug) log.debug "in sendData"
+    if (getloglevel() > 1) log.debug "in sendData"
   
 			msgs.each {
 				sendData("${it}",millisec)
