@@ -20,6 +20,7 @@
  * 10/18/20 added unlock/open charge port command
  
  * lgk new versino, not letting the car sleep, add option to disable and schedule it between certain times.
+ * lgk added a wake on reenable so it updates ..
 */
 metadata {
 	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley") {
@@ -121,6 +122,7 @@ def reenable()
     log.debug "Waking up app in re-enable!"
     // now schedule the sleep again
     initialize()  
+    wake()
 }
 
 // parse events into attributes
