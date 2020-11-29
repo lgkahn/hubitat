@@ -30,8 +30,9 @@
 * v 2 added all kinds of new power and battery attributes. Not all UPS cards have all this info, It will report what it can.
 * v 2.1 added two log levels, and auto turn off after 30 minutes.
 * v 2.2 fixed typo in attribute name.
-*
+* v 2.3 cleared telnet error on close,init commands and also fixed version not passed correctly to attribute.
 */
+
 capability "Battery"
 capability "Temperature Measurement"
 
@@ -87,7 +88,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "2.2"
+	state.version = "2.3"
 }
 
 def installed() {
@@ -129,10 +130,11 @@ def initialize() {
     sendEvent(name: "hoursRemaining", value: 1000)
     sendEvent(name: "minutesRemaining",value: 1000)
     //sendEvent(name: "UPSStatus", value: "Unknown")
-    sendEvent(name: "version", value: "1.0")
+    sendEvent(name: "version", value: state.version)
     sendEvent(name: "batteryPercentage", value: "???")
     sendEvent(name: "FTemp", value: 0.0)
     sendEvent(name: "CTemp", value: 0.0)
+    sendEvent(name: "telnet", value: "Ok")
     
    
     
@@ -280,6 +282,7 @@ def parse(String msg) {
             sendEvent(name: "lastCommand", value: "Rescheduled")
             log.debug "Will run again in $state.currentCheckTime Minutes!"
             closeConnection()
+            sendEvent([name: "telnet", value: "Ok"])
            } 
    else 
         {
