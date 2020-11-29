@@ -47,6 +47,7 @@ attribute "batteryPercentage" , "number"
 attribute "currentCheckTime", "number"
 attribute "CTemp", "number"
 attribute "FTemp", "number"
+attribute "telnet", "string"
 
 attribute "outputVoltage", "number"
 attribute "inputVoltage", "number"
