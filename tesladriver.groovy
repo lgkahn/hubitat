@@ -20,7 +20,8 @@
  * 10/18/20 added unlock/open charge port command
  
  * lgk new versino, not letting the car sleep, add option to disable and schedule it between certain times.
- * lgk added a wake on reenable so it updates ..
+ * lgk add misssing parameter to sethermostatsetpoint.. note it is in farenheit so be aware of that.. in the future i can look at supporting both
+ * with option to convert.
 */
 metadata {
 	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley") {
@@ -44,7 +45,7 @@ metadata {
         attribute "lastUpdate", "string"
 
 		command "wake"
-        command "setThermostatSetpoint"
+        command "setThermostatSetpoint", ["number"]
         command "startCharge"
         command "stopCharge"
         command "openFrontTrunk"
@@ -121,7 +122,7 @@ def reenable()
 {
     log.debug "Waking up app in re-enable!"
     // now schedule the sleep again
-    initialize()  
+    initialize() 
     wake()
 }
 
