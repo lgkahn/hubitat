@@ -9,7 +9,7 @@
       "id": "8efdf78f-a4c1-4f26-99af-34b0553d3a9a",
       "name": "LGK Sendmail V2",
       "namespace": "lgkapps",
-      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/sendmailV2",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/sendmail%20V2",
       "required": true
     }
   ]
