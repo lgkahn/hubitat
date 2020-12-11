@@ -31,6 +31,7 @@
 * v 2.1 added two log levels, and auto turn off after 30 minutes.
 * v 2.2 fixed typo in attribute name.
 * v 2.3 cleared telnet error on close,init commands and also fixed version not passed correctly to attribute.
+* v 2.4 change password input type to password from text
 */
 
 capability "Battery"
@@ -67,10 +68,10 @@ attribute "nextBatteryReplacementDate", "string"
 command "refresh"
 
 preferences {
-	input("UPSIP", "text", title: "Smart UPS (APC only) IP Address?", description: "Enter Smart UPS IP Address?", required: true)
-	input("UPSPort", "integer", title: "Port #:", description: "Enter port number, default 23", defaultValue: 23)
+    input("UPSIP", "text", title: "Smart UPS (APC only) IP Address?", description: "Enter Smart UPS IP Address?", required: true)
+    input("UPSPort", "integer", title: "Port #:", description: "Enter port number, default 23", defaultValue: 23)
     input("Username", "text", title: "Username for Login?", required: true, defaultValue: "")
-    input("Password", "text", title: "Password for Login?", required: true, defaultValue: "")
+    input("Password", "password", title: "Password for Login?", required: true, defaultValue: "")
     input("runTime", "integer", title: "How often to check UPS Status  (in Minutes)>", required: true, defaultValue: 30)  
     input("runTimeOnBattery", "integer", title: "How often to check UPS Status when on Battery (in Minutes)>", required: true, defaultValue: 10)
     input("logLevel", "enum", title: "Logging Level (off,minimial,maximum) ?", options: ["off","minimal", "maximum"], required: true, defaultValue: "off")
