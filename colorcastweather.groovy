@@ -364,7 +364,7 @@ def checkForWeather() {
 						if (tempHigh==null || tempHigh<hour.apparentTemperature) tempHigh=hour.apparentTemperature //Compare the stored low temp to the current iteration temp. If it's lower overwrite the stored low with this temp
 					}
 				}
-			log.debug "hour windspeed = $hour.windSpeed!"
+			log.debug "hour: ($i) windspeed = $hour.windSpeed!"
             
 				if (windColor!='Disabled' && hour.windSpeed>=windTrigger) windy=true //Compare to user defined value for wid speed.
 				if (cloudPercentColor!='Disabled' && hour.cloudCover*100>=cloudPercentTrigger) cloudy=true //Compare to user defined value for wind speed.
