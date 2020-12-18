@@ -12,6 +12,9 @@
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
+
+  * lgk v 1.4.1 add html query and parsing to get whole house/steam humidifier info and put in attributes
+  *
  * lgk v 1.4.0 fix tcc line
  *  lgkahn v1.3.9 modified again by lgkahn 11/20 first the heating cooling was not working right.. changed back to using equipment status.. just becuase the fan is on does not mean it is heating.. fan is also used
  * for humidication or just by itself.
@@ -86,6 +89,12 @@ metadata {
         attribute  "outdoorTemperature", "number"
         attribute  "lastUpdate",         "string"
         attribute  "followSchedule",     "string"
+        
+        attribute "humidifierStatus", "string"
+        attribute "humidifierSetPoint", "number"
+        attribute "humidifierUpperLimit", "number"
+        attribute "humidifierLowerLimit", "number"
+
 
 //	  command "updateCheck"			// **---** delete for Release
     }
@@ -94,6 +103,7 @@ metadata {
        input name: "username", type: "text", title: "Username", description: "Your Total Comfort User Name", required: true
        input name: "password", type: "password", title: "Password", description: "Your Total Comfort password",required: true
        input name: "honeywelldevice", type: "text", title: "Device ID", description: "Your Device ID", required: true
+       input name: "haveHumidifier", type: "enum", title: "Do you have an option whole house humidifier and want to enable it?", options: ["Yes", "No"], required: true, defaultValue: "No"
        input name: "enableOutdoorTemps", type: "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
        input name: "enableHumidity", type: "enum", title: "Do you have the optional Humidity sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
        input name: "setPermHold", type: "enum", title: "Will Setpoints be temporary or permanent?", options: ["Temporary", "Permanent"], required: false, defaultValue: "Temporary"
@@ -553,12 +563,14 @@ def getStatusHandler(resp, data) {
 	} else { if (descTextEnable) log.info "TCC getStatus failed" }
 }
 
-
+    //'Referer': 'https://${tccSite()}/portal/Menu/${settings.honeywelldevice}',
 def getHumidifierStatus()
-{
-	if (enableHumidity == 'No') return
+{  //uri: "https://${tccSite()}/portal/Device/Menu/GetHumData/${settings.honeywelldevice}"
+    
+   if (debugOutput)  log.debug "in get humid status enable humidity = $enableHumidity"
+	if (haveHumidifier == 'No') return
 	def params = [
-        uri: "https://${tccSite()}/portal/Device/Menu/GetHumData/${settings.honeywelldevice}",
+        uri: "https://${tccSite()}/portal/Device/Menu/${settings.honeywelldevice}",
         headers: [
             'Accept': '*/*', // */ comment
             'DNT': '1',
@@ -569,7 +581,7 @@ def getHumidifierStatus()
             'Accept-Language': 'en-US,en,q=0.8',
             'Connection': 'keep-alive',
             'Host': 'rs.alarmnet.com',
-            'Referer': 'https://${tccSite()}/portal/Menu/${settings.honeywelldevice}',
+            'Referer': 'https://${tccSite()}/portal/',
             'X-Requested-With': 'XMLHttpRequest',
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36',
             'Cookie': device.data.cookiess
@@ -578,26 +590,83 @@ def getHumidifierStatus()
     ]
 
     if (debugOutput) log.debug "sending gethumidStatus request: $params"
-/*    asynchttpGet("getHumidStatusHandler", params)
-}
 
-def getHumidStatusHandler(resp, data) {
-	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
-        if (debugOutput) log.debug "GetHumidity Request was successful, $resp.status"
-*/
+    def HumStatusLine = [:]  
+    def CancelLine = [:]
+    def Number HumLevel
+    def Number HumMin
+    def Number HumMax
+    def HumStatus = [:]
     try {
      httpGet(params) { response ->
-        if (debugOutput) log.debug "GetHumidity Request was successful, $response.status"
-        if (debugOutput) log.debug "response = $response.data"
-
-        //  if (debugOutput) log.debug "ld = $response.data.latestData"
-        //  if (debugOutput) log.debug "humdata = $response.data.latestData.humData"
-
-        logInfo("lowerLimit: ${response.data.latestData.humData.lowerLimit}")        
-        logInfo("upperLimit: ${response.data.humData.upperLimit}")        
-        logInfo("SetPoint: ${response.data.humData.Setpoint}")        
-        logInfo("DeviceId: ${response.data.humData.DeviceId}")        
-        logInfo("IndoorHumidity: ${response.data.humData.IndoorHumidity}")        
+         
+         
+      ///  if (debugOutput) 
+         if (debugOutput) log.debug "GetHumidity Request was successful, $response.status"
+        if (debugOutput)   log.debug "response = $response.data"
+          def data = response.getData().toString()
+         data.split("\n").each {
+        //tmp output
+          //if (debugOutput) log.debug "working on \"${it}\""
+        if (it.contains("CancelMin")) {
+            CancelLine = it.trim()
+          def pair = CancelLine.split(" ");
+             if (debugOutput)   log.debug "got cancel min line: $CancelLine"
+           // log.debug "pair = $pair"
+             def p0 = pair[0]
+             def p1 = pair[1]
+             def p2 = pair[2]
+  
+           // log.debug "p0 = $p0"
+           // log.debug "p1 = $p1"
+           // log.debug "p2 = $p2"
+            
+            def pair2 = p1.split("%")
+            //log.debug "pair2 = $pair2"
+            def p20 = pair2[0]
+            def p21 = pair2[1]
+            def p22 = pair2[2]
+            
+            //log.debug "p20 = $p20"
+            // log.debug "p21 = $p21"
+            //log.debug "p22 = $p22"
+                   
+            HumLevel = p21.toInteger()
+            HumMin = p20.toInteger()
+            
+           def pair3 = p2.split("%")
+           //log.debug "pair3 = $pair3"
+            def p30 = pair3[0]
+           // log.debug "p30 = $p30"
+          
+            HumMax = p30.toInteger() 
+            
+            log.debug "-----------------------"
+            log.debug "Got current humidifier level = $HumLevel"
+            log.debug "Got Current humidifier Min = $HumMin"
+            log.debug "Got Current humidifier Max= $HumMax"
+        }
+             
+          if (it.contains("Humidifier operates")) {
+            HumStatusLine = it.trim()
+            if (debugOutput)  log.debug "Got Humidifier Status Line = $HumStatusLine"
+            def start = HumStatusLine.indexOf("Humidifier is ")
+            
+              if (debugOutput) log.debug "got Start = $start"
+              if ( (start) && (start > 0))
+              {
+               HumStatus = HumStatusLine.substring(start+14,start+17) 
+               log.debug "got HumStatus String = $HumStatus" 
+               log.debug "-----------------------"   
+              }
+        }     
+      }
+         
+     	//Send events 
+		sendEvent(name: 'humidifierStatus', value: HumStatus)
+		sendEvent(name: 'humidifierSetpoint', value: HumLevel as Integer, unit:"%")
+		sendEvent(name: 'humidifierUpperLimit', value: HumMax as Integer, unit:"%")
+		sendEvent(name: 'humidifierLowerLimit', value: HumMin as Integer, unit:"%") 
 
     }
     } 
@@ -634,7 +703,8 @@ def doRequest(uri, args, type, success) {
 
 def refresh() {
     device.data.unit = "°${location.temperatureScale}"
-    if (debugOutput) log.debug "Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit"
+   // if (debugOutput)
+    log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit"
     login()
     getHumidifierStatus()
     getStatus()
