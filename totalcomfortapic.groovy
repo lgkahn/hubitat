@@ -562,11 +562,9 @@ def getStatusHandler(resp, data) {
 		}
 	} else { if (descTextEnable) log.info "TCC getStatus failed" }
 }
-
-    //'Referer': 'https://${tccSite()}/portal/Menu/${settings.honeywelldevice}',
+  
 def getHumidifierStatus()
-{  //uri: "https://${tccSite()}/portal/Device/Menu/GetHumData/${settings.honeywelldevice}"
-    
+{   
    if (debugOutput)  log.debug "in get humid status enable humidity = $enableHumidity"
 	if (haveHumidifier == 'No') return
 	def params = [
@@ -599,14 +597,12 @@ def getHumidifierStatus()
     def HumStatus = [:]
     try {
      httpGet(params) { response ->
+        if (debugOutput) log.debug "GetHumidity Request was successful, $response.status"
+        if (debugOutput) log.debug "response = $response.data"
          
-         
-      ///  if (debugOutput) 
-         if (debugOutput) log.debug "GetHumidity Request was successful, $response.status"
-        if (debugOutput)   log.debug "response = $response.data"
-          def data = response.getData().toString()
+         def data = response.getData().toString()
          data.split("\n").each {
-        //tmp output
+        
           //if (debugOutput) log.debug "working on \"${it}\""
         if (it.contains("CancelMin")) {
             CancelLine = it.trim()
@@ -703,8 +699,7 @@ def doRequest(uri, args, type, success) {
 
 def refresh() {
     device.data.unit = "°${location.temperatureScale}"
-   // if (debugOutput)
-    log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit"
+    if (debugOutput) log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit"
     login()
     getHumidifierStatus()
     getStatus()
