@@ -417,7 +417,7 @@ def getStatusHandler(resp, data) {
 		def setStatusResult = parseJson(resp.data)
 	
 		if (debugOutput) log.debug "Request was successful, $resp.status"
-	//	logInfo "data = $setStatusResult.data"
+		log.debug "data = $setStatusResult"
 		if (debugOutput) log.debug "ld = $setStatusResult.latestData.uiData"
 		
 		def curTemp = setStatusResult.latestData.uiData.DispTemperature
@@ -436,6 +436,7 @@ def getStatusHandler(resp, data) {
 		def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
 		def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
 		def vacationHold = setStatusResult.latestData.uiData.IsInVacationHoldMode
+        def indoorHumidStatus = setStatusResult.latestData.uiData.IndoorHumidStatus
 	
 		state.heatLowerSetptLimit = setStatusResult.latestData.uiData.HeatLowerSetptLimit 
 		state.heatUpperSetptLimit = setStatusResult.latestData.uiData.HeatUpperSetptLimit 
@@ -543,7 +544,24 @@ def getStatusHandler(resp, data) {
 		sendEvent(name: 'heatingSetpoint', value: heatSetPoint, unit:device.data.unit)
 //		sendEvent(name: 'temperature', value: curTemp, state: switchPos, unit:device.data.unit)
 		sendEvent(name: 'humidity', value: curHumidity as Integer, unit:"%")
-		
+        
+        if (haveHumidifier == 'Yes') 
+        {
+            // kludge to figure out if humidifier is on, fan has to be auto, and if fan is on but not heat/cool and we have enabled the humidifyer it should be humidifying"
+           if (debugOutput) log.debug "fanIsRunning = $fanIsRunning, equip status = $equipmentStatus, fanMode = $fanMode"
+             
+         if ((fanisRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
+          {
+            log.debug "Humidifier is On"
+           	sendEvent(name: 'humidifierStatus', value: "Humidifying")
+          }
+          else
+          {
+          log.debug "Humidifier is Off"
+           	sendEvent(name: 'humidifierStatus', value: "Idle")   
+          }
+        }
+	
 		def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
 		
 		sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
@@ -589,18 +607,18 @@ def getHumidifierStatus()
 
     if (debugOutput) log.debug "sending gethumidStatus request: $params"
 
-    def HumStatusLine = [:]  
     def CancelLine = [:]
     def Number HumLevel
     def Number HumMin
     def Number HumMax
-    def HumStatus = [:]
+
     try {
      httpGet(params) { response ->
         if (debugOutput) log.debug "GetHumidity Request was successful, $response.status"
         if (debugOutput) log.debug "response = $response.data"
          
          def data = response.getData().toString()
+          
          data.split("\n").each {
         
           //if (debugOutput) log.debug "working on \"${it}\""
@@ -642,7 +660,7 @@ def getHumidifierStatus()
             log.debug "Got Current humidifier Min = $HumMin"
             log.debug "Got Current humidifier Max= $HumMax"
         }
-             
+      /*       
           if (it.contains("Humidifier operates")) {
             HumStatusLine = it.trim()
             if (debugOutput)  log.debug "Got Humidifier Status Line = $HumStatusLine"
@@ -655,11 +673,13 @@ def getHumidifierStatus()
                log.debug "got HumStatus String = $HumStatus" 
                log.debug "-----------------------"   
               }
-        }     
+
+        }   
+*/
       }
          
      	//Send events 
-		sendEvent(name: 'humidifierStatus', value: HumStatus)
+	//	sendEvent(name: 'humidifierStatus', value: HumStatus)
 		sendEvent(name: 'humidifierSetPoint', value: HumLevel as Integer, unit:"%")
 		sendEvent(name: 'humidifierUpperLimit', value: HumMax as Integer, unit:"%")
 		sendEvent(name: 'humidifierLowerLimit', value: HumMin as Integer, unit:"%") 
