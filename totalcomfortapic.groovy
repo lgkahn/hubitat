@@ -660,7 +660,7 @@ def getHumidifierStatus()
          
      	//Send events 
 		sendEvent(name: 'humidifierStatus', value: HumStatus)
-		sendEvent(name: 'humidifierSetpoint', value: HumLevel as Integer, unit:"%")
+		sendEvent(name: 'humidifierSetPoint', value: HumLevel as Integer, unit:"%")
 		sendEvent(name: 'humidifierUpperLimit', value: HumMax as Integer, unit:"%")
 		sendEvent(name: 'humidifierLowerLimit', value: HumMin as Integer, unit:"%") 
 
