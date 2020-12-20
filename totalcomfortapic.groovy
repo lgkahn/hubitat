@@ -384,6 +384,7 @@ def setStatusHandler(resp, data) {
 
 
 def getStatus() {
+   // if (debugOutput) 
     if (debugOutput) log.debug "Honeywell TCC getStatus"
     if (debugOutput) log.debug "enable outside temps = $enableOutdoorTemps"
     def today = new Date()
@@ -417,7 +418,7 @@ def getStatusHandler(resp, data) {
 		def setStatusResult = parseJson(resp.data)
 	
 		if (debugOutput) log.debug "Request was successful, $resp.status"
-		log.debug "data = $setStatusResult"
+		if (debugOutput) log.debug "data = $setStatusResult"
 		if (debugOutput) log.debug "ld = $setStatusResult.latestData.uiData"
 		
 		def curTemp = setStatusResult.latestData.uiData.DispTemperature
@@ -436,8 +437,7 @@ def getStatusHandler(resp, data) {
 		def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
 		def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
 		def vacationHold = setStatusResult.latestData.uiData.IsInVacationHoldMode
-        def indoorHumidStatus = setStatusResult.latestData.uiData.IndoorHumidStatus
-	
+     
 		state.heatLowerSetptLimit = setStatusResult.latestData.uiData.HeatLowerSetptLimit 
 		state.heatUpperSetptLimit = setStatusResult.latestData.uiData.HeatUpperSetptLimit 
 		state.coolLowerSetptLimit = setStatusResult.latestData.uiData.CoolLowerSetptLimit 
@@ -481,16 +481,24 @@ def getStatusHandler(resp, data) {
         else if (equipmentStatus == 2)
          {
             operatingState = "cooling"
-         } 
+         }  
+        
+        else if ((haveHumidifier == 'Yes')  && (fanIsRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
+        {
+            operatingState = "Humidifying"
+        }
+        
         else if (equipmentStatus == 0) 
         {
              operatingState = "idle"
              fanState = "Idle"
-         }
+        }
+        
         else
          {
              operatingState = "Unknown"
          }
+        
 		if (fanIsRunning == true) {
 		    fanState = "on";
 		  //  if (equipmentStatus == "1") {
@@ -500,7 +508,9 @@ def getStatusHandler(resp, data) {
 		  //  }
 		}
 		
-		logInfo("Set Operating State to: $operatingState - Fan to $fanState")
+        
+        
+		log.debug("Set Operating State to: $operatingState - Fan to $fanState")
 		
 		//fan mode 0=auto, 2=circ, 1=on
 		
@@ -548,9 +558,10 @@ def getStatusHandler(resp, data) {
         if (haveHumidifier == 'Yes') 
         {
             // kludge to figure out if humidifier is on, fan has to be auto, and if fan is on but not heat/cool and we have enabled the humidifyer it should be humidifying"
-           if (debugOutput) log.debug "fanIsRunning = $fanIsRunning, equip status = $equipmentStatus, fanMode = $fanMode"
+          // if (debugOutput)
+            log.debug "fanIsRunning = $fanIsRunning, equip status = $equipmentStatus, fanMode = $fanMode, temp = $curTemp, humidity = $curHumidity"
              
-         if ((fanisRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
+         if ((fanIsRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
           {
             log.debug "Humidifier is On"
            	sendEvent(name: 'humidifierStatus', value: "Humidifying")
@@ -655,7 +666,7 @@ def getHumidifierStatus()
           
             HumMax = p30.toInteger() 
             
-            log.debug "-----------------------"
+            if (debugOutput) log.debug "-----------------------"
             log.debug "Got current humidifier level = $HumLevel"
             log.debug "Got Current humidifier Min = $HumMin"
             log.debug "Got Current humidifier Max= $HumMax"
