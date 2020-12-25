@@ -18,6 +18,7 @@
  * same for temp, round off so that we can do custom colors on dashbaord based on temp.
  * Same for temp setpoint. showing non integer makes no sens.
  * 10/18/20 added unlock/open charge port command
+ * 12/25/20 new attributes and functions for seat heater,windows etc thanks to gomce62f, Also add input to set temp scale to either F or C.
  
  * lgk new versino, not letting the car sleep, add option to disable and schedule it between certain times.
  * lgk add misssing parameter to sethermostatsetpoint.. note it is in farenheit so be aware of that.. in the future i can look at supporting both
@@ -34,23 +35,40 @@ metadata {
 		capability "Refresh"
 		capability "Temperature Measurement"
 		capability "Thermostat Mode"
-        capability "Thermostat Setpoint"
+        	capability "Thermostat Setpoint"
      
-		attribute "state", "string"
+	attribute "state", "string"
         attribute "vin", "string"
         attribute "odometer", "number"
         attribute "batteryRange", "number"
         attribute "chargingState", "string"
         attribute "refreshTime", "string"
         attribute "lastUpdate", "string"
+        attribute "minutes_to_full_charge", "number"
+        attribute "seat_heater_left", "number"
+        attribute "seat_heater_right", "number"        
+        attribute "seat_heater_rear_left", "number"
+        attribute "seat_heater_rear_right", "number"
+        attribute "seat_heater_rear_center", "number"    
+        attribute "sentry_mode", "string"
+        attribute "front_drivers_window" , "number"
+        attribute "front_pass_window" , "number"
+        attribute "rear_drivers_window" , "number"
+        attribute "rear_pass_window" , "number"
 
-		command "wake"
-        command "setThermostatSetpoint", ["number"]
+	command "wake"
+        command "setThermostatSetpoint", ["Number"]
         command "startCharge"
         command "stopCharge"
         command "openFrontTrunk"
         command "openRearTrunk"
         command "unlockandOpenChargePort"
+        command "setSeatHeaters", ["number","number"]  /** first attribute is seat number 0-5 and second attribute is heat level 0-3 e.g. 0,3 is drivers seat heat to max *  Future plan is to have this be  drop down list */ 
+        command "sentryModeOn"
+        command "sentryModeOff"
+        command "ventWindows"
+        command "closeWindows"
+
 	}
 
 
@@ -65,6 +83,7 @@ metadata {
        input "AllowSleep", "bool", title: "Schedule a time to disable/reenable to allow the car to sleep?", required: true, defaultValue: false
        input "fromTime", "time", title: "From", required:false, width: 6, submitOnChange:true
        input "toTime", "time", title: "To", required:false, width: 6 
+       input "tempScale", "enum", title: "Display temperature in F or C ?", options: ["F", "C"], required: true, defaultValue: "F" 
        input "debug", "bool", title: "Turn on Debug Logging?", required:true, defaultValue: false   
     }
 }
@@ -147,9 +166,13 @@ private processData(data) {
         sendEvent(name: "thermostatMode", value: data.thermostatMode)
         
         if (data.chargeState) {
+            if (debug) log.debug "chargeStte = $data.chargeState"
+            
         	sendEvent(name: "battery", value: data.chargeState.battery)
             sendEvent(name: "batteryRange", value: data.chargeState.batteryRange.toInteger())
             sendEvent(name: "chargingState", value: data.chargeState.chargingState)
+            sendEvent(name: "minutes_to_full_charge", value: data.chargeState.minutes_to_full_charge)
+
         }
         
         if (data.driveState) {
@@ -161,14 +184,37 @@ private processData(data) {
         }
         
         if (data.vehicleState) {
+           if (debug) log.debug "vehicle state = $data.vehicleState"
+            
         	sendEvent(name: "presence", value: data.vehicleState.presence)
             sendEvent(name: "lock", value: data.vehicleState.lock)
             sendEvent(name: "odometer", value: data.vehicleState.odometer.toInteger())
+            sendEvent(name: "sentry_mode", value: data.vehicleState.sentry_mode)
+            sendEvent(name: "front_drivers_window" , value: data.vehicleState.front_drivers_window)
+            sendEvent(name: "front_pass_window" , value: data.vehicleState.front_pass_window)
+            sendEvent(name: "rear_drivers_window" , value: data.vehicleState.rear_drivers_window)
+            sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
+
         }
         
         if (data.climateState) {
-        	sendEvent(name: "temperature", value: data.climateState.temperature.toInteger())
-            sendEvent(name: "thermostatSetpoint", value: data.climateState.thermostatSetpoint.toInteger())
+            if (tempScale == "F")
+            {
+        	  sendEvent(name: "temperature", value: data.climateState.temperature.toInteger())
+              sendEvent(name: "thermostatSetpoint", value: data.climateState.thermostatSetpoint.toInteger())
+            }
+            else
+            {
+              sendEvent(name: "temperature", value: farenhietToCelcius(data.climateState.temperature).toInteger())
+              sendEvent(name: "thermostatSetpoint", value: farenhietToCelcius(data.climateState.thermostatSetpoint).toInteger())
+            }
+            
+            sendEvent(name: "seat_heater_left", value: data.climateState.seat_heater_left)
+            sendEvent(name: "seat_heater_right", value: data.climateState.seat_heater_right)            
+            sendEvent(name: "seat_heater_rear_left", value: data.climateState.seat_heater_rear_left) 
+            sendEvent(name: "seat_heater_rear_right", value: data.climateState.seat_heater_rear_right)
+            sendEvent(name: "seat_heater_rear_center", value: data.climateState.seat_heater_rear_center)
+
         }
 	} else {
     	log.error "No data found for ${device.deviceNetworkId}"
@@ -244,10 +290,18 @@ def setThermostatMode(mode) {
     }
 }
 
-def setThermostatSetpoint(setpoint) {
-	log.debug "Executing 'setThermostatSetpoint'"
-	def result = parent.setThermostatSetpoint(this, setpoint)
-    if (result) { refresh() }
+def setThermostatSetpoint(Number setpoint) {
+	log.debug "Executing 'setThermostatSetpoint with temp scale $tempScale'"
+    if (tempScale == "F")
+      {
+	    def result = parent.setThermostatSetpointF(this, setpoint)
+        if (result) { refresh() }
+      }
+    else
+    {
+        def result = parent.setThermostatSetpointC(this, setpoint)
+        if (result) { refresh() }
+    }
 }
 
 def startCharge() {
@@ -277,13 +331,47 @@ def openRearTrunk() {
 def unlockandOpenChargePort() {
 	log.debug "Executing 'unock and open charge port'"
     def result = parent.unlockandOpenChargePort(this)
-    // if (result) { refresh() }
-    
-    
+    // if (result) { refresh() }   
 }  
+
 def updated()
 {
    
    initialize()
     
+}
+
+def setSeatHeaters(seat,level) {
+	log.debug "Executing 'setSeatheater'"
+	def result = parent.setSeatHeaters(this, seat,level)
+    if (result) { refresh() }
+}
+
+def sentryModeOn() {
+	log.debug "Executing 'Turn Sentry Mode On'"
+	def result = parent.sentryModeOn(this)
+    if (result) { refresh() }
+}
+
+def sentryModeOff() {
+	log.debug "Executing 'Turn Sentry Mode Off'"
+	def result = parent.sentryModeOff(this)
+    if (result) { refresh() }
+}
+
+def ventWindows() {
+	log.debug "Executing 'Venting Windows'"
+	def result = parent.ventWindows(this)
+    if (result) { refresh() }
+}
+
+def closeWindows() {
+	log.debug "Executing 'Close Windows'"
+	def result = parent.closeWindows(this)
+    if (result) { refresh() }
+}
+
+
+private farenhietToCelcius(dF) {
+	return (dF - 32) * 5/9
 }
