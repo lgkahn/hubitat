@@ -35,9 +35,9 @@ metadata {
 		capability "Refresh"
 		capability "Temperature Measurement"
 		capability "Thermostat Mode"
-        	capability "Thermostat Setpoint"
+        capability "Thermostat Setpoint"
      
-	attribute "state", "string"
+		attribute "state", "string"
         attribute "vin", "string"
         attribute "odometer", "number"
         attribute "batteryRange", "number"
@@ -56,7 +56,7 @@ metadata {
         attribute "rear_drivers_window" , "number"
         attribute "rear_pass_window" , "number"
 
-	command "wake"
+		command "wake"
         command "setThermostatSetpoint", ["Number"]
         command "startCharge"
         command "stopCharge"
@@ -200,13 +200,13 @@ private processData(data) {
         if (data.climateState) {
             if (tempScale == "F")
             {
-        	  sendEvent(name: "temperature", value: data.climateState.temperature.toInteger())
-              sendEvent(name: "thermostatSetpoint", value: data.climateState.thermostatSetpoint.toInteger())
+        	  sendEvent(name: "temperature", value: data.climateState.temperature.toInteger(), unit: "F")
+              sendEvent(name: "thermostatSetpoint", value: data.climateState.thermostatSetpoint.toInteger(), unit: "F")
             }
             else
             {
-              sendEvent(name: "temperature", value: farenhietToCelcius(data.climateState.temperature).toInteger())
-              sendEvent(name: "thermostatSetpoint", value: farenhietToCelcius(data.climateState.thermostatSetpoint).toInteger())
+              sendEvent(name: "temperature", value: farenhietToCelcius(data.climateState.temperature).toInteger(), unit: "C")
+              sendEvent(name: "thermostatSetpoint", value: farenhietToCelcius(data.climateState.thermostatSetpoint).toInteger(), unit: "C")
             }
             
             sendEvent(name: "seat_heater_left", value: data.climateState.seat_heater_left)
