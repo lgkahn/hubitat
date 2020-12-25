@@ -270,7 +270,8 @@ def refresh(child) {
             data["chargeState"] = [
                 battery: chargeState.battery_level,
                 batteryRange: chargeState.battery_range,
-                chargingState: chargeState.charging_state
+                chargingState: chargeState.charging_state,
+                minutes_to_full_charge: chargeState.minutes_to_full_charge    
             ]
             
             data["driveState"] = [
@@ -284,12 +285,23 @@ def refresh(child) {
             data["vehicleState"] = [
             	presence: vehicleState.homelink_nearby ? "present" : "not present",
                 lock: vehicleState.locked ? "locked" : "unlocked",
-                odometer: vehicleState.odometer
-            ]
+                odometer: vehicleState.odometer,
+                sentry_mode: vehicleState.sentry_mode ? "On" : "Off",
+                front_drivers_window: vehicleState.fd_window ? "Open" : "Closed",
+                front_pass_window: vehicleState.fp_window ? "Open" : "Closed",
+                rear_drivers_window: vehicleState.rd_window ? "Open" : "Closed",
+                rear_pass_window: vehicleState.rp_window ? "Open" : "Closed"   
+                ]
+
             
             data["climateState"] = [
             	temperature: celciusToFarenhiet(climateState.inside_temp),
-                thermostatSetpoint: celciusToFarenhiet(climateState.driver_temp_setting)
+                thermostatSetpoint: celciusToFarenhiet(climateState.driver_temp_setting),
+                seat_heater_left: climateState.seat_heater_left,
+                seat_heater_right: climateState.seat_heater_right, 
+                seat_heater_rear_left: climateState.seat_heater_rear_left,  
+                seat_heater_rear_right: climateState.seat_heater_rear_right,                
+                seat_heater_rear_center: climateState.seat_heater_rear_center    
             ]
         })
     }
@@ -352,8 +364,16 @@ def climateOff(child) {
 	return executeApiCommand(child, "auto_conditioning_stop")
 }
 
-def setThermostatSetpoint(child, Number setpoint) {
-	def setpointCelcius = farenhietToCelcius(setpoint)
+def setThermostatSetpointC(child, Number setpoint) {
+	def setpointCelcius = setpoint.toInteger()
+    wake(child)
+    pause(2000)
+    return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
+}
+
+
+def setThermostatSetpointF(child, Number setpoint) {
+	def setpointCelcius = farenhietToCelcius(setpoint).toInteger()
     wake(child)
     pause(2000)
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
@@ -375,4 +395,34 @@ def openTrunk(child, whichTrunk) {
     wake(child)
     pause(2000)
 	return executeApiCommand(child, "actuate_trunk", body: [which_trunk: whichTrunk])
+}
+
+def setSeatHeaters(child, seat,level) {
+    wake(child)
+    pause(2000)
+	return executeApiCommand(child, "remote_seat_heater_request", body: [heater: seat, level: level])
+}
+
+def sentryModeOn(child) {
+    wake(child)
+    pause(2000)
+	return executeApiCommand(child, "set_sentry_mode", body: [on: "true"])
+}
+
+def sentryModeOff(child) {
+    wake(child)
+    pause(2000)
+	return executeApiCommand(child, "set_sentry_mode", body: [on: "false"])
+}
+
+def ventWindows(child) {
+    wake(child)
+    pause(2000)
+	return executeApiCommand(child, "window_control", body: [command: "vent"])
+}
+
+def closeWindows(child) {
+    wake(child)
+    pause(2000)
+	return executeApiCommand(child, "window_control", body: [command: "close"])
 }
