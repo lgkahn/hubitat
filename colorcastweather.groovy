@@ -32,6 +32,7 @@
  */
 // lgk new version with option to decide how often the weather update runs.. used to be every 15 minutes.. Motion triggers still the same.
 // lgk new version with options for number of blinks and delay settings for alerts. Also remove tap trigger .. not avail in hubitat on apps
+// alert reporting has changed so also search through the overall alert description for words like snow, sleet etc.. also fix wrong color pushed for sleet.
 
 import java.util.regex.*
 
@@ -381,6 +382,9 @@ def checkForWeather() {
 			response.alerts.each { //If it is iterate through all Alerts
 				def thisAlert=it.title;
 				log.debug thisAlert
+                def overallDesc = it.description;
+                //log.debug "overall desc = $overallDesc"
+                
 				alertFlash.each{ //Iterate through all user specified alert types
                   log.debug "in alert this alert = $thisAlert it = $it!"
                   
@@ -412,7 +416,7 @@ def checkForWeather() {
                             log.debug "Rain"
                             log.debug rainColor
                            }
-                   if ((thisAlert.toLowerCase().indexOf('Severe Thunderstorm') >= 0) && (rainColor != 'Disabled'))
+                   if (((thisAlert.toLowerCase().indexOf('Severe Thunderstorm') >= 0) || (overallDesc.toLowerCase().indexOf('Severe Thunderstorm') >= 0)) && (rainColor != 'Disabled'))
                         
                           {
                             log.debug "Found alert of type Severe Thunderstorm!"
@@ -420,18 +424,17 @@ def checkForWeather() {
                             log.debug "Rain"
                             log.debug rainColor
                            }             
-                        if ((thisAlert.toLowerCase().indexOf('snow') >= 0) && (snowColor != 'Disabled'))
+                        if (((thisAlert.toLowerCase().indexOf('snow') >= 0) || (overallDesc.toLowerCase().indexOf('snow') >= 0)) && (snowColor != 'Disabled'))
                           {
                             log.debug "Found alert of type Snow!"
                             colors.push(snowColor)
                             log.debug "Snow"
                             log.debug snowColor
                            }
-                           
-                        if ((thisAlert.toLowerCase().indexOf('sleet') >= 0) && (sleetColor != 'Disabled'))
+                        if (((thisAlert.toLowerCase().indexOf('sleet') >= 0) || (overallDesc.toLowerCase().indexOf('sleet' ) >= 0)) && (sleetColor != 'Disabled'))
                           {
                             log.debug "Found alert of type Sleet!"
-                            colors.push(windColor)
+                            colors.push(sleetColor)
                             log.debug "Sleet"
                             log.debug sleetColor
                            }
@@ -489,7 +492,7 @@ def checkForWeather() {
    if ((colors.size() == 0) && (weatherAlert == true))
      {
        log.debug "Found a weather alert, but no specific class of weather triggererd!"  
-       log.debug "trying to find color for specific alert event!"  
+       //log.debug "trying to find color for specific alert event!"  
        log.debug "Setting color to default Alert Color = $defaultAlertColor"
        colors.push(defaultAlertColor)
    }
