@@ -12,6 +12,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  * 10/18/20 lgkahn added open/unlock charge port
+ * lgk added aption to put in new access token directly to get around login issues.
  *
  */
 definition(
@@ -37,6 +38,8 @@ def loginToTesla() {
 		section("Log in to your Tesla account:") {
 			input "email", "text", title: "Email", required: true, autoCorrect:false
 			input "password", "password", title: "Password", required: true, autoCorrect:false
+            input "newAccessToken", "string", title: "Input new access token when expired?", required: false
+         
 		}
 		section("To use Tesla, SmartThings encrypts and securely stores your Tesla credentials.") {}
 	}
@@ -69,9 +72,20 @@ def getClientSecret () { "c7257eb71a564034f9419ee651c7d0e5f7aa6bfbd18bafb5c5c033
 def getUserAgent() { "trentacular" }
 
 def getAccessToken() {
+    log.debug "in getaccess token!"
+    log.debug "new access token = $newAccessToken"
+    if (newAccessToken)
+    {
+        log.debug "resetting access token"
+        state.accessToken = newAccessToken
+        newAccessToken = ""
+    }
+    else
+    {
 	if (!state.accessToken) {
 		refreshAccessToken()
 	}
+    }
 	state.accessToken
 }
 
