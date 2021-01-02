@@ -72,8 +72,7 @@ def getClientSecret () { "c7257eb71a564034f9419ee651c7d0e5f7aa6bfbd18bafb5c5c033
 def getUserAgent() { "trentacular" }
 
 def getAccessToken() {
-    log.debug "in getaccess token!"
-    log.debug "new access token = $newAccessToken"
+    
     if (newAccessToken)
     {
         log.debug "resetting access token"
