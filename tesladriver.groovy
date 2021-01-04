@@ -23,9 +23,10 @@
  * lgk new versino, not letting the car sleep, add option to disable and schedule it between certain times.
  * lgk add misssing parameter to sethermostatsetpoint.. note it is in farenheit so be aware of that.. in the future i can look at supporting both
  * with option to convert.
+ * lgk add code to turn off debugging after 30 minutes.
 */
 metadata {
-	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley") {
+	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley, Larry Kahn") {
 		capability "Actuator"
 		capability "Battery"
 // not supported	capability "Geolocation"
@@ -88,6 +89,12 @@ metadata {
     }
 }
 
+def logsOff()
+{
+    log.debug "Turning off Logging!"
+    device.updateSetting("debug",[value:"false",type:"bool"])
+}
+
 def initialize() {
 	log.debug "Executing 'initialize'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
@@ -125,6 +132,13 @@ def initialize() {
         schedule(fromTime, disable)
         schedule(toTime, reenable)       
     }
+    
+     if (debug)
+    {
+        log.debug "Turning off logging in 1/2 hour!"
+        runIn(1800,logsOff)
+    } 
+   
 }
 
 
@@ -148,11 +162,6 @@ def reenable()
 // parse events into attributes
 def parse(String description) {
 	log.debug "Parsing '${description}'"
-}
-
-def logsOff() {
-    log.info "${app.label} - Debug logging auto disabled"
-    app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
     
 private processData(data) {
