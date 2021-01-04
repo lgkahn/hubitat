@@ -4,12 +4,6 @@
 *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 * v 2.1 added desciprtive text and cleaned up debugging
-* v 2.2 added hostname option and lookup ip if blank./**
-*   simple sendmail  .. lg kahn kahn@lgk.com
-*  You should have received a copy of the GNU General Public License
-*  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-* 
-* v 2.1 added desciprtive text and cleaned up debugging
 * v 2.2 added hostname option and lookup ip if blank.
 * v 2.3 added better checking for end of send to make sure it is closing cleanly
 * v 2.4 add serial queueing so that a new connect waits while old finishes.. set timeout to 1 minute to wait. if email is not finished by
@@ -30,6 +24,7 @@
 * v 2.5.1 mine got stuck in weird state and kept re-running with failure.. added an unschedule to fix it in certain cases and reset states. Also removed a function no longer called.
 *         Also reset state variable when it finds queue empty.
 * v 2.5.2 change password input type to password from text
+* v 2.5.3 auto turn off logging after 1/2 hour
 *
 */
 
@@ -81,6 +76,12 @@ def configure()
     initialize()
 }
 
+def logsOff()
+{
+    log.debug "Turning off Logging!"
+    device.updateSetting("debug",[value:"false",type:"bool"])
+}
+
 
 def initialize() {
 
@@ -106,7 +107,13 @@ def initialize() {
         state.myHostName = myHostName
         sendEvent(name: "myHostName", value: myHostName)  
     }
-    
+  
+   if (debug)
+    {
+        log.debug "Turning off logging in 1/2 hour!"
+        runIn(1800,logsOff)
+    }
+   
 }
 
 def restartFromRunIn()
