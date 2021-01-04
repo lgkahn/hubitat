@@ -12,13 +12,14 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  * 10/18/20 lgkahn added open/unlock charge port
- * lgk added aption to put in new access token directly to get around login issues.
+ * lgk added aption to put in new access token directly to get around login issues. Change4 to reset it to blank after use.
  *
  */
+
 definition(
     name: "Tesla Connect",
     namespace: "trentfoley",
-    author: "Trent Foley",
+    author: "Trent Foley, Larry Kahn",
     description: "Integrate your Tesla car with SmartThings.",
     category: "Convenience",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Partner/tesla-app%402x.png",
@@ -77,7 +78,7 @@ def getAccessToken() {
     {
         log.debug "resetting access token"
         state.accessToken = newAccessToken
-        newAccessToken = ""
+        device.updateSetting("newAccessToken",[value:"",type:"string"])
     }
     else
     {
