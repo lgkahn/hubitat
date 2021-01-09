@@ -26,6 +26,7 @@
 * v 2.5.2 change password input type to password from text
 * v 2.5.3 auto turn off logging after 1/2 hour
 * v 2.5.4 change formatting of date header
+* v 2.5.5 change time formatting yet again.
 *
 */
 
@@ -363,7 +364,7 @@ def parse(String msg) {
             def msgData = "${state.EmailBody}"
 	        def emlBody = ""
 	        def emlSubject = ""
-	        def emlDateTime = new Date().format('MM/dd/yyyy h:mm:ss a',location.timeZone)
+	        def emlDateTime = new Date().format('MM/dd/yyyy H:mm:ss Z',location.timeZone)
 
 	        if(msgData.substring(0,1) == "{") {
 	             	
