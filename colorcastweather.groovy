@@ -525,18 +525,21 @@ def checkForWeather() {
 			pause(delay) //leave the light on for the specified time
 			if (weatherAlert) {
 				//If there's a weather alert, turn off the light for the same amount of time it was on
-				//When a weather alert is active, each color will be looped x times, creating the blinking effect by turning the light on then off x times
-                
+				//When a weather alert is active, each color will be looped x times, creating the blinking effect by turning the light on then off x times              
 				hues.off()
 				pause(delay)
 			}
 		}
         // extra off
-        hues.off()
-        hues.off()
+       
+      if ((colors.size() > 0) || (weatherAlert == true))
+        {
+          hues.off()
+          hues.off()
+        }
 	}
 	}
-	setLightsToOriginal() //The colors have been sent to the lamp and all colors have been shown. Now revert the lights to their original settings
+	 if ((colors.size() > 0) || (weatherAlert == true)) setLightsToOriginal() //The colors have been sent to the lamp and all colors have been shown. Now revert the lights to their original settings
 }
 
 def sendcolor(color) {
