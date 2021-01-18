@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  * 10/18/20 lgkahn added open/unlock charge port
  * lgk added aption to put in new access token directly to get around login issues. Change4 to reset it to blank after use.
+ * fix the updatesetting to clearsetting fx. 1/18/21
  *
  */
 
@@ -78,7 +79,7 @@ def getAccessToken() {
     {
         log.debug "resetting access token"
         state.accessToken = newAccessToken
-        device.updateSetting("newAccessToken",[value:"",type:"string"])
+        app.clearSetting("newAccessToken")
     }
     else
     {
