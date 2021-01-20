@@ -28,6 +28,7 @@
 * v 2.5.4 change formatting of date header
 * v 2.5.5 change time formatting yet again.
 * v 2.5.6 put extra lines in send to try to get around error in hubitat 2.2.5
+* v 2.5.7 removed extra lines as bug is 2.2.5 and nothing to do with the lines.
 *
 */
 
@@ -387,7 +388,6 @@ def parse(String msg) {
 	        		, "Subject: ${emlSubject}"
 	        		, "Date: ${emlDateTime}"		
             		, ""
-                    , ""
 	        		, "${emlBody}"
             		, ""
 	        		, "."
