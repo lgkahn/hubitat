@@ -19,7 +19,7 @@
 *         When one message finishes it checks the queue, and delivers any other remaining.. also schedules a rerun when busy and one is added to the queue.
 *         also serialize the setting and checking of the state.lastCommand as this is used to keep track of the async status of the commands
 * 
-*  v 2.5 changes were enough to signify new version. Found one bug in last one when reviewing code. a synchrozie insize a synchronize on same semaphore.
+*  v 2.5 changes were enough to signify new version. Found one bug in last one when reviewing code. a synchronize inside a synchronize on same semaphore.
 *         Did not seem to be causing issues so I assume the system is smart enough to avoid it but fixed anyway.
 * v 2.5.1 mine got stuck in weird state and kept re-running with failure.. added an unschedule to fix it in certain cases and reset states. Also removed a function no longer called.
 *         Also reset state variable when it finds queue empty.
@@ -85,7 +85,6 @@ def logsOff()
     log.debug "Turning off Logging!"
     device.updateSetting("debug",[value:"false",type:"bool"])
 }
-
 
 def initialize() {
 
@@ -172,7 +171,6 @@ def processQueue(Boolean fromRunIn = false)
     if (debug) log.debug "after run queue = $lqueue"
 }     
 
-
 def addToQueue(String message)
 
 {
@@ -201,7 +199,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "2.5.5"
+def version = "2.5.7"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -224,7 +222,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
       { 
           if (fromRunIn == true)
             {  
-             log.debug "2nd attempt to run failed aftter sleeping... Clearing scheduling, resetting states, re-adding to the queue and aborting!"
+             log.debug "2nd attempt to run failed after sleeping... Clearing scheduling, resetting states, re-adding to the queue and aborting!"
              unschedule()
              sendEvent(name: "lastCommand", value: "Force Closed")
              addToQueue(message)
@@ -256,7 +254,6 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
         }
 }
 
-
 def sendData(String msg, Integer millsec) {
  if (debug) log.debug "$msg"
 	
@@ -266,10 +263,7 @@ def sendData(String msg, Integer millsec) {
 	return hubCmd
 }
 
-def parse(String msg) {
-	 
-    //def lastCommand = device.currentValue("lastCommand")
-    
+def parse(String msg) {  
   
     def lastCommand
     synchronized (lastStateMutex) { lastCommand = state.lastCommand }
@@ -289,8 +283,7 @@ def parse(String msg) {
         {
          if (debug)    log.debug "In initialConnect case"
              if (response == "220")
-                 {
-                     
+                 {                 
                      sendEvent([name: "telnet", value: "Ok"])
                      synchronized (lastStateMutex) { state.lastCommand = "helo" }
                      sendEvent(name: "lastCommand", value: "helo") 
@@ -452,8 +445,6 @@ def parse(String msg) {
             }
         }         
                   
- 
-  
 }
 
 def telnetStatus(status) {
@@ -465,7 +456,6 @@ def telnetStatus(status) {
         sendEvent([name: "telnet", value: "${status}"])
     }
 }
-
 
 def closeConnection()
 {
