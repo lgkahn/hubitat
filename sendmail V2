@@ -239,13 +239,14 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
          }
 
        if (goOn)
-        {
-          if (debug) log.debug "Found ok initial state... going on!"
-             
+        { 
            synchronized (lastStateMutex) { state.lastCommand = "initialConnect" }
            sendEvent(name: "lastCommand", value: "initialConnect")
             
-           if (debug) log.debug "set last command to $state.lastCommand"
+            if (debug) {
+                       log.debug "Found ok initial state... going on!"
+                       log.debug "set last command to $state.lastCommand"
+            }
     
 	       state.EmailBody = "${message}"
 	       state.LastCode = 0
