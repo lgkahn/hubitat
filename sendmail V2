@@ -29,7 +29,7 @@
 * v 2.5.5 change time formatting yet again.
 * v 2.5.6 put extra lines in send to try to get around error in hubitat 2.2.5
 * v 2.5.7 removed extra lines as bug is 2.2.5 and nothing to do with the lines.
-*
+* v 2.5.8 fixed email.. as summized version 2.2.5 telnet is stripping of extra lf or cr that are needed for email
 */
 
 attribute "lastCommand", "string"
@@ -199,7 +199,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "2.5.7"
+def version = "2.5.8"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -244,6 +244,8 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
              
            synchronized (lastStateMutex) { state.lastCommand = "initialConnect" }
            sendEvent(name: "lastCommand", value: "initialConnect")
+            
+           if (debug) log.debug "set last command to $state.lastCommand"
     
 	       state.EmailBody = "${message}"
 	       state.LastCode = 0
@@ -251,6 +253,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
            if (debug) log.debug "Connecting to ${EmailServer}:${EmailPort}"
 	
 	       telnetConnect(EmailServer, EmailPort.toInteger(), null, null)  
+           // telnetConnect([ terminalType: 'VT100' ], EmailServer, EmailPort.toInteger(), null, null)
         }
 }
 
@@ -380,9 +383,9 @@ def parse(String msg) {
 	        		, "To: ${To}"
 	        		, "Subject: ${emlSubject}"
 	        		, "Date: ${emlDateTime}"		
-            		, ""
-	        		, "${emlBody}"
-            		, ""
+            		, "\r\n"
+	        		, "${emlBody}\r\n"
+            		, "\r\n"
 	        		, "."
 		        	, "quit"
 	            ]  
