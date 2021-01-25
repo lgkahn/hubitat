@@ -226,7 +226,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
              unschedule()
              sendEvent(name: "lastCommand", value: "Force Closed")
              addToQueue(message)
-             synchronized (lastStateMutex) { oldState = state.lastCommand }
+             synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
              goOn = false
             }
          else
