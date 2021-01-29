@@ -81,6 +81,9 @@ def installed()
 
 def Update() {
       
+       if (autoUpdate) runIn(timedelay.toInteger(), Update)
+	
+   
          if (state.ip != null)
           {
               state.lastIP = state.ip
@@ -167,4 +170,3 @@ def GetIFConfig() {
         log.info e
     }
 }
-
