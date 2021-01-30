@@ -360,7 +360,7 @@ def setStatus() {
     	}
     } 
     catch (e) {
-    	log.error "Something went wrong: $e"
+    	log.error "Something went wrong (set status): $e"
     }
 
 /*
@@ -592,7 +592,7 @@ def getStatusHandler(resp, data) {
 	} else { if (descTextEnable) log.info "TCC getStatus failed" }
 }
   
-def getHumidifierStatus()
+def getHumidifierStatus(Boolean fromUnauth = false)
 {   
    if (debugOutput)  log.debug "in get humid status enable humidity = $enableHumidity"
 	if (haveHumidifier == 'No') return
@@ -698,12 +698,28 @@ def getHumidifierStatus()
     }
     } 
     catch (e) {
-    	log.error "Something went wrong: $e"
+    	log.error "Something went wrong (getHumidStatus): $e"  
+    
+    def String eStr = e.toString()
+    def pair = eStr.split(" ")
+    def p1 = pair[0]
+    def p2 = pair[1]
+        
+        if ((p2 == "Unauthorized") || (p2 == "Read timed out"))
+        {
+            if (fromUnauth)
+            {
+              log.debug "2nd Unauthorized failure ... giving up!"
+            }
+            else
+            {
+              log.debug "Scheduling a retry in 5 minutes due to Unauthorized!"
+              runIn(300,"refreshFromRunin")
+            }
+        }
     }
-
 }
-
-
+        
 def api(method, args = [], success = {}) {
 
 }
@@ -728,15 +744,21 @@ def doRequest(uri, args, type, success) {
 
 }
 
-def refresh() {
+def refreshFromRunin()
+{ 
+    log.debug "Calling refresh after Unauthorize failure!"
+    refresh(true)
+}
+
+def refresh(Boolean fromUnauth = false) {
     device.data.unit = "°${location.temperatureScale}"
-    if (debugOutput) log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit"
-    login()
-    getHumidifierStatus()
+    if (debugOutput) log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit, fromUnauth = $fromUnauth"
+    login(fromUnauth)
+    getHumidifierStatus(fromUnauth)
     getStatus()
 }
 
-def login() {
+def login(Boolean fromUnauth = false) {
     if (debugOutput) log.debug "Honeywell TCC 'login'"
 
     Map params = [
@@ -809,6 +831,24 @@ def login() {
         }
     } catch (e) {
         log.warn "Something went wrong during login: $e"
+        
+    def String eStr = e.toString()
+    def pair = eStr.split(" ")
+    def p1 = pair[0]
+    def p2 = pair[1]
+        
+        if ((p2 == "Unauthorized") || (p2 == "Read timed out"))
+        {
+            if (fromUnauth)
+            {
+              log.debug "2nd Unauthorized failure ... giving up!"
+            }
+            else
+            {
+              log.debug "Scheduling a retry in 5 minutes due to Unauthorized!"
+              runIn(300,"refreshFromRunin")
+            }
+        }
     }
 }
 
