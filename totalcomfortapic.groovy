@@ -12,7 +12,7 @@
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
-
+ * lgk v 1.4.3 add retries after unautorized and read failures
   * lgk v 1.4.1 add html query and parsing to get whole house/steam humidifier info and put in attributes
   *
  * lgk v 1.4.0 fix tcc line
@@ -69,7 +69,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.9"  }
+ public static String version()     {  return "v1.4.3"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -705,7 +705,7 @@ def getHumidifierStatus(Boolean fromUnauth = false)
     def p1 = pair[0]
     def p2 = pair[1]
         
-        if ((p2 == "Unauthorized") || (p2 == "Read timed out"))
+        if ((p2 == "Unauthorized") || (p2 == "Read"))
         {
             if (fromUnauth)
             {
@@ -836,8 +836,8 @@ def login(Boolean fromUnauth = false) {
     def pair = eStr.split(" ")
     def p1 = pair[0]
     def p2 = pair[1]
-        
-        if ((p2 == "Unauthorized") || (p2 == "Read timed out"))
+      
+       if ((p2 == "Unauthorized") || (p2 == "Read"))
         {
             if (fromUnauth)
             {
