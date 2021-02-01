@@ -429,9 +429,11 @@ def getStatusHandler(resp, data) {
 		if (debugOutput) log.debug "Request was successful, $resp.status"
 		if (debugOutput) log.debug "data = $setStatusResult"
         
-		//if (debugOutput)
-        log.debug "ld = $setStatusResult.latestData.uiData"
-         log.debug "ld = $setStatusResult.latestData.fanData"
+        // lgk change here
+        if (debugOutput) { 
+            log.debug "ld = $setStatusResult.latestData.uiData"
+            log.debug "ld = $setStatusResult.latestData.fanData"
+        }
         
 		def curTemp = setStatusResult.latestData.uiData.DispTemperature
 		def switchPos = setStatusResult.latestData.uiData.SystemSwitchPosition
@@ -513,8 +515,7 @@ def getStatusHandler(resp, data) {
         } 
         
         def operatingState = [ 0: 'idle', 1: 'heating', 2: 'cooling' ][equipmentStatus] ?: 'idle'
-		//def operatingState = [ 0: 'fan only', 1: 'heating', 2: 'cooling' ][equipmentStatus] ?: 'idle'
-        
+	   
         if ((haveHumidifier != 'Yes') && (fanIsRunning == true) && (equipmentStatus == 0))
         { 
             operatingState = "fan only"
@@ -526,10 +527,8 @@ def getStatusHandler(resp, data) {
 		}
         
    // lgk change here end new code
-        
-        
-		//logInfo
-        log.debug ("Set Operating State to: $operatingState - Fan to $fanState")
+           
+		logInfo("Set Operating State to: $operatingState - Fan to $fanState")
 		
 		//fan mode 0=auto, 2=circ, 1=on, 3=followSched
 		
