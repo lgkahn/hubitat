@@ -30,6 +30,7 @@
 * v 2.5.6 put extra lines in send to try to get around error in hubitat 2.2.5
 * v 2.5.7 removed extra lines as bug is 2.2.5 and nothing to do with the lines.
 * v 2.5.8 fixed email.. as summized version 2.2.5 telnet is stripping of extra lf or cr that are needed for email
+* v 2.6 played with carriage return line feeds to get message back on first line..
 */
 
 attribute "lastCommand", "string"
@@ -199,7 +200,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "2.5.8"
+def version = "2.6"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -383,16 +384,18 @@ def parse(String msg) {
 	        		, "From: ${From}"
 	        		, "To: ${To}"
 	        		, "Subject: ${emlSubject}"
-	        		, "Date: ${emlDateTime}"		
-            		, "\r\n"
+	        		, "Date: ${emlDateTime}\r\n"		
+            		, ""
 	        		, "${emlBody}\r\n"
             		, "\r\n"
 	        		, "."
 		        	, "quit"
 	            ]  
                  
+              
                  def res1 = seqSend(sndMsg,500) 
-                 state.messageSent = true
+                 state.messageSent = true  
+                 log.debug "Sent Message: $emlBody"
          }
          }
          else
