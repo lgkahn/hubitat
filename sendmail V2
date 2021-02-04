@@ -385,7 +385,6 @@ def parse(String msg) {
 	        		, "To: ${To}"
 	        		, "Subject: ${emlSubject}"
 	        		, "Date: ${emlDateTime}\r\n"		
-            		, ""
 	        		, "${emlBody}\r\n"
             		, "\r\n"
 	        		, "."
