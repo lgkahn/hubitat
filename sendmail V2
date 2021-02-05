@@ -31,6 +31,8 @@
 * v 2.5.7 removed extra lines as bug is 2.2.5 and nothing to do with the lines.
 * v 2.5.8 fixed email.. as summized version 2.2.5 telnet is stripping of extra lf or cr that are needed for email
 * v 2.6 played with carriage return line feeds to get message back on first line..
+* v 3.0 after recent release hubitat seems much slower getting the initial connect to the telnet port and therefore messages are stacking up .
+* for this reason instead of queuing and trying 30 seconds later I have added a random component so it will queue and try 30 + 1-60 secs later.
 */
 
 attribute "lastCommand", "string"
@@ -177,8 +179,9 @@ def addToQueue(String message)
 {
     if (debug) log.debug "in add to queue current queue = $lqueue"
     if (debug) log.debug("Acquiring semaphore.")
-    def Integer waitTime = 30000
-		
+   
+    def Integer  waitTime = 30000
+    
     if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
     {    
         
@@ -189,7 +192,7 @@ def addToQueue(String message)
     else
     {
         log.debug "Lock Acquire failed ... Aborting"
-         mutex.release()
+        mutex.release()
         unschedule()
         exit
     }
@@ -200,7 +203,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "2.6"
+def version = "3.0"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -233,9 +236,16 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
          else
               {
                 goOn = false
-                log.debug "Existing state ($oldState) indicates last run did not complete.  Adding to queue, Waiting 30 secs.then trying again!"
+                  
+                 // lgk hubitat slower starting up with connections and multi mails are pilling up.
+                 // so to avoid make wait time a random number added to 30 seconds
+    
+                def Integer addAmount = Math.floor((Math.random() * 60) + 1)
+                def Integer waitTime = 30 + addAmount
+                  
+                log.debug "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
                 addToQueue(message)
-                runIn(30,"restartFromRunIn", [overwrite: false]) 
+                runIn(waitTime,"restartFromRunIn", [overwrite: false]) 
               }
          }
 
