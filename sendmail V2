@@ -33,6 +33,11 @@
 * v 2.6 played with carriage return line feeds to get message back on first line..
 * v 3.0 after recent release hubitat seems much slower getting the initial connect to the telnet port and therefore messages are stacking up .
 * for this reason instead of queuing and trying 30 seconds later I have added a random component so it will queue and try 30 + 1-60 secs later.
+* v 3.1 add desc. logging option default is on.. only a few lines of info come out when debugging is off. One for each email and a couple of others if queued up.
+* this turns all that off.
+* NOte: just noticed that if you send a bunch of message to the queue and also at the same time to another instance of the driver (ie another notification device) the queue
+* is not distince. Meaining that all run in one process/thread.. The assumption is that each would be independent. Not the case . So the wrong device can get a message sent but it is rare.
+* will look at somehow appending the device id to the queue and ignoring those not for you, but that is a big change .
 */
 
 attribute "lastCommand", "string"
@@ -56,6 +61,7 @@ preferences {
 	input("Subject", "text", title: "Subject:", description: "")
     input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", requierd: false)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+    input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
     input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
     input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
     input("Password", "password", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
@@ -100,7 +106,7 @@ def initialize() {
     
     if ((!myHostName) || (myHostName == ""))
     {
-        log.debug "User specified hostname is blank using IP instead."
+        log.info "User specified hostname is blank using IP instead."
         def hub = location.hubs[0]
 	    def myName =  "[" + hub.getDataValue("localIP") + "]"
     
@@ -111,14 +117,18 @@ def initialize() {
     else
     {
         state.myHostName = myHostName
-        sendEvent(name: "myHostName", value: myHostName)  
+        sendEvent(name: "myHostName", value: myHostName) 
     }
-  
+    
+   if (descLog) log.info "Descriptive Text logging is on."
+   else log.info "Description Text logging is off."
+    
    if (debug)
     {
-        log.debug "Turning off logging in 1/2 hour!"
+        log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
         runIn(1800,logsOff)
     }
+   else log.info "Debug logging is off."
    
 }
 
@@ -203,7 +213,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "3.0"
+def version = "3.1"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -243,7 +253,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
                 def Integer addAmount = Math.floor((Math.random() * 60) + 1)
                 def Integer waitTime = 30 + addAmount
                   
-                log.debug "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
+                if (debug || descLog) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
                 addToQueue(message)
                 runIn(waitTime,"restartFromRunIn", [overwrite: false]) 
               }
@@ -251,13 +261,13 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
 
        if (goOn)
         { 
-           synchronized (lastStateMutex) { state.lastCommand = "initialConnect" }
-           sendEvent(name: "lastCommand", value: "initialConnect")
+            if (debug) log.debug "Found ok initial state ($oldState) ... going on!"
             
-            if (debug) {
-                       log.debug "Found ok initial state... going on!"
-                       log.debug "set last command to $state.lastCommand"
-            }
+           synchronized (lastStateMutex) { state.lastCommand = "initialConnect"
+                                           sendEvent(name: "lastCommand", value: "initialConnect")
+                                         }
+            
+            if (debug) log.debug "set last command to $state.lastCommand"
     
 	       state.EmailBody = "${message}"
 	       state.LastCode = 0
@@ -296,7 +306,7 @@ def parse(String msg) {
     
    if (lastCommand == "initialConnect")
         {
-         if (debug)    log.debug "In initialConnect case"
+         if (debug) log.debug "In initialConnect case"
              if (response == "220")
                  {                 
                      sendEvent([name: "telnet", value: "Ok"])
@@ -343,7 +353,7 @@ def parse(String msg) {
     else  
     {
          log.debug "Got bad response for Username = $response"
-        synchronized (lastStateMutex) { state.lastCommand = "Send Failed" }
+         synchronized (lastStateMutex) { state.lastCommand = "Send Failed" }
          sendEvent(name: "lastCommand", value: "Send Failed")  
          closeConnection()
      }
@@ -404,7 +414,7 @@ def parse(String msg) {
               
                  def res1 = seqSend(sndMsg,500) 
                  state.messageSent = true  
-                 log.debug "Sent Message: $emlBody"
+                  if (debug || descLog) log.info "Sent Message: $emlBody"
          }
          }
          else
@@ -418,7 +428,7 @@ def parse(String msg) {
        if (debug) log.debug "In send message case"
              if (response == "220")
                  {
-                     log.debug "sending quit"
+                     if (debug || descLog) log.info "sending quit"
                      synchronized (lastStateMutex) { state.lastCommand = "quit" } 
                      sendEvent(name: "lastCommand", value: "quit")     
                      def res1 = sendData("quit",500)
