@@ -181,7 +181,7 @@ def processQueue(Boolean fromRunIn = false)
     }
     
     mutex.release()  
-    if (doProcess) deviceNotification(msg,fromRunIn) 
+    if (doProcess) deviceNotification(msg) 
     
     if (debug) log.debug "after run queue = $lqueue"
 }     
