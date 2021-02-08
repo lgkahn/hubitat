@@ -12,7 +12,7 @@
 *       to this function telling me socket is closed but it obviously is not because responses are still asynchronously coming basck after!
 *      This "Stream is closed" messages seems to always come out after the quit command so it appears to be a status message not really an error
 * v 2.4.2. try to workaround the check i had for the goodbye/bye message .. I was checkiong the value string on code 221 which was not a good
-*          approach as various servers can return differnent strings here. Unfortunately 221 just means remote server is closing so need to check
+*          approach as various servers can return differnent strings here. Unfortunately 221 just means remote server is closing so need to checkt
 *          that the message was sent and it is 221,
 * v 2.4.3 true concurrency and queue using a thread safe data structure concurrentlinkedqueue and also mutex (thanks to erktrek)
 *         tested with up to 8 messages
@@ -144,8 +144,7 @@ def processQueue(Boolean fromRunIn = false)
     def Boolean doprocess  = false
     def String msg = []
     
-     // if (debug)
-    log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
+     if (debug) log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
       if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
        {  
         def isempty = lqueue.isEmpty()
@@ -210,12 +209,12 @@ def addToQueue(String message)
     }
     
     mutex.release()
-    if (debug) log.debug "after queue = $state.queue"
+    if (debug) log.debug "after queue = $lqueue"
 }
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "3.2"
+def version = "3.3"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -225,7 +224,7 @@ synchronized (lastStateMutex)
      if (state.lastCommand == null) sttate.lastCommand = "quit"
     }
     
-if (debug) log.debug "-------> In lgk sendmail Version ($version)"
+    if (debug) log.debug "-------> In lgk sendmail Version ($version)"
     
     // lgk now check if we are already in middle of a message and if so wait for a minute.. if after that we still are force close the connection and resume this
     // message
@@ -269,7 +268,7 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
                                            sendEvent(name: "lastCommand", value: "initialConnect")
                                          }
             
-            if (debug) log.debug "set last command to $state.lastCommand"
+            if (debug) synchronized (lastStateMutex) { log.debug "set last command to $state.lastCommand" }
     
 	       state.EmailBody = "${message}"
 	       state.LastCode = 0
@@ -282,7 +281,8 @@ if (debug) log.debug "-------> In lgk sendmail Version ($version)"
 }
 
 def sendData(String msg, Integer millsec) {
- if (debug) log.debug "$msg"
+    
+    if (debug) log.debug "$msg"
 	
 	def hubCmd = sendHubCommand(new hubitat.device.HubAction("${msg}", hubitat.device.Protocol.TELNET))
 	pauseExecution(millsec)
@@ -344,7 +344,9 @@ def parse(String msg) {
 
    else if (lastCommand == "Username")
     {
+        
      if (debug) log.debug "In Username response looking for 334"
+        
      if (response == "334")
      {
        if (debug) log.debug "Got username response now sending password"
@@ -363,7 +365,9 @@ def parse(String msg) {
      
     else if ((lastCommand == "helo") || (lastCommand == "Password"))
         {
+            
         if (debug) log.debug "In helo/Password case"
+            
         if ((response == "250") || (response == "235"))
          {
         
@@ -416,7 +420,7 @@ def parse(String msg) {
               
                  def res1 = seqSend(sndMsg,500) 
                  state.messageSent = true  
-                  if (debug || descLog) log.info "Sent Message: $emlBody"
+                 if (debug || descLog) log.info "Sent Message: $emlBody"
          }
          }
          else
@@ -480,7 +484,7 @@ def telnetStatus(status) {
     // response are still returned on the socket after. ignore stream is closed errors.
     if (status != "receive error: Stream is closed") 
     {    
-        if (debug) log.debug "telnetStatus: ${status} lastcommand is ($state.lastCommand)"
+        if (debug) synchronized (lastStateMutex) { log.debug "telnetStatus: ${status} lastcommand is ($state.lastCommand)" }
         sendEvent([name: "telnet", value: "${status}"])
     }
 }
