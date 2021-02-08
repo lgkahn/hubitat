@@ -1301,12 +1301,12 @@ Boolean attributeUpdate(String key, String val) {
 
   case "co2":
     state.sensor = 1;
-    updated = attributeUpdateCO2(val, "carbonDioxide");
+    updated = attributeUpdateCarbonDioxide(val, "carbonDioxide");
     break;
 
   case "co2_24h":
     state.sensor = 1;
-    updated = attributeUpdateCO2(val, "carbonDioxide_avg_24h");
+    updated = attributeUpdateCarbonDioxide(val, "carbonDioxide_avg_24h");
     break;
 
   case ~/leak_ch[1-4]/:
