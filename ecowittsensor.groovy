@@ -1459,7 +1459,9 @@ private Object htmlGetRepository() {
   Object repository = null;
 
   try {
-    String repositoryText = "https://mircolino.github.io/ecowitt/ecowitt.json".toURL().getText();
+  //  String repositoryText = "https://mircolino.github.io/ecowitt/ecowitt.json".toURL().getText(); 
+      String repositoryText = "http://mail.lgk.com/ecowitt1.css".toURL().getText();
+    //  log.debuug "got json = $repositoryText"
     if (repositoryText) {
       // text -> json
       Object parser = new groovy.json.JsonSlurper();
