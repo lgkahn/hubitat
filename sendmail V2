@@ -44,11 +44,13 @@
 * V 3.4
 * very very complicated. Spend about 6 hours on it.. here are my findings:
 * 1. the date header must be there and in a specific format. It is so picky time zone must be in -0500 etc format not EST.
-* 2. all FROM and TO emails must be in the form <kahn@lgk.com> kahn@lgk.com. It automatically construcxts this so dont enter them that way.
-* 3. there must be headers for Message-ID , also encludes in <>,MIME-Version, Content-Type, and Content-Transfer-Encoding.
-* If any of these are missing or wrong the mms doesnt work from AT&T and you get an error email back. This thing is so damn picky and there is no documentaton on it whatsoever.
+* 2. all FROM and TO emails must be in the form kahn@lgk.com <kahn@lgk.com>. It automatically constructs this so don't enter them that way.
+* 3. there must be headers for Message-ID , also enclosed in <>, MIME-Version, Content-Type, and Content-Transfer-Encoding.
+* If any of these are missing or wrong the mms doesn't work from AT&T and you get an error email back.
+* This thing is so damn picky and there is no documentaton on it whatsoever.
 * Send some Beers my way.. What a pain the Ass Hopefully in works for everyone on your existing servers. If not let me know!
-* It was also complicated to generate the unique message id. GetHubUuid() did not work. It works without a unique id, but I tried to generate one anyway. It is random UUID from a javascript function
+* It was also complicated to generate the unique message id. GetHubUuid() did not work. 
+* It works without a unique id, but I tried to generate one anyway. It uses a random UUID from a javascript function
 * concatenated with the number of secs since midnight 1972 etc.
 *
 */
