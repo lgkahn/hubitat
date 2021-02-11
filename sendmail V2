@@ -39,6 +39,18 @@
 * is not distince. Meaining that all run in one process/thread.. The assumption is that each would be independent. Not the case . So the wrong device can get a message sent but it is rare.
 * will look at somehow appending the device id to the queue and ignoring those not for you, but that is a big change .
 * v 3.2 only one of the /r/n was needed before the body.. m
+* v 3.3 got mms working from AT&T yeah.. so that we now can get all the msgs in one thread instead of the random number.
+*
+* V 3.4
+* very very complicated. Spend about 6 hours on it.. here are my findings:
+* 1. the date header must be there and in a specific format. It is so picky time zone must be in -0500 etc format not EST.
+* 2. all FROM and TO emails must be in the form <kahn@lgk.com> kahn@lgk.com. It automatically construcxts this so dont enter them that way.
+* 3. there must be headers for Message-ID , also encludes in <>,MIME-Version, Content-Type, and Content-Transfer-Encoding.
+* If any of these are missing or wrong the mms doesnt work from AT&T and you get an error email back. This thing is so damn picky and there is no documentaton on it whatsoever.
+* Send some Beers my way.. What a pain the Ass Hopefully in works for everyone on your existing servers. If not let me know!
+* It was also complicated to generate the unique message id. GetHubUuid() did not work. It works without a unique id, but I tried to generate one anyway. It is random UUID from a javascript function
+* concatenated with the number of secs since midnight 1972 etc.
+*
 */
 
 attribute "lastCommand", "string"
@@ -214,7 +226,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "3.3"
+def version = "3.4"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -390,9 +402,13 @@ def parse(String msg) {
             def msgData = "${state.EmailBody}"
 	        def emlBody = ""
 	        def emlSubject = ""
-	        def emlDateTime = new Date().format('MM/dd/yyyy H:mm:ss z',location.timeZone)
-
-	        if(msgData.substring(0,1) == "{") {
+            def emlDateTime = new Date().format('EEE, dd MMM YYYY H:mm:ss Z',location.timeZone)
+               
+            def String idP1 = now()
+            def String idP2 = java.util.UUID.randomUUID().toString().replaceAll('-', '')
+            def String msgId = '<' + idP2 + "." + idP1 + "@2LGKSendmailV2>"
+               
+          if(msgData.substring(0,1) == "{") {
 	             	
 		        def slurper = new groovy.json.JsonSlurper()
 		        def result = slurper.parseText(msgData)
@@ -402,25 +418,29 @@ def parse(String msg) {
 	           	emlBody = msgData
 	        	emlSubject = (Subject != null ? "${Subject}" : "")
 	        }   
-               
-	        def sndMsg =[
-	        		"MAIL FROM: ${From}"
-	        		, "RCPT TO: ${To}"
+        
+	              def sndMsg =[
+                    "MAIL FROM: ${From} <${From}>"
+                    , "RCPT TO:${To} <${To}>"
 	        		, "DATA"
-	        		, "From: ${From}"
-	        		, "To: ${To}"
-	        		, "Subject: ${emlSubject}"
-	        		, "Date: ${emlDateTime}\r\n"		
+                    , "From: ${From} <${From}>"
+                    , "To: ${To} <${To}>"
+                    , "Date: ${emlDateTime}"
+                    , "Message-ID: ${msgId}"
+                    , "Subject: ${emlSubject}"  
+                    , "MIME-Version: 1.0"
+                    , 'Content-Type: text/plain; charset="us-ascii"'
+                    , "Content-Transfer-Encoding: quoted-printable\r\n"
+                    , ""
 	        		, "${emlBody}"
             		, ""
 	        		, "."
 		        	, "quit"
 	            ]  
-                 
-              
+                   
                  def res1 = seqSend(sndMsg,500) 
                  state.messageSent = true  
-                 if (debug || descLog) log.info "Sent Message: $emlBody"
+                 if (debug || descLog) log.info "Sent Message: $emlBody"     
          }
          }
          else
