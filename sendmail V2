@@ -53,6 +53,8 @@
 * It works without a unique id, but I tried to generate one anyway. It uses a random UUID from a javascript function
 * concatenated with the number of secs since midnight 1972 etc.
 *
+* v 3.5 Some email servers did not like the "email" <email> format, so trying just <email> in the recpt to and from headers.
+*
 */
 
 attribute "lastCommand", "string"
@@ -72,9 +74,9 @@ preferences {
 	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
 	input("EmailPort", "integer", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
 	input("From", "text", title: "From:", description: "", required: true)
-	input("To", "text", title: "To:", description: "", required: true)
+ 	input("To", "text", title: "To:", description: "", required: true)
 	input("Subject", "text", title: "Subject:", description: "")
-    input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", requierd: false)
+    input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", required: false)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
     input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
     input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
@@ -228,14 +230,14 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "3.4"
+def version = "3.5"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
   
 synchronized (lastStateMutex)
     {
-     if (state.lastCommand == null) sttate.lastCommand = "quit"
+     if (state.lastCommand == null) state.lastCommand = "quit"
     }
     
     if (debug) log.debug "-------> In lgk sendmail Version ($version)"
@@ -409,7 +411,7 @@ def parse(String msg) {
             def String idP1 = now()
             def String idP2 = java.util.UUID.randomUUID().toString().replaceAll('-', '')
             def String msgId = '<' + idP2 + "." + idP1 + "@2LGKSendmailV2>"
-               
+           
           if(msgData.substring(0,1) == "{") {
 	             	
 		        def slurper = new groovy.json.JsonSlurper()
@@ -422,11 +424,11 @@ def parse(String msg) {
 	        }   
         
 	              def sndMsg =[
-                    "MAIL FROM: ${From} <${From}>"
-                    , "RCPT TO:${To} <${To}>"
+                      "MAIL FROM: <${From}>"
+                    , "RCPT TO: <${To}>"
 	        		, "DATA"
-                    , "From: ${From} <${From}>"
-                    , "To: ${To} <${To}>"
+                    , "From: ${From}"
+                    , "To: ${To}"
                     , "Date: ${emlDateTime}"
                     , "Message-ID: ${msgId}"
                     , "Subject: ${emlSubject}"  
