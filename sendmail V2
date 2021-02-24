@@ -55,6 +55,7 @@
 *
 * v 3.5 Some email servers did not like the "email" <email> format, so trying just <email> in the recpt to and from headers.
 *
+* v 3.5.1 as someone pointed out the character map on hubitat is utf-8 not ascii so some special characters in emails were not being displayed correctly.
 */
 
 attribute "lastCommand", "string"
@@ -230,7 +231,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "3.5"
+def version = "3.51"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -433,7 +434,7 @@ def parse(String msg) {
                     , "Message-ID: ${msgId}"
                     , "Subject: ${emlSubject}"  
                     , "MIME-Version: 1.0"
-                    , 'Content-Type: text/plain; charset="us-ascii"'
+                    , 'Content-Type: text/plain; charset="utf-8"'
                     , "Content-Transfer-Encoding: quoted-printable\r\n"
                     , ""
 	        		, "${emlBody}"
