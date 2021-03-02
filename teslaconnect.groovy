@@ -15,8 +15,11 @@
  * lgk added aption to put in new access token directly to get around login issues. Change4 to reset it to blank after use.
  * fix the updatesetting to clearsetting fx. 1/18/21
  *
- * lgk new changes.. username password no longer used. Left in place if we ever get oauth2 working again.
+ * lgk 3/2/21 new changes.. username password no longer used. Left in place if we ever get oauth2 working again.
  * added additional field, to get token from a web server in form of:
+ *
+ * {"access_token":"qts-689e5thisisatoken8","token_type":"bearer","expires_in":3888000,"refresh_token":"thisisarefreshtokenc0","created_at":1614466853}
+ *
  * i use tesla.py to generate token monthly and push to my own webserver.
  * also added notification to tell you when token is refreshed via entered token or refresh url. Also notify of failures.
  *
