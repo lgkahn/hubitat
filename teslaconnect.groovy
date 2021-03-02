@@ -15,6 +15,11 @@
  * lgk added aption to put in new access token directly to get around login issues. Change4 to reset it to blank after use.
  * fix the updatesetting to clearsetting fx. 1/18/21
  *
+ * lgk new changes.. username password no longer used. Left in place if we ever get oauth2 working again.
+ * added additional field, to get token from a web server in form of:
+ * i use tesla.py to generate token monthly and push to my own webserver.
+ * also added notification to tell you when token is refreshed via entered token or refresh url. Also notify of failures.
+ *
  */
 
 definition(
@@ -36,14 +41,15 @@ preferences {
 
 def loginToTesla() {
 	def showUninstall = email != null && password != null
-	return dynamicPage(name: "loginToTesla", title: "Connect your Tesla", nextPage:"selectVehicles", uninstall:showUninstall) {
-		section("Log in to your Tesla account:") {
-			input "email", "text", title: "Email", required: true, autoCorrect:false
-			input "password", "password", title: "Password", required: true, autoCorrect:false
+	return dynamicPage(name: "VehicleAuth", title: "Connect your Tesla", nextPage:"selectVehicles", uninstall:showUninstall) {
+		section("Token refresh options:") {
+			input "email", "text", title: "Email (no longer used - enter anything!)", required: true, autoCorrect:false
+			input "password", "password", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
             input "newAccessToken", "string", title: "Input new access token when expired?", required: false
-         
+            input "refreshAccessTokenURL", "string", title: "URL (on your server) that holds new access token as generated from python script?", required: false 
+            input "notificationDevice", "capability.notification", multiple: false, required: false
 		}
-		section("To use Tesla, SmartThings encrypts and securely stores your Tesla credentials.") {}
+		section("To use Tesla, Hubitat encrypts and securely stores a token.") {}
 	}
 }
 
@@ -53,14 +59,14 @@ def selectVehicles() {
 
 		return dynamicPage(name: "selectVehicles", title: "Tesla", install:true, uninstall:true) {
 			section("Select which Tesla to connect"){
-				input(name: "selectedVehicles", type: "enum", required:false, multiple:true, options:state.accountVehicles)
+			input(name: "selectedVehicles", type: "enum", required:false, multiple:true, options:state.accountVehicles)
 			}
 		}
 	} catch (Exception e) {
     	log.error e
         return dynamicPage(name: "selectVehicles", title: "Tesla", install:false, uninstall:true, nextPage:"") {
 			section("") {
-				paragraph "Please check your username and password"
+				paragraph "Please check your Token!"
 			}
 		}
 	}
@@ -75,18 +81,24 @@ def getUserAgent() { "trentacular" }
 
 def getAccessToken() {
     
+    //log.debug "in get access token"
     if (newAccessToken)
     {
-        log.debug "resetting access token"
+        log.debug "Resetting access token"
         state.accessToken = newAccessToken
         app.clearSetting("newAccessToken")
+        notifyIfEnabled("Tesla App - Succesfully refreshed token from entry!")
+          
     }
     else
     {
-	if (!state.accessToken) {
-		refreshAccessToken()
-	}
+         if ((!state.accessToken) && (refreshAccessTokenURL))
+        {
+           // log.debug "Attempting to get access token from url!"
+            refreshAccessTokenfromURL()
+        }    
     }
+    
 	state.accessToken
 }
 
@@ -94,8 +106,52 @@ private convertEpochSecondsToDate(epoch) {
 	return new Date((long)epoch * 1000);
 }
 
+def refreshAccessTokenfromURL() {
+    
+        def params = [
+        uri: refreshAccessTokenURL,
+        headers: [
+            'Accept': '*/*', // */ comment
+            'cache': 'false',
+            'Accept-Encoding': 'plain',
+            'Accept-Language': 'en-US,en,q=0.8',
+            'Connection': 'keep-alive',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36'
+        ],
+	  timeout: 2
+    ]
+    log.debug "sending refresh request: $params"
+    try {
+          httpPostJson(params) { resp ->  
+             if (resp.status == 200)
+              {
+                  log.debug "got data = $resp.data status $resp.status"
+                  notifyIfEnabled("Tesla App - Succesfully refreshed token from URL")
+                  state.accessToken = resp.data.access_token
+                  state.refreshToken = resp.data.refresh_token
+              }
+            else
+            {
+                 state.accessToken = null
+                 notifyIfEnabled("Tesla App - Refresh token from URL Failed bad response!")  
+            }
+        }
+ }
+    
+    catch (groovyx.net.http.HttpResponseException e) {
+            	log.warn e
+                notifyIfEnabled("Tesla App - Refresh token from URL Failed ($e)!")
+                state.accessToken = null
+                if (e.response?.data?.status?.code == 14) {
+                    state.refreshToken = null
+                }
+    }
+         
+    }
+
+             
 def refreshAccessToken() {
-	log.debug "refreshAccessToken"
+	//log.debug "refreshAccessToken"
 	try {
         if (state.refreshToken) {
         	log.debug "Found refresh token so attempting an oAuth refresh"
@@ -123,7 +179,9 @@ def refreshAccessToken() {
             }
         }
 
-        if (!state.accessToken) {
+         // login from username password deprecated lgk
+        
+       /* if (!state.accessToken) {
         	log.debug "Attemtping to get access token using password" 
             httpPostJson([
                 uri: serverUrl,
@@ -142,9 +200,19 @@ def refreshAccessToken() {
                 state.refreshToken = resp.data.refresh_token
             }
         }
+*/
     } catch (Exception e) {
-        log.error "Unhandled exception in refreshAccessToken: $e"
+        log.error "Unhandled exception in refreshAccessToken: $e response = $resp"
     }
+
+        // above is deprecated for now get using url
+       if ((!state.accessToken) && (refreshAccessTokenURL))
+        {
+            log.debug "Attempting to get access token from url!"
+            refreshAccessTokenfromURL()
+        }    
+        
+        
 }
 
 private authorizedHttpRequest(Map options = [:], String path, String method, Closure closure) {
@@ -440,4 +508,11 @@ def closeWindows(child) {
     wake(child)
     pause(2000)
 	return executeApiCommand(child, "window_control", body: [command: "close"])
+}
+
+
+def notifyIfEnabled(message) {
+    if (notificationDevice) {
+        notificationDevice.deviceNotification(message)
+    }
 }
