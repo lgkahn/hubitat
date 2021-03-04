@@ -126,8 +126,7 @@ void generateEvent(Map results) {
             
             else if (name == 'temperature') {
                       
-                def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-                sendEvent(name: "lastUpdate", value: now)
+               
                
                 double tempValue = getTemperature(value)
                 boolean isChange = isStateChange(device, name, tempValue.toString())
@@ -143,14 +142,22 @@ void generateEvent(Map results) {
        
                 if (debug) log.debug "name: $name, isChange: $isChange"
                 // if (device.currentState(name)?.value != tempValue) {
-                if (isChange) {
-                    sendEvent(name: name, value: tempValue, unit: getTemperatureScale(), isStateChange: isChange, displayed: isChange)
+               
+                String measure = "°F";
+                if (getTemperatureScale() == 'C') measure = "°C";
+               
+                if (isChange) 
+                {     
+                  def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+                
+                  sendEvent(name: "lastUpdate", value: now)
+                  sendEvent(name: name, value: tempValue, unit: measure, isStateChange: isChange, displayed: isChange)
                 }
                 
                 attributeUpdateNumber(lastTemp,"lastTemperature",measure,1)
                 Boolean hasChanged = (attributeUpdateNumber(degrees, "temperature", measure, 1))
                 
-                if (debug) log.debug "In update temp val = $tempValue, lastTemp = $lastTemp, change = $change, hasChanged = $hasChanged"
+                if (debug) log.debug "In update temp val = $tempValue, measure = $measure lastTemp = $lastTemp, change = $change, hasChanged = $hasChanged"
  
                 if (hasChanged == true)
                   {
