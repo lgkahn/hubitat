@@ -24,6 +24,7 @@ definition(
 
 preferences {
     page(name: 'preferencesPage')
+    
 }
 
 mappings {
@@ -43,7 +44,7 @@ def preferencesPage() {
         return wirelessDeviceList()
     } else {
         String redirectUrl = oauthInitUrl()
-        // log.debug "RedirectUrl = ${redirectUrl}"
+        if (debug) log.debug "RedirectUrl = ${redirectUrl}"
 
         return dynamicPage(title: 'Connect', uninstall: true) {
             section {
@@ -54,7 +55,7 @@ def preferencesPage() {
     }
 }
 def wirelessDeviceList() {
-    log.debug 'wirelessDeviceList()'
+   if (debug) log.debug 'wirelessDeviceList()'
     Map availDevices = getWirelessTags()
 
     def p = dynamicPage(title: 'Select Your Devices', install: true, uninstall: true) {
@@ -66,6 +67,7 @@ def wirelessDeviceList() {
             input 'pollTimer', 'number', title:'Minutes between poll updates of the sensors', required:true, defaultValue:5
             paragraph 'Select up to 5 devices in each instance. Use a unique name here to create multiple apps.'
             label title: 'Assign a name for this app instance (optional)', required: false
+            input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
         }
     }
 
@@ -73,7 +75,7 @@ def wirelessDeviceList() {
 }
 
 Map getWirelessTags() {
-    log.debug 'getWirelessTags()'
+   if (debug) log.debug 'getWirelessTags()'
     ArrayList result = getTagStatusFromServer()
 
     Map availDevices = [:]
@@ -82,7 +84,7 @@ Map getWirelessTags() {
         availDevices[dni] = device?.name
     }
 
-    log.debug "devices: $availDevices"
+   if (debug) log.debug "devices: $availDevices"
 
     return availDevices
 }
@@ -91,10 +93,23 @@ void installed() {
     initialize()
 }
 
+def logsOff()
+{
+    log.debug "Turning off Logging!"
+    app.updateSetting("debug",[value:"false",type:"bool"])
+}
+
 void updated() {
     unsubscribe()
     initialize()
+ 
+   if (debug)
+    {
+        log.debug "Turning off logging in 1/2 hour!"
+        runIn(1800,logsOff)
+    }     
 }
+    
 
 String getChildNamespace() {
     return 'swanny'
@@ -288,7 +303,7 @@ void pollSingle(def child) {
 }
 
 void updateDeviceStatus(def device, def d) {
-     log.debug "device info: ${device}"
+     if (debug) log.debug "device info: ${device}"
 
     // parsing data here
     Map data = [
@@ -389,7 +404,7 @@ def getTagID(String uuid) {
 }
 
 String getTagVersion(Map tag) {
-   // log.debug "got tag = $tag"
+   if (debug) log.debug "got tag = $tag"
     if (tag.version1 == 2) {
         return (tag.rev == 14) ? ' (v2.1)' : ' (v2.0)'
     }
