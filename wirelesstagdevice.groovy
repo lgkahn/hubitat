@@ -34,7 +34,7 @@ metadata {
     
     
     preferences {
-       
+       input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
     }  
 }
 
