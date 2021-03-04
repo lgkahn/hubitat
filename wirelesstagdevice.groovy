@@ -34,7 +34,7 @@ metadata {
     
     
     preferences {
-         input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+       
     }  
 }
 
@@ -64,7 +64,6 @@ void updated()
 {
     
     sendEvent(name: "temperatureChange", value: 0.00) 
-    sendEvent(name: "humidityChange",value: 0.00)
       
    if (debug)
     {
