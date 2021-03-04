@@ -306,10 +306,14 @@ void updateDeviceStatus(def device, def d) {
      if (debug) log.debug "device info: ${device}"
 
     // parsing data here
+    
+   def int batLevel = (device.batteryRemaining * 100) as int   
+    if (batLevel > 100) batLevel = 100
+   
     Map data = [
         tagType: convertTagTypeToString(device),
         temperature: device.temperature.toDouble().round(1),
-        battery: (device.batteryRemaining * 100) as int,
+        battery: batLevel,
         humidity: (device.cap).toDouble().round(),
         illuminance: (device.lux)?.toDouble().round(),
         signaldBm: (device.signaldBm) as int,
