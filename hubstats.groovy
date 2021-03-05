@@ -129,9 +129,7 @@ def formatUptime()
 def formatAttrib()
 { 
     state.attrString = "<table>"
-    log.debug "formatting attribute"
-    log.debug "attrString = $state.attrString"
-   
+  
    def currentState = state.attrString
    def result1 = addToAttr("Name","name")
    def result2 = addToAttr("Version","hubVersion")
