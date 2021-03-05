@@ -19,10 +19,13 @@
  *    2021-01-31  thebearmay     Code cleanup, release ready
  *    2021-01-31  thebearmay     Putting a config delay in at initialize to make sure version data is accurate
  *    2021-02-16  thebearmay     Add text date for restart
- *    2021-03-05  thebearmay     Added CPU and Temperature polling
+ *    2021-03-04  thebearmay     Added CPU and Temperature polling 
+ *    2021-03-05  thebearmay     Add the degree symbol and scale to the temperature attribute 
+ *    2021-03-05  thebearmay	 Merged addtions from LGKhan: Added new formatted uptime attr, also added an html attr that stores a bunch of the useful 
+ *					                info in table format so you can use on any dashboard
  */
 import java.text.SimpleDateFormat
-static String version()	{  return '1.3.3'  }
+static String version()	{  return '1.4.4'  }
 
 metadata {
     definition (
@@ -32,11 +35,11 @@ metadata {
 	        importURL:"https://raw.githubusercontent.com/thebearmay/hubitat/main/hubInfo.groovy"
 	) {
         capability "Actuator"
-	    capability "Initialize"
-		capability "TemperatureMeasurement"
+	capability "Initialize"
+	capability "TemperatureMeasurement"
         
-		attribute "latitude", "string"
-		attribute "longitude", "string"
+	attribute "latitude", "string"
+	attribute "longitude", "string"
         attribute "hubVersion", "string"
         attribute "id", "string"
         attribute "name", "string"
@@ -58,18 +61,20 @@ metadata {
         attribute "locationId", "string"
         attribute "lastHubRestartFormatted", "string"
         attribute "freeMemory", "string"
+	    attribute "temperatureF", "string"
+        attribute "temperatureC", "string"
         attribute "formattedUptime", "string"
         attribute "html", "string";                              
    
-		command "configure"
+	command "configure"
             
     }   
 }
 
 preferences {
-	input("debugEnable", "bool", title: "Enable debug logging?")
-    input("tempPollEnable", "bool", title: "Enable Temperature Polling")
-    input("tempPollRate", "number", title: "Temperature Polling Rate (seconds)\nDefault:300", default:300, submitOnChange: true)
+    input("debugEnable", "bool", title: "Enable debug logging?")
+    input("tempPollEnable", "bool", title: "Enable Temperature/Memory/html Polling")
+    input("tempPollRate", "number", title: "Temperature/Memory Polling Rate (seconds)\nDefault:300", default:300, submitOnChange: true)
     input("attribEnable", "bool", title: "Enable Info attribute?", default: false, required: false, submitOnChange: true)
 }
 
@@ -78,7 +83,8 @@ def installed() {
 }
 
 def configure() {
-    if(debugEnable) log.debug "configure()"
+    //if(debugEnable) 
+    log.debug "configure()"
     locProp = ["latitude", "longitude", "timeZone", "zipCode", "temperatureScale"]
     def myHub = location.hub
     hubProp = ["id","name","data","zigbeeId","zigbeeEui","hardwareID","type","localIP","localSrvPortTCP","firmwareVersionString","uptime"]
@@ -111,9 +117,7 @@ def initialize(){
     runIn(30,configure)
 }
 
-def formatUptime()
-
-{
+def formatUptime(){
   String attrval 
 
     Integer ut = device.currentValue("uptime").toDouble()
@@ -126,10 +130,10 @@ def formatUptime()
     sendEvent(name: "formattedUptime", value: attrval, isChanged: true) 
 }
 
-def formatAttrib()
-{ 
-    state.attrString = "<table>"
-  
+def formatAttrib(){ 
+    if(debubEnable) log.debug "formatAttrib"
+   state.attrString = "<table>"
+
    def currentState = state.attrString
    def result1 = addToAttr("Name","name")
    def result2 = addToAttr("Version","hubVersion")
@@ -137,27 +141,17 @@ def formatAttrib()
    def result4 = addToAttr("Free Memory","freeMemory","int")
    def result5 = addToAttr("Last Restart","lastHubRestartFormatted")
    def result6 = addToAttr("Uptime","formattedUptime")
-   def result7 = addTempToAttr("Temperature","temperature","temperatureScale")
+   def tempAttrib = "temperatureC"
+ 
+   if (location.temperatureScale == "F") 
+      tempAttrib = "temperatureF"
+   
+    result7 = addToAttr("Temperature",tempAttrib)
     
     state.attrString = currentState + result1 + result2 + result3 + result4 + result5 + result6 + result7 + "</table>"
    
-   // log.debug "after calls attr string = $state.attrString"
+    if (enableDebug) log.debug "after calls attr string = $state.attrString"
     sendEvent(name: "html", value: state.attrString, isChanged: true)
-}
-
-def addTempToAttr(String name, String key, String scaleKey)
-{
-   // log.debug "adding $name, $key"
-    String retResult
-    retResult = '<Tr><td align="left">'
-    retResult = retResult + name + '</td><td space="5"> </td><td align="left">'
-    String attrval = device.currentValue(key)
-    String scale = device.currentValue(scaleKey)
-    
-    retResult = retResult + attrval + " °" + scale
-    retResult = retResult + '</td></tr>'
-  
-    retResult  
 }
 
 def addToAttr(String name, String key, String convert = "none")
@@ -193,15 +187,16 @@ def getTemp(){
             response.headers.each {
                 log.debug "${it.name} : ${it.value}"
             }
-            
             log.debug response.data
         }
         tempWork = new Double(response.data.toString())
         if(debugEnable) log.debug tempWork
         if (location.temperatureScale == "F")
-            updateAttr("temperature",celsiusToFahrenheit(tempWork))
+            sendEvent(name:"temperature",value:celsiusToFahrenheit(tempWork),unit:"°${location.temperatureScale}")
         else
-            updateAttr("temperature",tempWork)
+            sendEvent(name:"temperature",value:tempWork,unit:"°${location.temperatureScale}")
+        updateAttr("temperatureF",celsiusToFahrenheit(tempWork)+ "<span class='small'> °F</span>")
+        updateAttr("temperatureC",tempWork+ "<span class='small'> °C</span>")
     })
     
     // get Free Memory
@@ -224,8 +219,11 @@ def getTemp(){
     })
 	
     updateAttr("uptime", location.hub.uptime)
-	
+	formatUptime()
+    
     if(tempPollRate == null)  device.updateSetting("tempPollRate",[value:300,type:"number"])
+      
+    if (attribEnable) formatAttrib()
     if (debugEnable) log.debug tempPollRate
     if (tempPollEnable) runIn(tempPollRate,getTemp)
 }
