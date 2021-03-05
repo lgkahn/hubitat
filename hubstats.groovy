@@ -59,13 +59,8 @@ metadata {
         attribute "lastHubRestartFormatted", "string"
         attribute "freeMemory", "string"
         attribute "formattedUptime", "string"
-        
-    attribute "html", "string";                                //
-    attribute "html1", "string";                               //
-    attribute "html2", "string";                               // e.g. "<div>Temperature: ${temperature}°F<br>Humidity: ${humidity}%</div>"
-    attribute "html3", "string";                               //
-    attribute "html4", "string";  
-        
+        attribute "html", "string";                              
+   
 		command "configure"
             
     }   
@@ -161,7 +156,7 @@ def addTempToAttr(String name, String key, String scaleKey)
     String attrval = device.currentValue(key)
     String scale = device.currentValue(scaleKey)
     
-    retResult = retResult + attrval + " °" + scale
+    retResult = retResult + attrval + " Â°" + scale
     retResult = retResult + '</td></tr>'
   
     retResult  
