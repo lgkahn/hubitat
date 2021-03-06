@@ -50,7 +50,7 @@ def loginToTesla() {
 			input "password", "password", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
             input "newAccessToken", "string", title: "Input new access token when expired?", required: false
             input "refreshAccessTokenURL", "string", title: "URL (on your server) that holds new access token as generated from python script?", required: false 
-            input "notificationDevice", "capability.notification", title: "Notification device to receive info on Cookie Updates?", multiple: false, required: false
+            input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
 		}
 		section("To use Tesla, Hubitat encrypts and securely stores a token.") {}
 	}
