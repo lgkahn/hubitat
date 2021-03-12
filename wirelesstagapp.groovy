@@ -274,13 +274,13 @@ void swapToken() {
 // }
 
 void pollHandler() {
-    log.trace 'pollHandler()'
+    log.trace 'Wireless Tag Wakeup()'
     getTagStatusFromServer()
     updateAllDevices()
 }
 
 void updateAllDevices() {
-    log.trace 'updateAllDevices()'
+    if (debug) log.trace 'updateAllDevices()'
     atomicState.tags.each { device ->
         String dni = device.uuid
         def d = getChildDevice(dni)
@@ -325,7 +325,7 @@ void updateDeviceStatus(def device, def d) {
 int getPollRateMillis() { return 2 * 1000 }
 
 ArrayList getTagStatusFromServer() {
-    log.debug 'getTagStatusFromServer()'
+    if (debug) log.debug 'getTagStatusFromServer()'
     int timeSince = (atomicState.lastPoll != null) ? now() - atomicState.lastPoll : 1000 * 1000
 
     if ((atomicState.tags == null) || (timeSince > getPollRateMillis())) {
@@ -357,7 +357,7 @@ void refreshChild( def child ) {
 }
 
 def postMessage(String path, Object query) {
-    log.trace "postMessage - sending ${path}"
+    if (debug) log.trace "postMessage - sending ${path}"
 
     Map message = [
                 uri: 'https://www.mytaglist.com/',
