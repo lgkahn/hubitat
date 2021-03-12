@@ -103,6 +103,8 @@ private Boolean attributeUpdateNumber(BigDecimal val, String attribute, String m
 }
 
 void generateEvent(Map results) {
+    def devName = device.getLabel()
+    
     if (debug) log.debug "parsing data $results"
 
     if (results) {
@@ -140,7 +142,7 @@ void generateEvent(Map results) {
                   change = (degrees - lastTemp as BigDecimal)
                 else lastTemp = 0.00
        
-                if (debug) log.debug "name: $name, isChange: $isChange"
+                if (debug) log.debug "name: $devName, isChange: $isChange"
                 // if (device.currentState(name)?.value != tempValue) {
                
                 String measure = "°F";
@@ -158,7 +160,7 @@ void generateEvent(Map results) {
                 Boolean hasChanged = (attributeUpdateNumber(degrees, "temperature", measure, 1))
                 
                 if (debug) log.debug "In update temp val = $tempValue, measure = $measure lastTemp = $lastTemp, change = $change, hasChanged = $hasChanged"
- 
+                log.info "Tag $name Update: $tempValue, change: $change"
                 if (hasChanged == true)
                   {
                    sendEvent(name: "temperatureChange", value: change)
