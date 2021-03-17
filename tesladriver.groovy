@@ -24,6 +24,9 @@
  * lgk add misssing parameter to sethermostatsetpoint.. note it is in farenheit so be aware of that.. in the future i can look at supporting both
  * with option to convert.
  * lgk add code to turn off debugging after 30 minutes.
+ *
+ * lgk 3/17/21 add set charge limit command and charge limit attribute .
+ *
 */
 metadata {
 	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley, Larry Kahn") {
@@ -56,6 +59,7 @@ metadata {
         attribute "front_pass_window" , "number"
         attribute "rear_drivers_window" , "number"
         attribute "rear_pass_window" , "number"
+        attribute "current_charge_limit", "number"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -69,6 +73,7 @@ metadata {
         command "sentryModeOff"
         command "ventWindows"
         command "closeWindows"
+        command "setChargeLimit", ["number"] /* integer percent */
 
 	}
 
@@ -181,6 +186,7 @@ private processData(data) {
             sendEvent(name: "batteryRange", value: data.chargeState.batteryRange.toInteger())
             sendEvent(name: "chargingState", value: data.chargeState.chargingState)
             sendEvent(name: "minutes_to_full_charge", value: data.chargeState.minutes_to_full_charge)
+            sendEvent(name: "current_charge_limit", value: data.chargeState.chargeLimit)
 
         }
         
@@ -343,6 +349,13 @@ def unlockandOpenChargePort() {
     // if (result) { refresh() }   
 }  
 
+def setChargeLimit(Number Limit)
+{
+ log.debug "Executing 'setChargeLimit with limit of $Limit %"
+	def result = parent.setChargeLimit(this, Limit)
+        if (result) { refresh() }
+}  
+    
 def updated()
 {
    
