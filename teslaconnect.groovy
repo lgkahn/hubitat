@@ -23,6 +23,8 @@
  * i use tesla.py to generate token monthly and push to my own webserver.
  * also added notification to tell you when token is refreshed via entered token or refresh url. Also notify of failures.
  *
+ * 3/17/21 add set charge limit command and charge limit coming back from api in variable.
+ *
  */
 
 definition(
@@ -357,6 +359,7 @@ def refresh(child) {
                 battery: chargeState.battery_level,
                 batteryRange: chargeState.battery_range,
                 chargingState: chargeState.charging_state,
+                chargeLimit: chargeState.charge_limit_soc,
                 minutes_to_full_charge: chargeState.minutes_to_full_charge    
             ]
             
@@ -513,6 +516,12 @@ def closeWindows(child) {
 	return executeApiCommand(child, "window_control", body: [command: "close"])
 }
 
+def setChargeLimit(child,limit) {
+    def limitPercent = limit.toInteger()
+    wake(child)
+    pause(2000)
+    return executeApiCommand(child,"set_charge_limit", body: [percent: limitPercent])
+}
 
 def notifyIfEnabled(message) {
     if (notificationDevice) {
