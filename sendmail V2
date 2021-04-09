@@ -56,6 +56,8 @@
 * v 3.5 Some email servers did not like the "email" <email> format, so trying just <email> in the recpt to and from headers.
 *
 * v 3.5.1 as someone pointed out the character map on hubitat is utf-8 not ascii so some special characters in emails were not being displayed correctly.
+* v 3.6 noticed while i was having internet problems that the app kept spawning off retrying forever.. Notice the 2 attempts was not working.
+* fixed it so it gives up after two failed attemps. also unchedules all pending and resets and tries again.
 */
 
 attribute "lastCommand", "string"
@@ -197,7 +199,7 @@ def processQueue(Boolean fromRunIn = false)
     }
     
     mutex.release()  
-    if (doProcess) deviceNotification(msg) 
+    if (doProcess) deviceNotification(msg,fromRunIn) 
     
     if (debug) log.debug "after run queue = $lqueue"
 }     
@@ -254,13 +256,27 @@ synchronized (lastStateMutex)
       { 
           if (fromRunIn == true)
             {  
-             log.debug "2nd attempt to run failed after sleeping... Clearing scheduling, resetting states, re-adding to the queue and aborting!"
-             unschedule()
-             sendEvent(name: "lastCommand", value: "Force Closed")
-             addToQueue(message)
-             synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
-             goOn = false
+                
+                def Integer addAmount = Math.floor((Math.random() * 60) + 1)
+                def Integer waitTime = 10 + addAmount
+                    
+                log.debug "2nd attempt to run failed after sleeping... Clearing scheduling, resetting states, re-adding to the queue and aborting!"
+                unschedule()
+                sendEvent(name: "lastCommand", value: "Force Closed")
+                addToQueue(message)
+                synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
+                goOn = false
+                
+                // if debuging on redo the job to turn off
+                if (debug)
+                 {
+                  log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
+                  runIn(1800,logsOff)
+                 }
+                     
+             runIn(waitTime,"restartFromRunIn", [overwrite: false])   
             }
+          
          else
               {
                 goOn = false
@@ -273,6 +289,8 @@ synchronized (lastStateMutex)
                   
                 if (debug || descLog) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
                 addToQueue(message)
+  
+                // now reschedule this queue item.
                 runIn(waitTime,"restartFromRunIn", [overwrite: false]) 
               }
          }
