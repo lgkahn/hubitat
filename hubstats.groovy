@@ -35,9 +35,13 @@
  *    2021-03-20  thebearmay     Firmware 2.2.6.xxx support, CPU 5min Load
  *    2021-03-23  thebearmay     Add DB Size
  *    2021-03-24  thebearmay     Calculate CPU % from load 
+ *    2021-03-28  thebearmay     jvmWork.eachline error on reboot 
+ *    2021-03-30  thebearmay     Index out of bounds on reboot
+ *    2021-03-31  thebearmay 	 jvm to HTML null error (first run)
+ *    2021-04-12  lgkahn         add optional public ip and add to html table
  */
 import java.text.SimpleDateFormat
-static String version()	{  return '1.8.3'  }
+static String version()	{  return '1.8.7'  }
 
 metadata {
     definition (
@@ -95,13 +99,13 @@ preferences {
     input("debugEnable", "bool", title: "Enable debug logging?")
     input("tempPollEnable", "bool", title: "Enable Temperature/Memory/HTML Polling")
     if (tempPollEnable) input("tempPollRate", "number", title: "Temperature/Memory Polling Rate (seconds)\nDefault:300", default:300, submitOnChange: true)
+    input("publicIPEnable", "bool", title: "Enable Querying the cloud to obtain your Public IP Address?", default: false, required: true, submitOnChange: true)
     input("security", "bool", title: "Hub Security Enabled", defaultValue: false, submitOnChange: true)
     if (security) { 
         input("username", "string", title: "Hub Security Username", required: false)
         input("password", "password", title: "Hub Security Password", required: false)
     }
     input("attribEnable", "bool", title: "Enable Info attribute?", default: false, required: false, submitOnChange: true)
-    input("publicIPEnable", "bool", title: "Enable Querying the cloud to obtain your Public IP Address?", default: false, required: true, submitOnChange: true)
 }
 
 def installed() {
@@ -171,15 +175,15 @@ def formatAttrib(){
 	attrStr += addToAttr("Name","name")
 	attrStr += addToAttr("Version","hubVersion")
 	attrStr += addToAttr("Address","localIP")
-    if (publicIPEnable) attrStr += addToAttr("Public IP","publicIP")
+    if (publicIPEnable) attrStr += addToAttr("Public IP","publicIP") 
 	attrStr += addToAttr("Free Memory","freeMemory","int")
-    if(device.currentValue("cpu5Min"))
-    {
-        attrStr +=addCPUToAttr("CPU 5min (0-4)","cpu5Min", "cpuPct")
+    if(device.currentValue("cpu5Min")){
+        attrStr +=addToAttr("CPU 5min Load (0-4)","cpu5Min")
+        attrStr +=addToAttr("Load/Core %","cpuPct")
     }
-   // attrStr += addToAttr("JVM Total Memory", "jvmTotal", "int")    
-    //attrStr += addToAttr("JVM Free Memory", "jvmFree", "int")
-    //attrStr += addToAttr("JVM Free %", "jvmFreePct")
+    attrStr += addToAttr("JVM Total Memory", "jvmTotal", "int")    
+    attrStr += addToAttr("JVM Free Memory", "jvmFree", "int")
+    attrStr += addToAttr("JVM Free %", "jvmFreePct")
     if(device.currentValue("dbSize")) attrStr +=addToAttr("DB Size (MB)","dbSize")
 	attrStr += addToAttr("Last Restart","lastHubRestartFormatted")
 	attrStr += addToAttr("Uptime","formattedUptime")
@@ -191,28 +195,20 @@ def formatAttrib(){
 	sendEvent(name: "html", value: attrStr, isChanged: true)
 }
 
-def addCPUToAttr(String name, String key1, String key2)
-{
-   if(enableDebug) log.debug "adding $name, $key"
-    String retResult = '<tr><td align="left">'
-    retResult += name + '</td><td align="left">'
-    retResult += device.currentValue(key1) + " - " + device.currentValue(key2) + "%"
-    retResult += '</td></tr>'
-}
-
 def addToAttr(String name, String key, String convert = "none")
 {
     if(enableDebug) log.debug "adding $name, $key"
     String retResult = '<tr><td align="left">'
     retResult += name + '</td><td align="left">'
    
-    if (convert == "int"){
-        retResult += device.currentValue(key).toInteger().toString()
-    } else if (name=="Temperature"){
-        // span uses integer value to allow CSS override 
-        retResult += "<span class=\"temp-${device.currentValue('temperature').toInteger()}\">" + device.currentValue(key) + "</span>"
-    } else retResult += device.currentValue(key)
-    
+    if(device.currentValue(key)){
+        if (convert == "int"){
+            retResult += device.currentValue(key).toInteger().toString()
+        } else if (name=="Temperature"){
+            // span uses integer value to allow CSS override 
+            retResult += "<span class=\"temp-${device.currentValue('temperature').toInteger()}\">" + device.currentValue(key) + "</span>"
+        } else retResult += device.currentValue(key)
+    }
     retResult += '</td></tr>'
 }
 
@@ -283,7 +279,7 @@ def getTemp(){
     updateAttr("uptime", location.hub.uptime)
 	formatUptime()
     
-    if (publicIPEnable) 
+     if (publicIPEnable) 
       {
           log.debug "attempting to get public ip"
         ipdata = GetIFConfig() 
@@ -353,27 +349,31 @@ def getJvmHandler(resp, data) {
         respStatus = resp.getStatus()
         log.warn "getJvm httpResp = $respStatus but returned invalid data, will retry next cycle"    
     }
-    lineCount = 0
-    jvmWork.eachLine{
-        lineCount++
-    }
-    lineCount2 = 0
-    jvmWork.eachLine{
-        lineCount2++
-        if(lineCount==lineCount2)
-            jvmArr = it.split(",")
-    }
-    jvmTotal = jvmArr[2].toInteger()
-    jvmFree = jvmArr[3].toInteger()
-    Double jvmFreePct = (jvmFree/jvmTotal)*100
-    updateAttr("jvmTotal",jvmTotal)
-    updateAttr("jvmFree",jvmFree)
-    updateAttr("jvmFreePct",jvmFreePct.round(3),"%")
-    if(jvmArr.length > 4) {
-        cpuWork=jvmArr[4].toDouble()
-        updateAttr("cpu5Min",cpuWork.round(2))
-        cpuWork = (cpuWork/4)*100  //Load / #Cores - if cores change will need adjusted to reflect
-        updateAttr("cpuPct",cpuWork.round(2),"%")
+    if (jvmWork) {
+        lineCount = 0
+        jvmWork.eachLine{
+            lineCount++
+        }
+        lineCount2 = 0
+        jvmWork.eachLine{
+            lineCount2++
+            if(lineCount==lineCount2)
+                jvmArr = it.split(",")
+        }
+        if(jvmArr.length > 1){
+            jvmTotal = jvmArr[2].toInteger()
+            jvmFree = jvmArr[3].toInteger()
+            Double jvmFreePct = (jvmFree/jvmTotal)*100
+            updateAttr("jvmTotal",jvmTotal)
+            updateAttr("jvmFree",jvmFree)
+            updateAttr("jvmFreePct",jvmFreePct.round(3),"%")
+            if(jvmArr.length > 4) {
+                cpuWork=jvmArr[4].toDouble()
+                updateAttr("cpu5Min",cpuWork.round(2))
+                cpuWork = (cpuWork/4)*100  //Load / #Cores - if cores change will need adjusted to reflect
+                updateAttr("cpuPct",cpuWork.round(2),"%")
+            }
+        }
     }
 }
 
@@ -400,9 +400,10 @@ def updated(){
 }
 
 void logsOff(){
-     device.updateSetting("debugEnable",[value:"false",type:"bool"])   
+     device.updateSetting("debugEnable",[value:"false",type:"bool"])
 }
- 
+
+
 def GetIFConfig()
 {
     log.debug "in get public ip"
