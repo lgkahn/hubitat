@@ -38,7 +38,7 @@
  *    2021-03-28  thebearmay     jvmWork.eachline error on reboot 
  *    2021-03-30  thebearmay     Index out of bounds on reboot
  *    2021-03-31  thebearmay 	 jvm to HTML null error (first run)
- *    2021-04-12  lgkahn         add optional public ip and add to html table, also combined both cpu values into one table slot
+ *    2021-04-12  lgkahn         add optional public ip and add to html table, also combined both cpu values into one table slot, also combine jvm memory into one row, also fix a couple of wrong debug variables.
  */
 import java.text.SimpleDateFormat
 static String version()	{  return '1.8.7'  }
@@ -179,8 +179,9 @@ def formatAttrib(){
 	attrStr += addToAttr("Free Memory","freeMemory","int")
     if(device.currentValue("cpu5Min"))
     {
-        attrStr +=addCPUToAttr("CPU 5min (0-4)","cpu5Min", "cpuPct")
+      attrStr += addCPUToAttr("CPU 5min (0-4)","cpu5Min", "cpuPct")
     }
+    attrStr += addJVMtoAttr("JVM Total/Free/%","jvmTotal","jvmFree","jvmFreePct")
     attrStr += addToAttr("JVM Total Memory", "jvmTotal", "int")    
     attrStr += addToAttr("JVM Free Memory", "jvmFree", "int")
     attrStr += addToAttr("JVM Free %", "jvmFreePct")
@@ -195,9 +196,24 @@ def formatAttrib(){
 	sendEvent(name: "html", value: attrStr, isChanged: true)
 }
 
+def addJVMtoAttr(String name, String key1, String key2, String key3)
+   {
+       log.debug "in add jvm to string"
+    if (debugEnable) log.debug "adding $name, $key1, $key2, $key3"
+    String retResult = '<tr><td align="left">'
+    retResult += name + '</td><td align="left">'
+       
+    def k1 = device.currentValue(key1).toInteger().toString()
+    def k2 = device.currentValue(key2).toInteger().toString()
+    def k3 = device.currentValue(key3).toInteger().toString()
+       
+    retResult +=  "$k1 - $k2 - $k3%"
+    retResult += '</td></tr>'
+}
+                           
 def addCPUToAttr(String name, String key1, String key2)
 {
-   if(enableDebug) log.debug "adding $name, $key"
+    if (debugEnable) log.debug "adding $name, $key"
     String retResult = '<tr><td align="left">'
     retResult += name + '</td><td align="left">'
     retResult += device.currentValue(key1) + " - " + device.currentValue(key2) + "%"
@@ -207,7 +223,7 @@ def addCPUToAttr(String name, String key1, String key2)
 
 def addToAttr(String name, String key, String convert = "none")
 {
-    if(enableDebug) log.debug "adding $name, $key"
+    if(debugEnable) log.debug "adding $name, $key"
     String retResult = '<tr><td align="left">'
     retResult += name + '</td><td align="left">'
    
@@ -291,7 +307,6 @@ def getTemp(){
     
      if (publicIPEnable) 
       {
-          log.debug "attempting to get public ip"
         ipdata = GetIFConfig() 
         if (ipdata != null)
           {
@@ -416,7 +431,6 @@ void logsOff(){
 
 def GetIFConfig()
 {
-    log.debug "in get public ip"
     def wxURI2 = "https://ifconfig.co/"
     def requestParams2 =
 	[
