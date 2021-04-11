@@ -182,9 +182,9 @@ def formatAttrib(){
       attrStr += addCPUToAttr("CPU 5min (0-4)","cpu5Min", "cpuPct")
     }
     attrStr += addJVMtoAttr("JVM Total/Free/%","jvmTotal","jvmFree","jvmFreePct")
-    attrStr += addToAttr("JVM Total Memory", "jvmTotal", "int")    
-    attrStr += addToAttr("JVM Free Memory", "jvmFree", "int")
-    attrStr += addToAttr("JVM Free %", "jvmFreePct")
+   // attrStr += addToAttr("JVM Total Memory", "jvmTotal", "int")    
+  //  attrStr += addToAttr("JVM Free Memory", "jvmFree", "int")
+   // attrStr += addToAttr("JVM Free %", "jvmFreePct")
     if(device.currentValue("dbSize")) attrStr +=addToAttr("DB Size (MB)","dbSize")
 	attrStr += addToAttr("Last Restart","lastHubRestartFormatted")
 	attrStr += addToAttr("Uptime","formattedUptime")
