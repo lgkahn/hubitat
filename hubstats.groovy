@@ -63,6 +63,7 @@ metadata {
         attribute "hardwareID", "string"
         attribute "type", "string"
         attribute "localIP", "string"
+        attribute "publicIP", "string"
         attribute "localSrvPortTCP", "string"
         attribute "uptime", "number"
         attribute "lastUpdated", "string"
@@ -100,6 +101,7 @@ preferences {
         input("password", "password", title: "Hub Security Password", required: false)
     }
     input("attribEnable", "bool", title: "Enable Info attribute?", default: false, required: false, submitOnChange: true)
+    input("publicIPEnable", "bool", title: "Enable Querying the cloud to obtain your Public IP Address?", default: false, required: true, submitOnChange: true)
 }
 
 def installed() {
@@ -169,6 +171,7 @@ def formatAttrib(){
 	attrStr += addToAttr("Name","name")
 	attrStr += addToAttr("Version","hubVersion")
 	attrStr += addToAttr("Address","localIP")
+    if (publicIPEnable) attrStr += addToAttr("Public IP","publicIP")
 	attrStr += addToAttr("Free Memory","freeMemory","int")
     if(device.currentValue("cpu5Min"))
     {
@@ -280,6 +283,20 @@ def getTemp(){
     updateAttr("uptime", location.hub.uptime)
 	formatUptime()
     
+    if (publicIPEnable) 
+      {
+          log.debug "attempting to get public ip"
+        ipdata = GetIFConfig() 
+        if (ipdata != null)
+          {
+        
+           if(debugEnable) log.info ipdata
+
+           state.publicIP = ipdata.ip 
+           sendEvent(name: "publicIP", value: ipdata.ip, isChanged: true)
+          }
+      }
+    
     if (debugEnable) log.debug "tempPollRate: $tempPollRate"
     
     if (tempPollEnable) {
@@ -383,5 +400,37 @@ def updated(){
 }
 
 void logsOff(){
-     device.updateSetting("debugEnable",[value:"false",type:"bool"])
+     device.updateSetting("debugEnable",[value:"false",type:"bool"])   
 }
+ 
+def GetIFConfig()
+{
+    log.debug "in get public ip"
+    def wxURI2 = "https://ifconfig.co/"
+    def requestParams2 =
+	[
+		uri:  wxURI2,
+        headers: [ 
+                   Host: "ifconfig.co",
+                   Accept: "application/json"
+                 ]
+	]
+    try{
+    httpGet(requestParams2)
+	{
+	  response ->
+		if (response?.status == 200)
+		{
+            if (debugEnable) log.info response.data
+			return response.data
+		}
+		else
+		{
+			log.warn "${response?.status}"
+		}
+	}
+    
+    } catch (Exception e){
+        log.info e
+    }
+}   
