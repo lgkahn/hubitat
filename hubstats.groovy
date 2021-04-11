@@ -38,7 +38,7 @@
  *    2021-03-28  thebearmay     jvmWork.eachline error on reboot 
  *    2021-03-30  thebearmay     Index out of bounds on reboot
  *    2021-03-31  thebearmay 	 jvm to HTML null error (first run)
- *    2021-04-12  lgkahn         add optional public ip and add to html table
+ *    2021-04-12  lgkahn         add optional public ip and add to html table, also combined both cpu values into one table slot
  */
 import java.text.SimpleDateFormat
 static String version()	{  return '1.8.7'  }
@@ -175,11 +175,11 @@ def formatAttrib(){
 	attrStr += addToAttr("Name","name")
 	attrStr += addToAttr("Version","hubVersion")
 	attrStr += addToAttr("Address","localIP")
-    if (publicIPEnable) attrStr += addToAttr("Public IP","publicIP") 
+    if (publicIPEnable) attrStr += addToAttr("Public IP","publicIP")
 	attrStr += addToAttr("Free Memory","freeMemory","int")
-    if(device.currentValue("cpu5Min")){
-        attrStr +=addToAttr("CPU 5min Load (0-4)","cpu5Min")
-        attrStr +=addToAttr("Load/Core %","cpuPct")
+    if(device.currentValue("cpu5Min"))
+    {
+        attrStr +=addCPUToAttr("CPU 5min (0-4)","cpu5Min", "cpuPct")
     }
     attrStr += addToAttr("JVM Total Memory", "jvmTotal", "int")    
     attrStr += addToAttr("JVM Free Memory", "jvmFree", "int")
@@ -194,6 +194,16 @@ def formatAttrib(){
 	if (debugEnable) log.debug "after calls attr string = $attrStr"
 	sendEvent(name: "html", value: attrStr, isChanged: true)
 }
+
+def addCPUToAttr(String name, String key1, String key2)
+{
+   if(enableDebug) log.debug "adding $name, $key"
+    String retResult = '<tr><td align="left">'
+    retResult += name + '</td><td align="left">'
+    retResult += device.currentValue(key1) + " - " + device.currentValue(key2) + "%"
+    retResult += '</td></tr>'
+}
+
 
 def addToAttr(String name, String key, String convert = "none")
 {
