@@ -198,7 +198,6 @@ def formatAttrib(){
 
 def addJVMtoAttr(String name, String key1, String key2, String key3)
    {
-       log.debug "in add jvm to string"
     if (debugEnable) log.debug "adding $name, $key1, $key2, $key3"
     String retResult = '<tr><td align="left">'
     retResult += name + '</td><td align="left">'
