@@ -58,6 +58,8 @@
 * v 3.5.1 as someone pointed out the character map on hubitat is utf-8 not ascii so some special characters in emails were not being displayed correctly.
 * v 3.6 noticed while i was having internet problems that the app kept spawning off retrying forever.. Notice the 2 attempts was not working.
 * fixed it so it gives up after two failed attemps. also unchedules all pending and resets and tries again.
+* v 4. add optional ehlo for servers that require it. Also need to handle the additional processing of EHLO informational messages coming back.
+
 */
 
 attribute "lastCommand", "string"
@@ -83,6 +85,7 @@ preferences {
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
     input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
     input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
+    input("RequiresEHLO", "bool", title: "Does the server require the EHLO command instead of the std HELO?", required: false, defaultValue: false)
     input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
     input("Password", "password", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
 }
@@ -233,7 +236,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "3.51"
+def version = "4.00"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -328,13 +331,22 @@ def sendData(String msg, Integer millsec) {
 def parse(String msg) {  
   
     def lastCommand
+   
     synchronized (lastStateMutex) { lastCommand = state.lastCommand }
     
     if (debug) {
         log.debug "In parse - ${msg}"
         log.debug "lastCommand = $lastCommand"
     }
-
+    
+    def first4 = msg.substring(0,4)
+    if (first4 == "250-")
+    {
+        log.debug "Skipping informational command: $msg after ehlo!"
+    }
+    else
+    {
+        
     def pair = msg.split(" ")
     def response = pair[0]
     def value = pair[1]
@@ -345,11 +357,21 @@ def parse(String msg) {
         {
          if (debug) log.debug "In initialConnect case"
              if (response == "220")
-                 {                 
+                 { 
                      sendEvent([name: "telnet", value: "Ok"])
-                     synchronized (lastStateMutex) { state.lastCommand = "helo" }
-                     sendEvent(name: "lastCommand", value: "helo") 
-                     def res1 = sendData("helo $state.myHostName",500)
+                     if (RequiresEHLO)
+                     {
+                        if (debug) log.debug "Using EHLO instead of HELO!"
+                        synchronized (lastStateMutex) { state.lastCommand = "ehlo" }
+                        sendEvent(name: "lastCommand", value: "ehlo")      
+                        def res1 = sendData("ehlo $state.myHostName",500)
+                     }
+                     else
+                     {
+                       synchronized (lastStateMutex) { state.lastCommand = "helo" }
+                       sendEvent(name: "lastCommand", value: "helo") 
+                       def res1 = sendData("helo $state.myHostName",500)
+                     }
                  }
                  else
                  {
@@ -398,15 +420,16 @@ def parse(String msg) {
      }
     }   
      
-    else if ((lastCommand == "helo") || (lastCommand == "Password"))
+   
+    else if ((lastCommand == "helo") || (lastCommand == "ehlo") || (lastCommand == "Password"))
         {
             
-        if (debug) log.debug "In helo/Password case"
+        if (debug) log.debug "In helo/ehlo/Password case"
             
-        if ((response == "250") || (response == "235"))
+         if ((response == "250") || (response == "235"))
          {
         
-          if ((lastCommand == "helo") && (Authenticate) && (Username) && (Password))
+          if (((lastCommand == "helo") || (lastCommand == "ehlo")) && (Authenticate) && (Username) && (Password))
           {
            if (debug) log.debug "Trying authentication"
               
@@ -417,7 +440,7 @@ def parse(String msg) {
 
          else
            {
-           if (debug) "Either got 250 for helo or 235 for password, Now Sending Message"
+           if (debug) "Either got 250 for helo or 235 for password, Now Sending Message or ehlo"
                
             synchronized (lastStateMutex) { state.lastCommand = "sendmessage" }
             sendEvent(name: "lastCommand", value: "sendmessage") 
@@ -468,7 +491,7 @@ def parse(String msg) {
          }
          else
          {
-             closeOnError()
+            closeOnError()
          }
         }
     
@@ -516,10 +539,10 @@ def parse(String msg) {
             }
             else
             {
-                closeOnError()
+              closeOnError()
             }
         }         
-                  
+    }                 
 }
 
 def telnetStatus(status) {
