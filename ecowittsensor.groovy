@@ -48,15 +48,15 @@ metadata {
     attribute "batteryWindIcon", "number";                     // Only created/used when a WH68/WH80 is bundled in a PWS
     attribute "batteryWindOrg", "number";                      //
 
- // attribute "temperature", "number";                         // Â°F
+ // attribute "temperature", "number";                         // °F
 
  // attribute "humidity", "number";                            // 0-100%
-    attribute "humidityAbs", "number";                         // oz/ydÂ³ or g/mÂ³     
-    attribute "dewPoint", "number";                            // Â°F - calculated using outdoor "temperature" & "humidity"
-    attribute "heatIndex", "number";                           // Â°F - calculated using outdoor "temperature" & "humidity"
+    attribute "humidityAbs", "number";                         // oz/yd³ or g/m³     
+    attribute "dewPoint", "number";                            // °F - calculated using outdoor "temperature" & "humidity"
+    attribute "heatIndex", "number";                           // °F - calculated using outdoor "temperature" & "humidity"
     attribute "heatDanger", "string";                          // Heat index danger level
     attribute "heatColor", "string";                           // Heat index HTML color
-    attribute "simmerIndex", "number";                         // Â°F - calculated using outdoor "temperature" & "humidity"
+    attribute "simmerIndex", "number";                         // °F - calculated using outdoor "temperature" & "humidity"
     attribute "simmerDanger", "string";                        // Summer simmmer index danger level
     attribute "simmerColor", "string";                         // Summer simmer index HTML color
 
@@ -72,10 +72,10 @@ metadata {
     attribute "rainYearly", "number";                          // in - rainfall in the current year
     attribute "rainTotal", "number";                           // in - rainfall total since sensor installation
 
-    attribute "pm25", "number";                                // Âµg/mÂ³ - PM2.5 particle reading - current
-    attribute "pm25_avg_24h", "number";                        // Âµg/mÂ³ - PM2.5 particle reading - average over the last 24 hours
-    attribute "pm10", "number";                                // Âµg/mÂ³ - PM10 particle reading - current
-    attribute "pm10_avg_24h", "number";                        // Âµg/mÂ³ - PM10 particle reading - average over the last 24 hours
+    attribute "pm25", "number";                                // µg/m³ - PM2.5 particle reading - current
+    attribute "pm25_avg_24h", "number";                        // µg/m³ - PM2.5 particle reading - average over the last 24 hours
+    attribute "pm10", "number";                                // µg/m³ - PM10 particle reading - current
+    attribute "pm10_avg_24h", "number";                        // µg/m³ - PM10 particle reading - average over the last 24 hours
    // attribute "co2", "number";                               // ppm - CO2 concetration - current
     attribute "carbonDioxide_avg_24h", "number";               // ppm - CO2 concetration - average over the last 24 hours
 
@@ -101,23 +101,23 @@ metadata {
     attribute "ultravioletColor", "string";                    // UV HTML color
 
  // attribute "illuminance", "number";                         // lux
-    attribute "solarRadiation", "number";                      // W/mÂ²
+    attribute "solarRadiation", "number";                      // W/m²
 
-    attribute "windDirection", "number";                       // 0-359Â°
+    attribute "windDirection", "number";                       // 0-359°
     attribute "windCompass", "string";                         // NNE
-    attribute "windDirection_avg_10m", "number";               // 0-359Â° - average over the last 10 minutes
+    attribute "windDirection_avg_10m", "number";               // 0-359° - average over the last 10 minutes
     attribute "windCompass_avg_10m", "string";                 // NNE - average over the last 10 minutes
     attribute "windSpeed", "number";                           // mph
     attribute "windSpeed_avg_10m", "number";                   // mph - average over the last 10 minutes
     attribute "windGust", "number";                            // mph
     attribute "windGustMaxDaily", "number";                    // mph - max in the current day
-    attribute "windChill", "number";                           // Â°F - calculated using outdoor "temperature" & "windSpeed"
+    attribute "windChill", "number";                           // °F - calculated using outdoor "temperature" & "windSpeed"
     attribute "windDanger", "string";                          // Windchill danger level
     attribute "windColor", "string";                           // Windchill HTML color
 
     attribute "html", "string";                                //
     attribute "html1", "string";                               //
-    attribute "html2", "string";                               // e.g. "<div>Temperature: ${temperature}Â°F<br>Humidity: ${humidity}%</div>"
+    attribute "html2", "string";                               // e.g. "<div>Temperature: ${temperature}°F<br>Humidity: ${humidity}%</div>"
     attribute "html3", "string";                               //
     attribute "html4", "string";                               //
 
@@ -511,26 +511,29 @@ private Boolean attributeUpdateLowestBattery() {
 private Boolean attributeUpdateTemperature(String val, String attribTemperature) {
 
   BigDecimal degrees = val.toBigDecimal();
-  String measure = "Â°F";
+  String measure = "°F";
 
   // Convert to metric if requested
   if (unitSystemIsMetric()) {
     degrees = convert_F_to_C(degrees);
-    measure = "Â°C";
+    measure = "°C";
   }
-
+    
+  Boolean hasChanged = (attributeUpdateNumber(degrees, attribTemperature, measure, 1))  
+    
+   // only do this if actually temp not other attributes that come through here like dew pt     
+   if (attribTemperature == "temperature")
+    {
+        
   def lastTemp = (device.currentValue(attribTemperature) as BigDecimal)
   BigDecimal change = 0.00
    if (lastTemp != null) 
     change = (degrees - lastTemp as BigDecimal)
    else lastTemp = 0.00
     
-
-    
   attributeUpdateNumber(lastTemp,"lastTemperature",measure,1)
-  Boolean hasChanged = (attributeUpdateNumber(degrees, attribTemperature, measure, 1))
 
-  if (debug) log.debug "In update temp val = $val , attribute = $attribTemperature, lastTemp = $lastTemp, change = $change, hasChanged = $hasChanged"
+  if (debug) log.debug "In update temp val = $val , measure = $measure, attribute = $attribTemperature, lastTemp = $lastTemp, change = $change, hasChanged = $hasChanged"
     
   // only log difference if we have a changed value.
   if (hasChanged == true)
@@ -541,6 +544,8 @@ private Boolean attributeUpdateTemperature(String val, String attribTemperature)
   {
       sendEvent(name: "temperatureChange", value: 0.00)
   }
+    
+    }
     
   return hasChanged
 }
@@ -653,7 +658,7 @@ private Boolean attributeUpdatePM(String val, String attribPm) {
 
   BigDecimal pm = val.toBigDecimal();
 
-  return (attributeUpdateNumber(pm, attribPm, "Âµg/mÂ³"));
+  return (attributeUpdateNumber(pm, attribPm, "µg/m³"));
 }
 
 // ------------------------------------------------------------
@@ -820,7 +825,7 @@ private Boolean attributeUpdateLight(String val, String attribSolarRadiation, St
 
   BigDecimal light = val.toBigDecimal();
 
-  Boolean updated = attributeUpdateNumber(light, attribSolarRadiation, "W/mÂ²");
+  Boolean updated = attributeUpdateNumber(light, attribSolarRadiation, "W/m²");
   if (attributeUpdateNumber(convert_Wm2_to_lux(light), attribIlluminance, "lux", 0)) updated = true;
 
   return (updated);
@@ -873,7 +878,7 @@ private Boolean attributeUpdateWindDirection(String val, String attribWindDirect
   else if (direction < 326.25)                  compass = "NW";
   else                                          compass = "NNW";
 
-  Boolean updated = attributeUpdateNumber(direction, attribWindDirection, "Â°");
+  Boolean updated = attributeUpdateNumber(direction, attribWindDirection, "°");
   if (attributeUpdateString(compass, attribWindCompass)) updated = true;
 
   return (updated);
@@ -921,7 +926,7 @@ private Boolean attributeUpdateDewPoint(String val, String attribDewPoint, Strin
       }
 
       if (attributeUpdateTemperature(degrees.toString(), attribDewPoint)) updated = true;
-      if (attributeUpdateNumber(volume, attribHumidityAbs, unitSystemIsMetric()? "g/mÂ³": "oz/ydÂ³", 2)) updated = true;
+      if (attributeUpdateNumber(volume, attribHumidityAbs, unitSystemIsMetric()? "g/m³": "oz/yd³", 2)) updated = true;
     }
   }
 
@@ -1121,12 +1126,14 @@ Boolean attributeUpdate(String key, String val) {
 
   Boolean updated = false;
   Boolean bundled = device.getDataValue("isBundled");
-  
+ 
   def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
   sendEvent(name: "lastUpdate", value: now)
-    
+   // log.debug "got key $key val = $val"
+      
   switch (key) {
 
+      
   case "wh26batt":
     if (bundled) {
       state.sensorTemp = 1;
@@ -1190,12 +1197,12 @@ Boolean attributeUpdate(String key, String val) {
   case ~/tf_ch[1-8]/:
   case "tf_co2":
       
-    sendEvent(name: "temperatureLastUpdate", value: now)
-  
     state.sensor = 1;
     if (debug) log.debug "Updating Temp: $val"
       
     updated = attributeUpdateTemperature(val, "temperature");
+      
+    if (updated)  sendEvent(name: "temperatureLastUpdate", value: now)
     break;
 
   case "humidity":
@@ -1426,12 +1433,15 @@ Boolean updateSensorStatus(bundled) {
       attributeUpdateString(state.sensorTemp? "false": "true", "orphanedTemp");
       state.sensorTemp = 0;
     }
+    
     if (state.sensorRain != null) {
+       // log.debug "in update rain sensor"
       if (state.sensorRain == 0) orphaned = true;
       attributeUpdateString(state.sensorRain? "false": "true", "orphanedRain");
       state.sensorRain = 0;
     }
-    if (state.sensorWind != null) {
+     
+    if (state.sensorWind != null) { 
       if (state.sensorWind == 0) orphaned = true;
       attributeUpdateString(state.sensorWind? "false": "true", "orphanedWind");
       state.sensorWind = 0;
