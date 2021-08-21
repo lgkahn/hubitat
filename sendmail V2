@@ -59,7 +59,7 @@
 * v 3.6 noticed while i was having internet problems that the app kept spawning off retrying forever.. Notice the 2 attempts was not working.
 * fixed it so it gives up after two failed attemps. also unchedules all pending and resets and tries again.
 * v 4. add optional ehlo for servers that require it. Also need to handle the additional processing of EHLO informational messages coming back.
-
+* v 4.01 bug gound with two typos with misspelling of lastCommand. Fix brought to light corresponding missing 250 checks.
 */
 
 attribute "lastCommand", "string"
@@ -236,7 +236,7 @@ def addToQueue(String message)
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "4.00"
+def version = "4.01"
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -495,10 +495,10 @@ def parse(String msg) {
          }
         }
     
-    else if (lastComamnd == "sendmessage")
+    else if (lastCommand == "sendmessage")
         {
        if (debug) log.debug "In send message case"
-             if (response == "220")
+             if ((response == "220") || (response == "250"))
                  {
                      if (debug || descLog) log.info "sending quit"
                      synchronized (lastStateMutex) { state.lastCommand = "quit" } 
@@ -510,11 +510,11 @@ def parse(String msg) {
                     closeOnError()
                  }
                 }
-       else if ((lastComamnd == "quit") || ((response == "221") && (lastCommand == "other")))
+       else if ((lastCommand == "quit") || ((response == "221") && (lastCommand == "other")))
                                             //&& ((value == "bye") || (value == "2.0.0") || (value = "Goodbye"))))
         {
           if (debug) log.debug "In quit case"
-               if (response == "220" || response == "221")
+               if (response == "220" || response == "221" || response == "250")
                  { 
                    if (state.messageSent)
                      {
