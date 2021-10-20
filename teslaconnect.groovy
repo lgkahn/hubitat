@@ -25,6 +25,7 @@
  *
  * 3/17/21 add set charge limit command and charge limit coming back from api in variable.
  *
+ * lgk 10/19/21 change set temp setpoint to double precision to get around integer values being used in conversions.
  */
 
 definition(
@@ -49,7 +50,7 @@ def loginToTesla() {
 	return dynamicPage(name: "VehicleAuth", title: "Connect your Tesla", nextPage:"selectVehicles", uninstall:showUninstall) {
 		section("Token refresh options:") {
 			input "email", "text", title: "Email (no longer used - enter anything!)", required: true, autoCorrect:false
-			input "password", "password", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
+			input "password", "text", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
             input "newAccessToken", "string", title: "Input new access token when expired?", required: false
             input "refreshAccessTokenURL", "string", title: "URL (on your server) that holds new access token as generated from python script?", required: false 
             input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
@@ -257,6 +258,12 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
             }
         } else {
         	log.error "Request failed for path: ${path}.  ${e.response?.data}"
+            // temp to refresh with url
+            if (refreshAccessTokenURL)
+            {
+             refreshAccessTokenfromURL()
+            }
+                
         }
     }
 }
@@ -454,7 +461,7 @@ def climateOff(child) {
 }
 
 def setThermostatSetpointC(child, Number setpoint) {
-	def setpointCelcius = setpoint.toInteger()
+	def Double setpointCelcius = setpoint.toDouble()
     wake(child)
     pause(2000)
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
@@ -462,9 +469,10 @@ def setThermostatSetpointC(child, Number setpoint) {
 
 
 def setThermostatSetpointF(child, Number setpoint) {
-	def setpointCelcius = farenhietToCelcius(setpoint).toInteger()
+	def Double setpointCelcius = farenhietToCelcius(setpoint).toDouble()
     wake(child)
     pause(2000)
+    log.debug "setting teslan temp to $setpointCelcius input = $setpoint"
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
