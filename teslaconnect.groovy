@@ -472,7 +472,7 @@ def setThermostatSetpointF(child, Number setpoint) {
 	def Double setpointCelcius = farenhietToCelcius(setpoint).toDouble()
     wake(child)
     pause(2000)
-    log.debug "setting teslan temp to $setpointCelcius input = $setpoint"
+    log.debug "setting tesla temp to $setpointCelcius input = $setpoint"
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
