@@ -59,12 +59,12 @@
 * fixed it so it gives up after two failed attemps. also unchedules all pending and resets and tries again.
 * v 4. add optional ehlo for servers that require it. Also need to handle the additional processing of EHLO informational messages coming back.
 * v 4.01 bug gound with two typos with misspelling of lastCommand. Fix brought to light corresponding missing 250 checks.
-* v 5 remove quit and close telnet coming out just for desc logging. Remove extaneous character at end of strings.
+* v 4 remove quit and close telnet coming out just for desc logging. Remove extaneous character at end of strings.
 
-* Total rewrite here to scale much better for concurrently
-* I create child devices (default is 5) but if you want more it is configurable.. Each child runs all its own data and can run totally concurrent with eqach other.
+* Total rewrite here to scale much better for concurrenty!
+* I create child devices (default is 5) but if you want more it is configurable.. Each child runs all its own data and can run totally concurrent with each other.
 
-* Prior with the queuing it still sometimes would loose a message if two came in at exactly the right time. Even protected with semaphores the state variables could setep on each other.
+* Prior with the queuing it still sometimes would loose a message if two came in at exactly the right time. Even protected with semaphores the state variables could step on each other.
 * This should never happend now. This also should scale really well say if you want to be able to send 50 concurrent messages very quickly you should be able to do that.
 
 * There is also a new command called testConcurrancy which will start up a test email in each of your child simultaneously.
@@ -643,4 +643,3 @@ void uninstalledChildDevice(String dni) {
   // Called by the children to notify the parent they are being uninstalled
   //
 }
-
