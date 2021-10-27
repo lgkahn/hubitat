@@ -355,7 +355,7 @@ void checkArrayForTimedoutMessages(long numSecs)
          def status = element2.get(2)
         
          // ignore rest if status is completed
-         if (status != 'Compleeted')
+         if (status != 'Completed')
             {
              def long diff = ctime - startTime
             
