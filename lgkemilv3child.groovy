@@ -8,7 +8,7 @@ attribute "myHostName", "string"
 
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
-import groovy.transform.Field
+import groovy.transform.Field    
 import java.util.concurrent.ConcurrentLinkedQueue
 
 @Field static java.util.concurrent.Semaphore mutex = new java.util.concurrent.Semaphore(1)
@@ -221,9 +221,19 @@ def sendMessage(String message)
    deviceNotification(message)
 }
 
+def cleanUp()
+{
+                if(state.debug) log.debug "In cleanup ... called from parent!"
+                unschedule()
+                sendEvent(name: "lastCommand", value: "Force Closed")
+                synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
+                initialize()
+}
+
+
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
-def version = "4.1"
+def version = parent.getVersion()
 def Boolean goOn = true
 state.messageSent = false  
 sendEvent(name: "telnet", value: "Ok")
@@ -250,10 +260,11 @@ synchronized (lastStateMutex)
                 def Integer addAmount = Math.floor((Math.random() * 60) + 1)
                 def Integer waitTime = 10 + addAmount
                     
-                log.debug "2nd attempt to run failed after sleeping... Clearing scheduling, resetting states, re-adding to the queue and aborting!"
+                // lgk dont re-add to queue as it will try this forever.
+                log.debug "2nd attempt to run failed after sleeping... Clearing scheduling, resetting states and aborting!"
                 unschedule()
                 sendEvent(name: "lastCommand", value: "Force Closed")
-                addToQueue(message)
+              // addToQueue(message)
                 synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
                 goOn = false
                 
@@ -284,7 +295,8 @@ synchronized (lastStateMutex)
           
                   
                   if (state.debug || state.descLog) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
-                addToQueue(message)
+                  sendEvent(name: "lastCommand", value: "Force Closed")
+                  addToQueue(message)
   
                 // now reschedule this queue item.
                 runIn(waitTime,"restartFromRunIn", [overwrite: false]) 
@@ -308,8 +320,17 @@ synchronized (lastStateMutex)
             
             if (state.debug)  log.debug "Connecting to ${EmailServer}:${EmailPort}"
 	
-	       telnetConnect(EmailServer, EmailPort.toInteger(), null, null)  
-           // telnetConnect([ terminalType: 'VT100' ], EmailServer, EmailPort.toInteger(), null, null)
+            // handle failed connect probabaly due to bad ip address
+              try {
+                    telnetConnect(EmailServer, EmailPort.toInteger(), null, null) 
+                  
+                } catch(e) {
+                       log.error "Connect failed. Either your internet is down or check the ip address of your Server:Port: $EmailServer:$EmailPort !"
+                       // force clean here by running immediately rather than duplicating code
+                       addToQueue(message)
+                      // now reschedule this queue item.
+                     runIn(2,"restartFromRunIn", [overwrite: false]) 
+              }
         }
 }
 
@@ -495,7 +516,7 @@ def parse(String msg) {
                  
                 def int intId =  DnitoID()
                 if (state.debug) log.debug "My internal id = $intId"
-                parent.updateStatus(intId,"Completed")
+                parent.updateStatus(intId,"Completed")      
          }
          }
          else
@@ -568,6 +589,7 @@ def closeConnection()
 {
     if (closeTelnet){
                 try {
+                    log.error "Calling telnet close now!!!!"
                     telnetClose()
                     synchronized (lastStateMutex) { state.lastCommand = "Connection Closed" }
                     sendEvent(name: "lastCommand", value: "Connection Closed")
@@ -600,13 +622,10 @@ def closeOnError()
 
 void uninstalled() {
   try {
-    // Notify the parent we are being deleted
-  // parent.uninstalledChildDevice(device.getDeviceNetworkId());
-
-    log.debug("deletedSensor(${device.getDeviceNetworkId()})");
+ 
+      log.debug("Child: ${device.getName()} - (${device.getDeviceNetworkId()})  Deleted.");
   }
   catch (Exception e) {
     log.error("Exception in uninstalled(): ${e}");
   }
 }
-
