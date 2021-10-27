@@ -229,7 +229,24 @@ def cleanUp()
                 synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
                 initialize()
 }
-
+def resetWithoutRequeue()
+{
+                unschedule()
+                sendEvent(name: "lastCommand", value: "Force Closed")
+                synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
+             
+                //uppdate status of parent.
+                def int intId =  DnitoID()
+                if (state.debug) log.debug "My internal id = $intId"
+                parent.updateStatus(intId,"Failed")
+                
+                // if debuging on redo the job to turn off
+                if (state.debug) 
+                 {
+                  log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
+                  runIn(1800,logsOff)
+                 }
+} 
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
 
@@ -264,7 +281,7 @@ synchronized (lastStateMutex)
                 log.debug "2nd attempt to run failed after sleeping... Clearing scheduling, resetting states and aborting!"
                 unschedule()
                 sendEvent(name: "lastCommand", value: "Force Closed")
-              // addToQueue(message)
+                addToQueue(message)
                 synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
                 goOn = false
                 
@@ -295,7 +312,6 @@ synchronized (lastStateMutex)
           
                   
                   if (state.debug || state.descLog) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
-                  sendEvent(name: "lastCommand", value: "Force Closed")
                   addToQueue(message)
   
                 // now reschedule this queue item.
@@ -326,10 +342,7 @@ synchronized (lastStateMutex)
                   
                 } catch(e) {
                        log.error "Connect failed. Either your internet is down or check the ip address of your Server:Port: $EmailServer:$EmailPort !"
-                       // force clean here by running immediately rather than duplicating code
-                       addToQueue(message)
-                      // now reschedule this queue item.
-                     runIn(2,"restartFromRunIn", [overwrite: false]) 
+                       resetWithoutRequeue() 
               }
         }
 }
