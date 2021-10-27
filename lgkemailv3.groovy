@@ -80,6 +80,8 @@
 * a message to it. Also calculated friendly child name based on parent name.
 * 4.2 added range to protect concurrent children.. added failure sensing for initial connect. added code to provide version to children.
 
+* 4.3 ignore looking at status of completed when going through elements.
+
 */
 
 attribute "lastCommand", "string"
@@ -135,7 +137,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.2"
+    return "4.3"
 }
 
 def logsOff()
@@ -329,9 +331,7 @@ void checkArrayForTimedoutMessages(long numSecs)
 {
     if (debug) "Checking message array for timed out messages: timeout = $numSecs !"
  
- //  if (state.messageStatus)
-//    {
-//    messageStatus = state.messageStatus
+
      def num = messageStatus.size()
    // log.debug "num = $num"
     
@@ -353,17 +353,21 @@ void checkArrayForTimedoutMessages(long numSecs)
             
          def long startTime = element2.get(3)
          def status = element2.get(2)
- 
-         def long diff = ctime - startTime
-            
-         def int seconds = (diff / 1000.0) 
-         if (debug) log.debug "ctime = $ctime start time = $startTime, status = $status, diff in secs = $seconds"
-         if ((status == 'Failed') || ((seconds > numSecs) && (status == "In Process")))
+        
+         // ignore rest if status is completed
+         if (status != 'Compleeted')
             {
+             def long diff = ctime - startTime
+            
+             def int seconds = (diff / 1000.0) 
+             if (debug) log.debug "ctime = $ctime start time = $startTime, status = $status, diff in secs = $seconds"
+             if ((status == 'Failed') || ((seconds > numSecs) && (status == "In Process")))
+              {
                 log.error "Element $element2 has timed out at $seconds seconds/or Failed!"
                 log.debug "Resetting Status"
                 reinitElement(ctr+1,"Reinitialized")
                 resetChild(ctr+1)
+              }
             }
         }
         }
