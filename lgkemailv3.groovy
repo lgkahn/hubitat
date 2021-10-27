@@ -78,6 +78,7 @@
 
 * 4.1 slight change to make children components of the parent so that only way to delete is through parent because if you deleted child directly it would screw up the app when it tries to pass
 * a message to it. Also calculated friendly child name based on parent name.
+* 4.2 added range to protect concurrent children.. added failure sensing for initial connect. added code to provide version to children.
 
 */
 
@@ -105,7 +106,7 @@ preferences {
     input("RequiresEHLO", "bool", title: "Does the server require the EHLO command instead of the std HELO?", required: false, defaultValue: false)
     input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
     input("Password", "password", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
-    input("ConcurrentChildren", "number", title: "How many concurrent messages should we allow at once (NOTE: This many child devices will be created)?", defaultValue: 5, required: true)
+    input("ConcurrentChildren", "number", title: "How many concurrent messages should we allow at once (NOTE: This many child devices will be created)?", range: "1..50", defaultValue: 5, required: true)
 }
 
 metadata {
@@ -130,6 +131,11 @@ def updated() {
 def configure()
 {
     initialize()
+}
+
+String getVersion()
+{
+    return "4.2"
 }
 
 def logsOff()
@@ -167,7 +173,7 @@ def initialize() {
 	state.LastCode = 0
 	state.EmailBody = ""
     state.lastCommand = "quit"
-    def version = "4.1"
+    def version = getVersion()
        
     log.debug "-------> In lgk sendmail Version ($version)"
       
@@ -347,24 +353,34 @@ void checkArrayForTimedoutMessages(long numSecs)
             
          def long startTime = element2.get(3)
          def status = element2.get(2)
-
-        // if (debug) log.debug "ctime = $ctime start time = $startTime, status = $status"
+ 
          def long diff = ctime - startTime
             
          def int seconds = (diff / 1000.0) 
-         //if (debug) log.debug "diff in secs = $seconds"
-         if  ((seconds > numSecs) && (status == "In Process"))
+         if (debug) log.debug "ctime = $ctime start time = $startTime, status = $status, diff in secs = $seconds"
+         if ((status == 'Failed') || ((seconds > numSecs) && (status == "In Process")))
             {
-                log.error "Element $element2 has timed out at $seconds seconds!"
+                log.error "Element $element2 has timed out at $seconds seconds/or Failed!"
                 log.debug "Resetting Status"
                 reinitElement(ctr+1,"Reinitialized")
+                resetChild(ctr+1)
             }
         }
         }
     }
 }
-        
-void incrementTries(int index)
+     
+void resetChild(int index)
+{
+    if (debug) log.debug "Resetting child: $index state due to failure."
+
+              def String dni = IdToDni(index);
+             // if (debug) log.debug "dni = $dni"       
+              com.hubitat.app.ChildDeviceWrapper theChild = getChildDevice(dni);
+              theChild.cleanUp()    
+}
+    
+    void incrementTries(int index)
 {
  if (index < 1)
     log.error "Incorrect index value pased to incrementTries!"
@@ -392,6 +408,7 @@ void incrementTries(int index)
 
 void updateStatus(int index, String newStatus)
 {
+    if (debug) log.debug "in update status new status = $newStatus"
 
     if (index < 1)
     log.error "Incorrect index value pased to updateStatus!"
@@ -408,7 +425,9 @@ void updateStatus(int index, String newStatus)
     def String sentMsg = element.get(1)
     element.set(2,newStatus)
     messageStatus.set(index-1,element)
-    log.info "Sent Message via child($index): $sentMsg" 
+    if (newStatus == "Completed") log.info "Sent Message via child($index): $sentMsg" 
+ 
+    checkArrayForTimedoutMessages(120)
      
  }
       state.messageStatus = messageStatus
@@ -446,7 +465,6 @@ void updateForProcessingStart(int index, String Message, long startTime)
     log.error "Incorrect index value pased to UpdateForProcessingStart!"
  else
  {
-
      if (debug) log.debug "in update for processing start indeix = $index message = $Message start time = $startTime"
      
     def ArrayList element = messageStatus.get(index-1)
@@ -532,7 +550,7 @@ private void childenGarbageCollect()
      if (childlist) childlist.each
         {
          String dni = it.getDeviceNetworkId();
-         if(debug) log.debug "Deeleting device name = $it , id = $dni"
+         if(debug) log.debug "Deleting device name = $it , id = $dni"
             
          deleteChildDevice(dni);
         }
@@ -556,7 +574,7 @@ def deviceNotification(String message)
      if (debug) log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
       if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
        {  
-          def version = "4.1"
+          def version = getVersion()
           def Boolean goOn = true
           state.messageSent = false  
           sendEvent(name: "telnet", value: "Ok")
@@ -577,7 +595,7 @@ def deviceNotification(String message)
                
               // now call the child to process it..
               def String dni = IdToDni(freeChild+1);
-              if (debug) log.debug "dni = $dni"       
+              //if (debug) log.debug "dni = $dni"       
               com.hubitat.app.ChildDeviceWrapper theChild = getChildDevice(dni);
               def long time1 = now()
                
