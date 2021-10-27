@@ -76,6 +76,8 @@
 * Not released to hubitat package manager yet but put out there in my git hub.. you will need to install both LGK SendMail V3 and SendMailV3 child.
 
 
+* 4.1 slight change to make children components of the parent so that only way to delete is through parent because if you deleted child directly it would screw up the app when it tries to pass
+* a message to it. Also calculated friendly child name based on parent name.
 
 */
 
@@ -143,7 +145,20 @@ String IdToDni(Integer which) {
   return pid;
     
 }
+  
+String IdToLabel(Integer which) {
     
+  def String label = device.getLabel()
+    
+  if (label == null)
+    label = device.getName()
+    
+  String pid = label.concat(" - ") + String.valueOf(which)
+
+  return pid;
+    
+}
+
 def initialize() {
     
     if (debug) log.debug "in initialize"
@@ -152,7 +167,7 @@ def initialize() {
 	state.LastCode = 0
 	state.EmailBody = ""
     state.lastCommand = "quit"
-    def version = "4.0"
+    def version = "4.1"
        
     log.debug "-------> In lgk sendmail Version ($version)"
       
@@ -238,7 +253,8 @@ def initialize() {
            def String dni = IdToDni(childNum);
            def childName = "LGK Sendmail V3 Child - " + childNum.toString()
            def long ctime = now()
-      
+           def String childLabel = IdToLabel(childNum)
+        
             messageStatus.add([childNum,"","Complete",ctime,1])
              
            //  log.debug "after add size = ${messageStatus.size()}"
@@ -257,7 +273,7 @@ def initialize() {
              // test
            
             log.debug "Creating child: $childName"     
-            child = addChildDevice("LGK Sendmail V3 Child", dni, [name: childName, isComponent: false]);
+            child = addChildDevice("LGK Sendmail V3 Child", dni, [name: childName, label: childLabel, isComponent: true]);
     }
  
     }
@@ -540,7 +556,7 @@ def deviceNotification(String message)
      if (debug) log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
       if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
        {  
-          def version = "4.0"
+          def version = "4.1"
           def Boolean goOn = true
           state.messageSent = false  
           sendEvent(name: "telnet", value: "Ok")
