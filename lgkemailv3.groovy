@@ -60,13 +60,13 @@
 * v 4. add optional ehlo for servers that require it. Also need to handle the additional processing of EHLO informational messages coming back.
 * v 4.01 bug gound with two typos with misspelling of lastCommand. Fix brought to light corresponding missing 250 checks.
 * v 4 remove quit and close telnet coming out just for desc logging. Remove extaneous character at end of strings.
-
+*
 * Total rewrite here to scale much better for concurrenty!
 * I create child devices (default is 5) but if you want more it is configurable.. Each child runs all its own data and can run totally concurrent with each other.
-
+*
 * Prior with the queuing it still sometimes would loose a message if two came in at exactly the right time. Even protected with semaphores the state variables could step on each other.
 * This should never happend now. This also should scale really well say if you want to be able to send 50 concurrent messages very quickly you should be able to do that.
-
+*
 * There is also a new command called testConcurrancy which will start up a test email in each of your child simultaneously.
 *       also, implemented the Send message as a call to deviceNotification
 * new parent.. instead of queing.. create 5 child devices and an array/map of them and current message being processed and status.
@@ -74,14 +74,17 @@
 * clean up any that havent finished (ie mark free) in the given time out... default 2 minutes.
 *
 * Not released to hubitat package manager yet but put out there in my git hub.. you will need to install both LGK SendMail V3 and SendMailV3 child.
-
-
+*
+*
 * 4.1 slight change to make children components of the parent so that only way to delete is through parent because if you deleted child directly it would screw up the app when it tries to pass
 * a message to it. Also calculated friendly child name based on parent name.
 * 4.2 added range to protect concurrent children.. added failure sensing for initial connect. added code to provide version to children.
-
+*
+*
 * 4.3 ignore looking at status of completed when going through elements.
-
+* V 4.5 add configurable timeout and retries . 
+* here and remove queuing and retry from the child process. add mutex and sempaphores around state variables in this driver function.
+* remove mutex in child function.. Leave semaphore around lastCommand for now, although not sure it is needed.
 */
 
 attribute "lastCommand", "string"
@@ -92,8 +95,11 @@ import java.util.concurrent.TimeUnit
 import groovy.transform.Field
 
 @Field static java.util.concurrent.Semaphore mutex = new java.util.concurrent.Semaphore(1)
+@Field static java.util.concurrent.Semaphore status_mutex = new java.util.concurrent.Semaphore(1)
+@Field static java.util.concurrent.Semaphore messageStateMutex = new java.util.concurrent.Semaphore(1)
+
 @Field static java.util.ArrayList<Map<Integer,String,String,Long,Integer>> messageStatus = new ArrayList<Map<Integer,String,String,Long,Integer>>();
-//List<Map<Integer,String,String,Integer>> maps = new ArrayList<Map<Integer,String,String,Integer>>()
+// Childnum,message,status,start time, attempts
 
 preferences {
 	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
@@ -108,7 +114,9 @@ preferences {
     input("RequiresEHLO", "bool", title: "Does the server require the EHLO command instead of the std HELO?", required: false, defaultValue: false)
     input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
     input("Password", "password", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
-    input("ConcurrentChildren", "number", title: "How many concurrent messages should we allow at once (NOTE: This many child devices will be created)?", range: "1..50", defaultValue: 5, required: true)
+    input("ConcurrentChildren", "number", title: "How many concurrent messages should we allow at once (NOTE: This many child devices will be created. (Range 1 - 50, Default 5))?", range: "1..50", defaultValue: 5, required: true)
+    input("FailureTimeout", "number", title: "How many seconds to wait before determining if a message send has failed. (Range 20 - 300, Default 120)?", range: "20..300", defaultValue: 120, required: true)
+    input("RetryCount", "number", title: "How many time to attempt to send a message before giving up and reporting failue. (Range 1 - 20, Default 3)?", range: "1..20", defaultValue: 3, required: true)
 }
 
 metadata {
@@ -137,7 +145,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.3"
+    return "4.5"
 }
 
 def logsOff()
@@ -170,21 +178,32 @@ String IdToLabel(Integer which) {
 def initialize() {
     
     if (debug) log.debug "in initialize"
+   
+    // set both to only 1
+    mutex.drainPermits()
+    status_mutex.drainPermits()
     
-    state.lastMsg = ""
-	state.LastCode = 0
-	state.EmailBody = ""
-    state.lastCommand = "quit"
+    mutex.release()
+    status_mutex.release()
+     
+    
+    synchronized (messageStateMutex) { 
+       state.lastMsg = ""
+	   state.LastCode = 0
+	   state.EmailBody = ""
+       state.lastCommand = "quit"
+    }
     def version = getVersion()
        
-    log.debug "-------> In lgk sendmail Version ($version)"
+    log.info "-------> In lgk sendmail Version ($version)"
       
     def long lasttime = now()
-    mutex.release()
+      
+    synchronized (messageStateMutex) { 
+       if (state.messageStatus)
+         messageStatus = state.messageStatus
+    }
     
-    if (state.messageStatus)
-    messageStatus = state.messageStatus
- 
    if (debug) log.debug "hostname = $myHostName"
     
     if (myHostName == " ")
@@ -206,6 +225,10 @@ def initialize() {
    if (descLog) log.info "Descriptive Text logging is on."
    else log.info "Description Text logging if off."
     
+ 
+   log.info "Failure Timeout: $FailureTimeout"
+   log.info "Retry Count: $RetryCount"
+  
    if (debug)
     {
         log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
@@ -227,14 +250,13 @@ def initialize() {
     // clean up children if necessary
     if ((currentChildren > 0) && (currentChildren != ConcurrentChildren))
     {
-        log.debug "$currentChildren != Requested: $ConcurrentChildren so cleaning up/deleting and re-creating!"
+        log.info "$currentChildren != Requested: ($ConcurrentChildren) so cleaning up/deleting and re-creating!"
         childenGarbageCollect()
     }
     
     else
     {
-        log.debug "Current children match requested at $currentChildren ... no changes made!"
-
+        log.info "Current children match requested at $currentChildren ... no changes made!"
     }
     
      // recheck numbeer to make sure cleanup worked
@@ -249,11 +271,13 @@ def initialize() {
         if (messageStatus)
          {
            // log.debug "message size = $messageStatus.size()"
-            messageStatus.clear()
-            state.messageStatus = messageStatus
+           synchronized (messageStateMutex) { 
+             messageStatus.clear()
+             state.messageStatus = messageStatus
+           }
          }
           
-        log.debug "Creating $ConcurrentChildren Child device handlers!"
+        log.info "Creating $ConcurrentChildren Child device handlers!"
     
         for (int childNum = 1; childNum <= ConcurrentChildren ; childNum++)
          {
@@ -269,7 +293,7 @@ def initialize() {
              
              def ArrayList element = messageStatus.get(childNum-1)
              // now get element 
-             log.debug "element $childNum retrieved = $element"
+             if (debug) log.debug "element $childNum retrieved = $element"
            
              def int index = element.get(0)
              def String message = element.get(1)
@@ -277,10 +301,10 @@ def initialize() {
              ctime = element.get(3)
              def int tries = element.get(4)
             
-             log.debug "index = $index, message = $message, status = $status time = $ctime, tries = $tries"
+             if (debug) log.debug "index = $index, message = $message, status = $status time = $ctime, tries = $tries"
              // test
            
-            log.debug "Creating child: $childName"     
+            log.info "Creating child: $childName"     
             child = addChildDevice("LGK Sendmail V3 Child", dni, [name: childName, label: childLabel, isComponent: true]);
     }
  
@@ -288,11 +312,10 @@ def initialize() {
    
        // restore array
     if (Debug) log.debug "Before commit message status = $messageStatus"
-    
-     state.messageStatus = messageStatus
- 
+      synchronized (messageStateMutex) { 
+         state.messageStatus = messageStatus
+      }
 }
-
 
  int findFirstFreeElement()
 {  
@@ -327,17 +350,15 @@ def initialize() {
  
 }
     
-void checkArrayForTimedoutMessages(long numSecs)
+void checkArrayForTimedoutMessages()
 {
-    if (debug) "Checking message array for timed out messages: timeout = $numSecs !"
- 
-
+     def long numSecs = FailureTimeout
      def num = messageStatus.size()
-   // log.debug "num = $num"
+    // log.debug "num = $num"
     
-    
+     if (debug || descLog) log.debug "Checking message array for timed out messages: timeout = $numSecs !"
     // loop through
-   
+           
     if (messageStatus && num > 0)
     {
       if (debug) log.debug "Looping through all $num elements in the array so see if any timed out"
@@ -353,6 +374,8 @@ void checkArrayForTimedoutMessages(long numSecs)
             
          def long startTime = element2.get(3)
          def status = element2.get(2)
+         def theMessage = element2.get(1)
+         def attempts = element2.get(4)
         
          // ignore rest if status is completed
          if (status != 'Completed')
@@ -360,18 +383,34 @@ void checkArrayForTimedoutMessages(long numSecs)
              def long diff = ctime - startTime
             
              def int seconds = (diff / 1000.0) 
-             if (debug) log.debug "ctime = $ctime start time = $startTime, status = $status, diff in secs = $seconds"
-             if ((status == 'Failed') || ((seconds > numSecs) && (status == "In Process")))
+                
+             if (debug) log.debug "ctime = $ctime start time = $startTime, status = $status, diff in secs = $seconds, attempts = $attempts, RetryCount = $RetryCount"
+             if ((status == "Failed") || ((seconds > numSecs) && (status == "In Process")))
               {
-                log.error "Element $element2 has timed out at $seconds seconds/or Failed!"
-                log.debug "Resetting Status"
-                reinitElement(ctr+1,"Reinitialized")
-                resetChild(ctr+1)
+               
+                if (attempts >= RetryCount)
+                  {
+                     log.error "Element $element2 has timed/failed out at $seconds seconds. $RetryCount attempts exhausted. Givining up and Resetting!" 
+                     reinitElement(ctr+1,"Reinitialized",true)
+                      
+                     resetChild(ctr+1) 
+                  }
+                else
+                {
+                   log.warn "Element $element2 has timed/failed out at $seconds seconds. Current number of attempts: $attempts, Incrementing waiting and trying again.!" 
+                   reinitElement(ctr+1,"Reinitialized")
+                   resetChild(ctr+1) 
+                   incrementTries(ctr+1) 
+                   deviceNotification(theMessage,ctr)
+                }
+                               
               }
             }
         }
         }
     }
+     
+ 
 }
      
 void resetChild(int index)
@@ -384,20 +423,20 @@ void resetChild(int index)
               theChild.cleanUp()    
 }
     
-    void incrementTries(int index)
+void incrementTries(int index)
 {
  if (index < 1)
     log.error "Incorrect index value pased to incrementTries!"
  else
  {
-
+  //  if (debug) log.debug "in increment Tries!"
     def ArrayList element = messageStatus.get(index-1)
-  
+     
     // now get element 
     if (debug) log.debug "element retrieved = $element"
     def int currentTries = element.get(4)
-     log.debug "current tries = $currentTries"
-     // change status
+    if (debug) log.debug "current tries = $currentTries"
+
     element.set(4,++currentTries)
     messageStatus.set(index-1,element)
     
@@ -407,7 +446,7 @@ void resetChild(int index)
          log.debug "element after change = $newelement"  
      }      
  }
-      state.messageStatus = messageStatus
+    synchronized (messageStateMutex) {  state.messageStatus = messageStatus }
 }
 
 void updateStatus(int index, String newStatus)
@@ -417,35 +456,48 @@ void updateStatus(int index, String newStatus)
     if (index < 1)
     log.error "Incorrect index value pased to updateStatus!"
  else
- {
-
-    def ArrayList element = messageStatus.get(index-1)
-  
-    // now get element 
-    if (debug) log.debug "element retrieved = $element"
-    
-   // change status
-    // get email for log
-    def String sentMsg = element.get(1)
-    element.set(2,newStatus)
-    messageStatus.set(index-1,element)
-    if (newStatus == "Completed") log.info "Sent Message via child($index): $sentMsg" 
- 
-    checkArrayForTimedoutMessages(120)
+ {   
+      def Integer waitTime = 30000
+    // linearize this code with a mutex.
      
- }
-      state.messageStatus = messageStatus
+     if (debug) log.debug "number of status mutex permits - ${status_mutex.availablePermits()}"
+
+     if (status_mutex.tryAcquire(1,waitTime,TimeUnit.MILLISECONDS))
+       {    
+          def ArrayList element = messageStatus.get(index-1)
+  
+          // now get element 
+          // if (debug) log.debug "element retrieved = $element"
+           if (debug) log.debug "-->acquired status lock locks now avail = ${status_mutex.availablePermits()}"
+         // change status
+   
+         def String sentMsg = element.get(1)
+         element.set(2,newStatus)
+         messageStatus.set(index-1,element)
+         if (newStatus == "Completed") log.info "Sent Message via child($index): $sentMsg" 
+         // checkArrayForTimedoutMessages()  
+           synchronized (messageStateMutex) { state.messageStatus = messageStatus }
+       } 
+     else
+     {
+        log.error "Lock Acquire failed in updateStatus ... Aborting!"
+        status_mutex.release()
+        unschedule()
+        exit
+    }
+    
+     status_mutex.release(1)
+    if (debug) log.debug "--> after lock release status permits now avail = ${status_mutex.availablePermits()}"
+}
 }
 
-
-void reinitElement(int index, String newStatus)
+void reinitElement(int index, String newStatus,boolean resetCounter = false)
 {
     
     if (index < 1)
     log.error "Incorrect index value pased to reinitElement!"
  else
  {
-
     def ArrayList element = messageStatus.get(index-1)
   
     // now get element 
@@ -455,15 +507,14 @@ void reinitElement(int index, String newStatus)
     // get email for log
     def String sentMsg = element.get(1)
     element.set(2,newStatus)
+    if (resetCounter) element.set(4,1)
     messageStatus.set(index-1,element)
      
  }
-      state.messageStatus = messageStatus
+    synchronized (messageStateMutex) { state.messageStatus = messageStatus }
 }
 
-
-
-void updateForProcessingStart(int index, String Message, long startTime)
+void updateForProcessingStart(int index, String Message, long startTime,boolean initialstart = true)
 {
  if (index < 0)
     log.error "Incorrect index value pased to UpdateForProcessingStart!"
@@ -480,7 +531,8 @@ void updateForProcessingStart(int index, String Message, long startTime)
     element.set(1,Message)
     element.set(2,"In Process")
     element.set(3,startTime)
-    element.set(4,1)
+    // only set attempt count to 1 on initial start not retry
+    if (initialstart) element.set(4,1)
     messageStatus.set(index-1,element)
     
  }
@@ -554,7 +606,7 @@ private void childenGarbageCollect()
      if (childlist) childlist.each
         {
          String dni = it.getDeviceNetworkId();
-         if(debug) log.debug "Deleting device name = $it , id = $dni"
+         if(debug) log.debug "Deleting device name = ($it) , id = ($dni)"
             
          deleteChildDevice(dni);
         }
@@ -565,22 +617,23 @@ def sendMsg(String message)
     deviceNotification(message)
 }
 
-def deviceNotification(String message)
+def deviceNotification(String message, int index = -1)
 {
     mutex.release()
+      
+    synchronized (messageStateMutex) { 
+      if (state.messageStatus)
+        messageStatus = state.messageStatus
+    }
     
-    if (state.messageStatus)
-    messageStatus = state.messageStatus
- 
      def Integer waitTime = 30000
     // linearize this code with a mutex.
      
-     if (debug) log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
       if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
        {  
           def version = getVersion()
           def Boolean goOn = true
-          state.messageSent = false  
+          synchronized (messageStateMutex) {  state.messageSent = false }  
           sendEvent(name: "telnet", value: "Ok")
          
           if (debug) log.debug "-------> In lgk sendmail Version ($version)"
@@ -591,11 +644,22 @@ def deviceNotification(String message)
      	         log.debug "Got mutex"
              }
            
-         // find free child for processing
-         def freeChild = findFirstFreeElement()
-         if (freeChild != -1)
+         // find free child for processing, unless we pass it in.. for retry           
+         def freeChild
+           
+          if (index == -1)
            {
-               if (debug) log.debug "Got free child: $freeChild for processing!"
+             freeChild = findFirstFreeElement()
+           }
+          else 
+           {
+               freeChild = index
+               if (debug) log.debug "Chlid Index/number passed in for retry: $index, overriding!"
+           }
+           
+          if (freeChild != -1)
+           {
+               if (debug) log.debug "Got free child: ${freeChild+1} for processing!"
                
               // now call the child to process it..
               def String dni = IdToDni(freeChild+1);
@@ -606,41 +670,48 @@ def deviceNotification(String message)
               if (debug) log.debug "got the child now calling function to send the mail now = $time1"
            
                //put stuff in array here with time 
-               updateForProcessingStart(freeChild+1, message, time1)
-               
+               // only set count on initial start not retry as determine by index flag
+               if (index == -1) updateForProcessingStart(freeChild+1, message, time1)
+                 else  updateForProcessingStart(freeChild+1, message, time1,false)              
+           
               theChild.sendMessage(message)
-              def long time2 = now()
+           
+               // schedule a wake up to check the status at timeout time +1 sec
+              if (debug) log.debug "Scheduling wakeup job to run in $FailureTimeout seconds."
+              runIn(FailureTimeout+1,"checkArrayForTimedoutMessages", [overwrite: false]) 
+                      
            }
           else 
           {
               log.error "No Free Child found for processing ... calling timeout/clieanup function!"
           }
-            
-           checkArrayForTimedoutMessages(120)
-           mutex.release()   
+         
+
            doProcess = true
          }
      
      else
      {
-        log.error "Lock Acquire failed ... Aborting!"
+        log.error "Lock Acquire failed in deviceNotification ... Aborting!"
         mutex.release()
         unschedule()
         exit
     }
      
-    state.messageStatus = messageStatus
+    synchronized (messageStateMutex) { state.messageStatus = messageStatus }
     mutex.release()   
- 
+    checkArrayForTimedoutMessages()
 }  
 
 void testConcurrency()
 {
     log.debug "Testing Concurrency"
   
-    if (state.messageStatus)
-    messageStatus = state.messageStatus
- 
+     synchronized (messageStateMutex) { 
+         if (state.messageStatus)
+           messageStatus = state.messageStatus
+     }
+    
     def numChildren = messageStatus.size()
     
     log.debug "Your currently have $numChildren child devices so we will test that many concurrent send Messages!"
@@ -651,7 +722,7 @@ void testConcurrency()
         log.debug "Starting up Child $i!"
         deviceNotification(MessageText)
     }
-    state.messageStatus = messageStatus 
+    synchronized (messageStateMutex) { state.messageStatus = messageStatus }
     
 }
     
