@@ -116,7 +116,7 @@ preferences {
     input("Password", "password", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
     input("ConcurrentChildren", "number", title: "How many concurrent messages should we allow at once (NOTE: This many child devices will be created. (Range 1 - 50, Default 5))?", range: "1..50", defaultValue: 5, required: true)
     input("FailureTimeout", "number", title: "How many seconds to wait before determining if a message send has failed. (Range 20 - 300, Default 120)?", range: "20..300", defaultValue: 120, required: true)
-    input("RetryCount", "number", title: "How many time to attempt to send a message before giving up and reporting failue. (Range 1 - 20, Default 3)?", range: "1..20", defaultValue: 3, required: true)
+    input("RetryCount", "number", title: "How many times to attempt to send a message before giving up and reporting failue. (Range 1 - 20, Default 3)?", range: "1..20", defaultValue: 3, required: true)
 }
 
 metadata {
