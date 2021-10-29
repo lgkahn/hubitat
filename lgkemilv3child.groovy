@@ -1,6 +1,6 @@
 /**
 *   simple sendmail  .. lg kahn kahn@lgk.com
-*  child sendmail device v1
+*  child sendmail device 
 */
 
 attribute "lastCommand", "string"
@@ -9,26 +9,11 @@ attribute "myHostName", "string"
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import groovy.transform.Field    
-import java.util.concurrent.ConcurrentLinkedQueue
 
-@Field static java.util.concurrent.Semaphore mutex = new java.util.concurrent.Semaphore(1)
 @Field static java.util.concurrent.Semaphore lastStateMutex = new java.util.concurrent.Semaphore(1)
 
-@Field static lqueue = new java.util.concurrent.ConcurrentLinkedQueue()
-
 preferences {
-//	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
-	//input("EmailPort", "integer", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
-//	input("From", "text", title: "From:", description: "", required: true)
- //	input("To", "text", title: "To:", description: "", required: true)
-//	input("Subject", "text", title: "Subject:", description: "")
- //   input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", required: false)
- //   input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-  //  input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
-  //  input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
-  //  input("RequiresEHLO", "bool", title: "Does the server require the EHLO command instead of the std HELO?", required: false, defaultValue: false)
-  //  input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
- //  input("Password", "password", title: "Password for Authentication - (base64 encoded)?", required: false, defaultValue: "")
+
 }
 
 metadata {
@@ -39,7 +24,8 @@ metadata {
 //	capability "Configuration"
         
         
-    command "sendMessage", ["String"]
+    //command "sendMessage", ["String"]
+    //command "forceFailure" // used for testing
     }
 }
 
@@ -62,6 +48,15 @@ def logsOff()
     device.updateSetting("debug",[value:"false",type:"bool"])
 }
 
+def forceFailure()
+{
+    
+    // used for testing for a bad state
+            synchronized (lastStateMutex) { state.lastCommand = "Failed" }
+               sendEvent(name: "lastCommand", value: "Failed")  
+    
+}
+    
 def initialize() {
 
     state.debug = false
@@ -76,7 +71,6 @@ def initialize() {
     state.descLog = parent.getDescLog()  
     if (state.debug) log.debug "in child initialize"
     
-    mutex.release()
     if (state.debug) 
     { 
         log.debug "parent debug = ${parent.getDebug()}"
@@ -101,98 +95,19 @@ def initialize() {
         sendEvent(name: "myHostName", value: myHostName) 
     }
     
-   if (state.descLog)  log.info "Descriptive Text logging is on."
-   else log.info "Description Text logging if off."
+    if (state.debug || state.descLog)
+    {
+      if (state.descLog)  log.info "Descriptive Text logging is on."
+        else log.info "Description Text logging if off."
+    }
     
    if (state.debug) 
     {
         log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
         runIn(1800,logsOff)
     }
-   else log.info "Debug logging is off."
+   else if (state.debug) log.info "Debug logging is off."
    
-}
-
-def restartFromRunIn()
-{  
-    processQueue(true)
-}
-
-def processQueue(Boolean fromRunIn = false)
-{
-    def Integer waitTime = 30000
-    def Boolean doprocess  = false
-    def String msg = []
-    
-       if (state.debug)  log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
-      if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
-       {  
-        def isempty = lqueue.isEmpty()
-         if (state.debug)  log.debug "in process queue current empty = $isempty"
-
-        if (!isempty)
-         {
-         if (state.debug) 
-             {
-                 log.debug "Getting item to process"
-     	         log.debug "Got mutex"
-             }
-             
-           msg = lqueue.poll()
-            if (state.debug)  log.debug "Got item $msg to process."
-           mutex.release()   
-           doProcess = true
-         }
-       else
-           {
-               // queue is empty so reset state just in case
-               synchronized (lastStateMutex) { state.lastCommand = "Sent Ok" }
-               sendEvent(name: "lastCommand", value: "Sent Ok")  
-           }
-       }        
-   
-    else
-    {
-        log.debug "Lock Acquire failed ... Aborting!"
-        mutex.release()
-        unschedule()
-        exit
-    }
-    
-    mutex.release()  
-    if (doProcess) deviceNotification(msg,fromRunIn) 
-    
-     if (state.debug) log.debug "after run queue = $lqueue"
-}     
-
-def addToQueue(String message)
-
-{
-     if (state.debug) 
-    {
-        log.debug "in add to queue current queue = $lqueue"
-        log.debug("Acquiring semaphore.")
-    }
-    
-    def Integer  waitTime = 30000
-    
-    if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
-    {    
-        
-       def isempty = lqueue.isEmpty()
-       if (state.debug) log.debug "in process queue current empty = $empty"
-       lqueue.add(message)
-    }
-    else
-    {
-        log.debug "Lock Acquire failed ... Aborting"
-        mutex.release()
-        unschedule()
-        exit
-    }
-    
-    mutex.release()
-     if (state.debug)  log.debug "after queue = $lqueue"
 }
 
 int DnitoID()
@@ -229,7 +144,8 @@ def cleanUp()
                 synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
                 initialize()
 }
-def resetWithoutRequeue()
+
+def resetData()
 {
                 unschedule()
                 sendEvent(name: "lastCommand", value: "Force Closed")
@@ -248,7 +164,7 @@ def resetWithoutRequeue()
                  }
 } 
 
-def deviceNotification(String message, Boolean fromRunIn = false) {
+def deviceNotification(String message) {
 
 def version = parent.getVersion()
 def Boolean goOn = true
@@ -271,57 +187,14 @@ synchronized (lastStateMutex)
     
     if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")))   
       { 
-          if (fromRunIn == true)
-            {  
-                
-                def Integer addAmount = Math.floor((Math.random() * 60) + 1)
-                def Integer waitTime = 10 + addAmount
-                    
-                // lgk dont re-add to queue as it will try this forever.
-                log.debug "2nd attempt to run failed after sleeping... Clearing scheduling, resetting states and aborting!"
-                unschedule()
-                sendEvent(name: "lastCommand", value: "Force Closed")
-                addToQueue(message)
-                synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
-                goOn = false
-                
-                //uppdate status of parent.
-                def int intId =  DnitoID()
-                if (state.debug) log.debug "My internal id = $intId"
-                parent.updateStatus(intId,"Failed")
-                
-                // if debuging on redo the job to turn off
-                if (state.debug) 
-                 {
-                  log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
-                  runIn(1800,logsOff)
-                 }
-                     
-             runIn(waitTime,"restartFromRunIn", [overwrite: false])   
-            }
-          
-         else
-              {
-                goOn = false
-                  
-                 // lgk hubitat slower starting up with connections and multi mails are pilling up.
-                 // so to avoid make wait time a random number added to 30 seconds
-    
-                def Integer addAmount = Math.floor((Math.random() * 60) + 1)
-                def Integer waitTime = 30 + addAmount
-          
-                  
-                  if (state.debug || state.descLog) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
-                  addToQueue(message)
-  
-                // now reschedule this queue item.
-                runIn(waitTime,"restartFromRunIn", [overwrite: false]) 
-              }
-         }
-
+           log.info "Existing state ($oldState) is incorrect for processing. Resetting and aborting!"
+           resetData() 
+           goOn = false
+      }
+       
        if (goOn)
         { 
-             if (state.debug)  log.debug "Found ok initial state ($oldState) ... going on!"
+           if (state.debug)  log.debug "Found ok initial state ($oldState) ... going on!"
             
            synchronized (lastStateMutex) { state.lastCommand = "initialConnect"
                                            sendEvent(name: "lastCommand", value: "initialConnect")
@@ -342,7 +215,7 @@ synchronized (lastStateMutex)
                   
                 } catch(e) {
                        log.error "Connect failed. Either your internet is down or check the ip address of your Server:Port: $EmailServer:$EmailPort !"
-                       resetWithoutRequeue() 
+                       resetData() 
               }
         }
 }
@@ -543,7 +416,7 @@ def parse(String msg) {
           if (state.debug)  log.debug "In send message case"
              if ((response == "220") || (response == "250"))
                  {
-                      if (state.debug)  log.info "sending quit"
+                     if (state.debug)  log.info "sending quit"
                      synchronized (lastStateMutex) { state.lastCommand = "quit" } 
                      sendEvent(name: "lastCommand", value: "quit")     
                      def res1 = sendData("quit",500)
@@ -565,7 +438,6 @@ def parse(String msg) {
                       sendEvent(name: "lastCommand", value: "Sent Ok")  
                      }
                    closeConnection()
-                   processQueue()
                  }
                  else
                  {
