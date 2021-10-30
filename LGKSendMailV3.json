@@ -2,7 +2,7 @@
   "packageName": "Send Mail totaly implemented in hubitat no server needed",
   "author": "Larry Kahn",
   "version": "4.5",
-  "minimumHEVersion": "4.5",
+  "minimumHEVersion": "2.2.2",
   "dateReleased": "2020-10-19",
   "drivers": [
     {
