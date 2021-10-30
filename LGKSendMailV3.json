@@ -1,0 +1,23 @@
+{
+  "packageName": "Send Mail totaly implemented in hubitat no server needed",
+  "author": "Larry Kahn",
+  "version": "4.5",
+  "minimumHEVersion": "4.5",
+  "dateReleased": "2020-10-19",
+  "drivers": [
+    {
+      "id": "e99532ef-5822-4928-a326-71ff8ac01cab",
+      "name": "LGK Sendmail V3",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/lgkemailv3.groovy",
+      "required": true
+    },
+    {
+      "id": "4865d52f-82d1-4418-bcfa-cc4823ef5620",
+      "name": "LGK Sendmail V3 Child",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/lgkemilv3child.groovy",
+      "required": true
+    }
+  ]
+}
