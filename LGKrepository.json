@@ -173,7 +173,7 @@
       "id": "305a4180-c9e0-4951-bf40-fc9a7be8caf6",
       "name": "Hubitat Native SendMail implementation",
       "category": "Notifications",
-      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKSendMailV2.json",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/LGKSendMailV3.json",
       "description": "Sendmail implemented natively in Hubitat, with or without authentication, uses internal telnet",
       "tags": [
         "Tools & Utilities",
