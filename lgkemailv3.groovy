@@ -85,6 +85,7 @@
 * V 4.5 add configurable timeout and retries . 
 * here and remove queuing and retry from the child process. add mutex and sempaphores around state variables in this driver function.
 * remove mutex in child function.. Leave semaphore around lastCommand for now, although not sure it is needed.
+* 4.51 fix bug with authentication and requires ehlo passed to child. (typos)
 */
 
 attribute "lastCommand", "string"
@@ -145,7 +146,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.5"
+    return "4.51"
 }
 
 def logsOff()
@@ -223,7 +224,7 @@ def initialize() {
     }
     
    if (descLog) log.info "Descriptive Text logging is on."
-   else log.info "Description Text logging if off."
+   else log.info "Description Text logging is off."
     
  
    log.info "Failure Timeout: $FailureTimeout"
@@ -553,7 +554,7 @@ Boolean getAuthenticate()
     return Authenticate
 }
 
-Boolean getRequiresEJLO()
+Boolean getRequiresEHLO()
 {
     return RequiresEHLO
 }
