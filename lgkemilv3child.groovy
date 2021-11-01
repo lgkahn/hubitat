@@ -98,7 +98,7 @@ def initialize() {
     if (state.debug || state.descLog)
     {
       if (state.descLog)  log.info "Descriptive Text logging is on."
-        else log.info "Description Text logging if off."
+        else log.info "Description Text logging is off."
     }
     
    if (state.debug) 
@@ -235,6 +235,7 @@ def parse(String msg) {
    def lastCommand
    def String Username = parent.getUsername()
    def String Password = parent.getPassword()
+   def boolean Authenticate = parent.getAuthenticate()
     
     synchronized (lastStateMutex) { lastCommand = state.lastCommand }
     
@@ -263,7 +264,7 @@ def parse(String msg) {
              if (response == "220")
                  { 
                      sendEvent([name: "telnet", value: "Ok"])
-                     if (RequiresEHLO)
+                     if (parent.getRequiresEHLO())
                      {
                         if (state.debug) log.debug "Using EHLO instead of HELO!"
                         synchronized (lastStateMutex) { state.lastCommand = "ehlo" }
