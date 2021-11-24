@@ -353,8 +353,8 @@ private String dniUpdate() {
 }
 
 // Conversion -----------------------------------------------------------------------------------------------------------------
-
-private String timeUtcToLocal(String time) {
+/*
+private String timeUtcToLocalOlf(String time) {
   //
   // Convert a UTC date and time in the format "yyyy-MM-dd+HH:mm:ss" to a local time with locale format
   //
@@ -375,7 +375,7 @@ private String timeUtcToLocal(String time) {
 
   return (time);
 }
-
+*/
 // Logging --------------------------------------------------------------------------------------------------------------------
 
 void logDebugOff() {
@@ -677,6 +677,7 @@ private Boolean attributeUpdateString(String val, String attribute) {
   // Only update "attribute" if different
   // Return true if "attribute" has actually been updated/created
   //
+   // log.debug "in attributeupdatestring attr = $attribute value = $val"
   if ((device.currentValue(attribute) as String) != val) {
     sendEvent(name: attribute, value: val);
     return (true);
@@ -870,9 +871,10 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "endofdata":
       // Special key to notify all drivers (parent and children) of end-od-data status
       updated = sensor(it.key, it.value);
-
+     
       // Last thing we do on the driver
-      if (attributeUpdateString(it.value, "time")) updated = true;
+      if (attributeUpdateString(it.value, "time"))
+            updated = true;
       break;
 
     default:
@@ -1019,8 +1021,11 @@ void parse(String msg) {
     // for it to be calculated properly, in "data", "pm10_24h_co2", if present, must come after "pm25_24h_co2"
 
     // Inject a special key (at the end of the data map) to notify all the driver of end-of-data status. Value is local time
-    data["endofdata"] = timeUtcToLocal(data["dateutc"]);
-    data.remove("dateutc");
+      
+     def now = new Date().format('MM/dd/yy h:mm a',location.timeZone)
+     data["endofdata"] = now
+   // data["endofdata"] = timeUtcToLocal(data["dateutc"]);
+  //  data.remove("dateutc");
 
     logData(data);
 
