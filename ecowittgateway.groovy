@@ -102,7 +102,6 @@ metadata {
     attribute "rf", "string";                                  // Sensors radio frequency
     attribute "passkey", "string";                             // PASSKEY
 
-    attribute "time", "string";                                // Time last data was posted
     attribute "status", "string";                              // Display current driver status
     attribute "lastUpdate", "string";
   }
