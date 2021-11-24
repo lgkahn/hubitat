@@ -81,6 +81,7 @@
  *              above or below a certain threshold
  * 2021.02.04 - Added support for humidityAbs (absolute humidity) based on current relative humidity and temperature
  * 2021.02.06 - Fixed WH45 temperature and humidity signature
+* 2021.11-25 lgk change attribute from time to lastUpdate to avoid weird output on device page.. also remove timeUtcToLocalOlf function and improve way to query date/time.
  */
 
 public static String version() { return "v1.23.17"; }
@@ -354,29 +355,7 @@ private String dniUpdate() {
 }
 
 // Conversion -----------------------------------------------------------------------------------------------------------------
-/*
-private String timeUtcToLocalOlf(String time) {
-  //
-  // Convert a UTC date and time in the format "yyyy-MM-dd+HH:mm:ss" to a local time with locale format
-  //
-  try {
-    // Create a UTC formatter and parse the given time
-    java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd+HH:mm:ss");
-    format.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-    Date date = format.parse(time);
-
-    // Create a local/locale formatter and format the given time
-    format = new java.text.SimpleDateFormat();
-    time = format.format(date);
-  }
-  catch (Exception e) {
-    logError("Exception in timeUtcToLocal(): ${e}");
-  }
-
-  return (time);
-}
-*/
 // Logging --------------------------------------------------------------------------------------------------------------------
 
 void logDebugOff() {
@@ -874,12 +853,7 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value);
      
       // Last thing we do on the driver
-      if (attributeUpdateString(it.value, "lastUpdate"))
-        {
-           updated = true;
-        //  def now = new Date().format('MM/dd/yy h:mm a',location.timeZone)
-        //  sendEvent(name: "lastUpdate", value: now)
-        }    
+      if (attributeUpdateString(it.value, "lastUpdate")) updated = true;    
       break;
 
     default:
