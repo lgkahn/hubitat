@@ -103,6 +103,7 @@ metadata {
 
     attribute "time", "string";                                // Time last data was posted
     attribute "status", "string";                              // Display current driver status
+    attribute "lastUpdate", "string";
   }
 
   preferences {
@@ -873,8 +874,12 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value);
      
       // Last thing we do on the driver
-      if (attributeUpdateString(it.value, "time"))
-            updated = true;
+      if (attributeUpdateString(it.value, "lastUpdate"))
+        {
+           updated = true;
+        //  def now = new Date().format('MM/dd/yy h:mm a',location.timeZone)
+        //  sendEvent(name: "lastUpdate", value: now)
+        }    
       break;
 
     default:
@@ -954,11 +959,14 @@ void updated() {
     else resyncSensors();
 
     // Update driver version now and every Sunday @ 2am
-    versionUpdate();
-    schedule("0 0 2 ? * 1 *", versionUpdate);
+   // versionUpdate();
+   // schedule("0 0 2 ? * 1 *", versionUpdate);
 
     // Turn off debug log in 30 minutes
     if (logGetLevel() > 2) runIn(1800, logDebugOff);
+        
+    // lgk get rid of now unused time attribute
+     device.deleteCurrentState("time")   
   }
   catch (Exception e) {
     logError("Exception in updated(): ${e}");
