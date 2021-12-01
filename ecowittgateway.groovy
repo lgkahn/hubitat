@@ -993,7 +993,7 @@ void updated() {
       if ((ddnsupdatetime != null) && (ddnsupdatetime != 00))
           {
               def thesecs = ddnsupdatetime * 3600
-             logInfo("Rescheduling IP Address Check to run again $thesecs seconds.")
+             logInfo("Rescheduling IP Address Check to run again in $thesecs seconds.")
              runIn(thesecs, "DNSCheckCallback");
           }
           
