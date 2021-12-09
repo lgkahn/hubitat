@@ -26,7 +26,7 @@
  */
  
 metadata {
-	definition (name: "Homi/Heiman Gas Detector", namespace: "jrhbcn/ lgkahn", author: "jrhbcn/ lgkahn") {
+	definition (name: "Homi/Heiman Gas Detector", namespace: "lgkahn", author: "jrhbcn/lgkahn") {
 		
         capability "Configuration"
         capability "Smoke Detector"
@@ -41,7 +41,7 @@ metadata {
         attribute "lastUpdate", "string"
         attribute "gas", "string"   
       
-		fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0009", outClusters: "0019"
+	fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0009", outClusters: "0019"
     	fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0B05", outClusters: "0019"
         fingerprint profileID: "0104", deviceID: "12",   inClusters: "0000,0003,0500,0009", outClusters: "0003,0019"  
         fingerprint profileID: "0104", deviceID: "176",  inClusters: "0000,0003,0500,0B05", outClusters: "0019"
