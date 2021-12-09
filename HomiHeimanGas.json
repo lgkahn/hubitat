@@ -7,7 +7,7 @@
   "drivers": [
     {
       "id": "f27e6969-dbad-4118-a3ef-2d5081d3c8c0",
-      "name": "Heiman Gas Detector",
+      "name": "Homi/Heiman Gas Detector",
       "namespace": "lgkahn",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/homeygas.groovy",
       "required": true
