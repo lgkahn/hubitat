@@ -12,9 +12,12 @@
  *
 
  * lgk fix issue in porting where configure caused error, also add checkin clear and last status 12/21
-  also add gas as well as smoke attribute, and attributes for zonetype enrollment model etc.
-  also add multiple fingerprints.
-
+ * also add gas as well as smoke attribute, and attributes for zonetype enrollment model etc.
+ * also add multiple fingerprints.
+ *
+ * lgk v 3 
+ * add user defined checkin time. in seconds 120-86400 (1 day) cannot go less than 2 minutes/120 or it doesnt work.
+ * also add debuging 
  */
  
 metadata {
@@ -31,7 +34,8 @@ metadata {
         attribute "manufacture", "string"
         attribute "model", "string"
         attribute "lastUpdate", "string"
-        attribute "gas", "string"   
+        attribute "gas", "string"  
+        attribute "checkInTime", "number"
       
 		fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0009", outClusters: "0019"
     	fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0B05", outClusters: "0019"
@@ -39,16 +43,17 @@ metadata {
         fingerprint profileID: "0104", deviceID: "176",  inClusters: "0000,0003,0500,0B05", outClusters: "0019"
     }  
  
-	simulator {
- 
-	}
-
-	preferences {}
- 
+	
+   
+  preferences {
+    input(name: "checkInTime", type: "Integer", title: "Check in Time?", description: "Check in Every how many Seconds (range 120-86400 (1 day)) ?", range: "60-86400", defaultValue: 1800, required: true);
+    input(name: "debug", type: "bool", title: "Debugging ?", defaultValue: false, required: true)
+   
+  }
 }
  
 def parse(String description) {
-	log.debug "description: $description"
+	if (settings.debug) log.debug "description: $description"
     
     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
       sendEvent(name: "lastUpdate", value: now)  
@@ -99,14 +104,7 @@ private boolean shouldProcessMessage(cluster) {
 
  
 private Map parseReportAttributeMessage(String description) {
-    
-    /* old
-	Map descMap = (description - "read attr - ").split(",").inject([:]) { map, param ->
-		def nameAndValue = param.split(":")
-		map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
-	}
-	log.debug "Desc Map: $descMap"
-*/
+ 
     // lgk new
  
      descMap = zigbee.parseDescriptionAsMap(description)
@@ -123,32 +121,38 @@ private Map parseReportAttributeMessage(String description) {
         }
        else if ((descMap?.cluster == "0500" && descMap.attrInt == 0x0002) && ((descMap.value == '0030') || (descMap.value == '0020')))
         {  //Zone Status
-                log.debug "${device.displayName} is cleared"
+                log.debug "${device.displayName} is clear"
                 sendEvent(name: "smoke", value: "clear")
                 sendEvent(name: "gas", value: "clear")
         }
        else if (descMap?.cluster == "0000" && descMap.attrInt == 0x0004)
         {  //Manufacture
             log.debug "Manuf: ${descMap.value}"
-                sendEvent(name: "manufacture", value: descMap.value)
+            sendEvent(name: "manufacture", value: descMap.value)
         }
        else if (descMap?.cluster == "0000" && descMap.attrInt == 0x0005)
         {  //Model 
             log.debug "Model: ${descMap.value}"
-                sendEvent(name: "model", value: descMap.value)
+            sendEvent(name: "model", value: descMap.value)
         } 
- 
+      else if ((descMap?.cluster == "0502" && descMap.attrInt == 0x0000))
+        {  //Alarm Max Duration
+                def int alarmMinutes = Integer.parseInt(descMap.value,16) 
+                log.debug "Max Alarm Duration is ${alarmMinutes} seconds"   
+        }
+		
 }
 
 def refresh() {
     
-	log.debug "Refreshing..."
+	if (settings.debug) log.debug "Refreshing..."
 	def refreshCmds = []
     
     refreshCmds +=
 	zigbee.readAttribute(0x0500, 1) +	// IAS ZoneType
     zigbee.readAttribute(0x0500, 0) +	// IAS ZoneState
     zigbee.readAttribute(0x0500, 2) +	// IAS ZoneStatus
+   // zigbee.readAttribute(0x0502, 0x0000) +	   // Alarm Max Duration   // this doesnt work for this driver  
    // zigbee.readAttribute(0x0000, 7) +	// power source power is irrelevant always ac
    // zigbee.readAttribute(0x0009, 7) +	// not sure what this cluster do yet
     zigbee.readAttribute(0x0000, 4) +	// manufacture
@@ -169,7 +173,7 @@ private Map parseIasMessage(String description) {
             break
    
         case '0x0030': // Clear // 30 is checkin
-            log.debug "Checkin"
+            log.info "Checkin"
         	resultMap = getCheckInResult('clear')
             break
 
@@ -200,7 +204,9 @@ private Map parseIasMessage(String description) {
 }
 
 private Map getCheckInResult(value) {
-	log.debug 'Checkin/Status'
+    
+	if (settings.debug) log.debug 'Checkin/Status'
+    
 	def linkText = getLinkText(device)
 	def descriptionText = "${linkText} has checked In: $value"
     def gasmap =  [
@@ -219,7 +225,9 @@ private Map getCheckInResult(value) {
 }
 
 private Map getSmokeResult(value) {
-	log.debug 'Gas Status'
+	
+    if (settings.debug) log.debug 'Gas Status'
+    
 	def linkText = getLinkText(device)
 	def descriptionText = "${linkText} is $value"
     
@@ -239,44 +247,62 @@ private Map getSmokeResult(value) {
 	]
 }
 
-
-def refreshold() {		//read enrolled state and zone type from IAS cluster
-	[
-	    "st rattr 0x${device.deviceNetworkId} ${endpointId} 0x0500 0", "delay 500",
-        "st rattr 0x${device.deviceNetworkId} ${endpointId} 0x0500 1"
-	]
-    log.debug "refreshing"
-}	
-
 def updated()
 {
     configure()
 }
 
 def configure() {
-
-    //log.debug "zigbee id1 = $device.hub.zigbeeId zigbee 2 = $device.zigbeeId"
     
+      unschedule()
+      def String ctime = settings.checkInTime  
+      def Integer ctimeint = ctime.toInteger()     
+
+    if (ctimeint < 120)
+    {
+        log.debug "Reset checkIn/Reporting Time to 120"      
+        device.updateSetting("checkInTime", [type: "integer", value: 60]);
+        ctimeint = 120
+        ctime = ctimeint.toString()
+    }
+     
+    log.info "Check in time: $ctime secs."
+     
+    def debug = settings.debug 
+    if (debug)
+    log.debug "In Configure"
+    
+    if (debug)
+    {
+       log.info "Debugging is on , will automatically turn off in 30 minutes."
+       runIn(1800, logDebugOff);   
+    }
+    else log.info "Debugging is off."
+    
+
 	String zigbeeId = swapEndianHex(device.zigbeeId)
-	log.debug "Confuguring Reporting, IAS CIE, and Bindings."
+	if (debug) log.debug "Confuguring Reporting, IAS CIE, and Bindings."
+    
 	def configCmds = [
 		"zcl global write 0x500 0x10 0xf0 {${zigbeeId}}", "delay 200",
-		"send 0x${device.deviceNetworkId} 1 ${endpointId}", "delay 1500",
+		//"send 0x${device.deviceNetworkId} 1 ${endpointId}", "delay 1500", endpoint is only 1 so this is null and already set below
         
         "raw 0x500 {01 23 00 00 00}", "delay 200",
-        "send 0x${device.deviceNetworkId} 1 1", "delay 1500",
-        
+        "send 0x${device.deviceNetworkId} 1 1", "delay 1500",    
 	]
-    log.debug "configure: Write IAS CIE"
+
+    configCmds +=  zigbee.configureReporting(0x0500, 0x0002, 0x19, 0, ctimeint, 0x00) // try 2 min
+  
+   if (debug) log.debug "configure: Write IAS CIE -- $configCmds"
     
      // schedule refresh
     runIn(2,"refresh")
-          
+        
     return configCmds // send refresh cmds as part of config
 }
 
 def enrollResponse() {
-	log.debug "Sending enroll response"
+	if (settings.debug) log.debug "Sending enroll response"
     [	
     	
 	"raw 0x500 {01 23 00 00 00}", "delay 200",
@@ -305,3 +331,15 @@ private byte[] reverseArray(byte[] array) {
     }
     return array
 }
+
+void logDebugOff() {
+  //
+  // runIn() callback to disable "Debug" logging after 30 minutes
+  // Cannot be private
+  //
+  log.info "Turning off debugging."
+    
+  device.updateSetting("debug", [type: "bool", value: false]);
+}
+
+        
