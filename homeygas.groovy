@@ -35,7 +35,6 @@ metadata {
         attribute "model", "string"
         attribute "lastUpdate", "string"
         attribute "gas", "string"  
-        attribute "checkInTime", "number"
       
 		fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0009", outClusters: "0019"
     	fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0B05", outClusters: "0019"
