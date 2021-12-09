@@ -26,7 +26,7 @@
  */
  
 metadata {
-	definition (name: "Homi/Heiman Gas Detector", namespace: "lgkahn", author: "jrhbcn/lgkahn") {
+	definition (name: "Heiman Gas Detector", namespace: "lgkahn", author: "jrhbcn/lgkahn") {
 		
         capability "Configuration"
         capability "Smoke Detector"
