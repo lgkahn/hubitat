@@ -260,7 +260,7 @@ def configure() {
     if (ctimeint < 120)
     {
         log.debug "Reset checkIn/Reporting Time to 120"      
-        device.updateSetting("checkInTime", [type: "integer", value: 60]);
+        device.updateSetting("checkInTime", [type: "integer", value: 120]);
         ctimeint = 120
         ctime = ctimeint.toString()
     }
