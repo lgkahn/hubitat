@@ -164,10 +164,12 @@ private Map parseIasMessage(String description) {
     Map resultMap = [:]
     switch(msgCode) {
         case '0x0020': // Clear
+            log.debug "Alert: Gas Cleared!"
         	resultMap = getSmokeResult('clear')
             break
    
         case '0x0030': // Clear // 30 is checkin
+            log.debug "Checkin"
         	resultMap = getCheckInResult('clear')
             break
 
@@ -175,6 +177,7 @@ private Map parseIasMessage(String description) {
             break
         
         case '0x0022': // Smoke
+            log.debug "Alert: Gas Detected!"
         	resultMap = getSmokeResult('detected')
             break
 
