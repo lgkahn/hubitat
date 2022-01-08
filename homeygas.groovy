@@ -18,6 +18,9 @@
  * lgk v 3 
  * add user defined checkin time. in seconds 120-86400 (1 day) cannot go less than 2 minutes/120 or it doesnt work.
  * also add debuging 
+ * 
+ * ;gk b4 remove gas and change to naturalGas add capability gas detector.
+ *
  */
  
 metadata {
@@ -27,6 +30,7 @@ metadata {
         capability "Smoke Detector"
         capability "Sensor"
         capability "Refresh"
+        capability "Gas Detector"
         
         //command "enrollResponse"
         attribute "zoneType", "string"
@@ -34,7 +38,7 @@ metadata {
         attribute "manufacture", "string"
         attribute "model", "string"
         attribute "lastUpdate", "string"
-        attribute "gas", "string"  
+        //attribute "gas", "string"  
       
 		fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0009", outClusters: "0019"
     	fingerprint profileID: "0104", deviceID: "0402", inClusters: "0000,0003,0500,0B05", outClusters: "0019"
@@ -122,7 +126,7 @@ private Map parseReportAttributeMessage(String description) {
         {  //Zone Status
                 log.debug "${device.displayName} is clear"
                 sendEvent(name: "smoke", value: "clear")
-                sendEvent(name: "gas", value: "clear")
+                sendEvent(name: "naturalGas", value: "clear")
         }
        else if (descMap?.cluster == "0000" && descMap.attrInt == 0x0004)
         {  //Manufacture
@@ -209,7 +213,7 @@ private Map getCheckInResult(value) {
 	def linkText = getLinkText(device)
 	def descriptionText = "${linkText} has checked In: $value"
     def gasmap =  [
-			name			: 'gas',
+			name			: 'naturalGas',
 			value			: value,
 			descriptionText : descriptionText
 	]
@@ -231,7 +235,7 @@ private Map getSmokeResult(value) {
 	def descriptionText = "${linkText} is $value"
     
  def gasmap =  [
-			name			: 'gas',
+			name			: 'naturalGas',
 			value			: value,
 			descriptionText : descriptionText
 	]
