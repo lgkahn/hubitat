@@ -17,7 +17,10 @@
  * lgk add debugging with auto turn off so we can see if it is getting temp because it wont show an update event in hubitat logs if the same as last temp.
  * lgk add lastTemperatuer and lastHumidity attributes so we can easily write rules to trigger if the temp or humidity is going up or down.
  * I use this to alert when the hot tub will be at max in xx amount of time etc.
-*/
+ *
+ * lgk add code for capablity Air Quality using aqi
+ *
+ */
 
 metadata {
   definition(name: "Ecowitt RF Sensor", namespace: "mircolino", author: "Mirco Caramori", importUrl: "https://raw.githubusercontent.com/mircolino/ecowitt/master/ecowitt_sensor.groovy") {
@@ -31,6 +34,7 @@ metadata {
     capability "Illuminance Measurement";
     capability "Water Sensor";
     capability "CarbonDioxide Measurement";
+    capability "Air Quality";
 
  // attribute "battery", "number";                             // 0-100%
     attribute "batteryIcon", "number";                         // 0, 20, 40, 60, 80, 100
@@ -48,15 +52,15 @@ metadata {
     attribute "batteryWindIcon", "number";                     // Only created/used when a WH68/WH80 is bundled in a PWS
     attribute "batteryWindOrg", "number";                      //
 
- // attribute "temperature", "number";                         // °F
+ // attribute "temperature", "number";                         // Â°F
 
  // attribute "humidity", "number";                            // 0-100%
-    attribute "humidityAbs", "number";                         // oz/yd³ or g/m³     
-    attribute "dewPoint", "number";                            // °F - calculated using outdoor "temperature" & "humidity"
-    attribute "heatIndex", "number";                           // °F - calculated using outdoor "temperature" & "humidity"
+    attribute "humidityAbs", "number";                         // oz/ydÂ³ or g/mÂ³     
+    attribute "dewPoint", "number";                            // Â°F - calculated using outdoor "temperature" & "humidity"
+    attribute "heatIndex", "number";                           // Â°F - calculated using outdoor "temperature" & "humidity"
     attribute "heatDanger", "string";                          // Heat index danger level
     attribute "heatColor", "string";                           // Heat index HTML color
-    attribute "simmerIndex", "number";                         // °F - calculated using outdoor "temperature" & "humidity"
+    attribute "simmerIndex", "number";                         // Â°F - calculated using outdoor "temperature" & "humidity"
     attribute "simmerDanger", "string";                        // Summer simmmer index danger level
     attribute "simmerColor", "string";                         // Summer simmer index HTML color
 
@@ -72,10 +76,10 @@ metadata {
     attribute "rainYearly", "number";                          // in - rainfall in the current year
     attribute "rainTotal", "number";                           // in - rainfall total since sensor installation
 
-    attribute "pm25", "number";                                // µg/m³ - PM2.5 particle reading - current
-    attribute "pm25_avg_24h", "number";                        // µg/m³ - PM2.5 particle reading - average over the last 24 hours
-    attribute "pm10", "number";                                // µg/m³ - PM10 particle reading - current
-    attribute "pm10_avg_24h", "number";                        // µg/m³ - PM10 particle reading - average over the last 24 hours
+    attribute "pm25", "number";                                // Âµg/mÂ³ - PM2.5 particle reading - current
+    attribute "pm25_avg_24h", "number";                        // Âµg/mÂ³ - PM2.5 particle reading - average over the last 24 hours
+    attribute "pm10", "number";                                // Âµg/mÂ³ - PM10 particle reading - current
+    attribute "pm10_avg_24h", "number";                        // Âµg/mÂ³ - PM10 particle reading - average over the last 24 hours
    // attribute "co2", "number";                               // ppm - CO2 concetration - current
     attribute "carbonDioxide_avg_24h", "number";               // ppm - CO2 concetration - average over the last 24 hours
 
@@ -101,23 +105,23 @@ metadata {
     attribute "ultravioletColor", "string";                    // UV HTML color
 
  // attribute "illuminance", "number";                         // lux
-    attribute "solarRadiation", "number";                      // W/m²
+    attribute "solarRadiation", "number";                      // W/mÂ²
 
-    attribute "windDirection", "number";                       // 0-359°
+    attribute "windDirection", "number";                       // 0-359Â°
     attribute "windCompass", "string";                         // NNE
-    attribute "windDirection_avg_10m", "number";               // 0-359° - average over the last 10 minutes
+    attribute "windDirection_avg_10m", "number";               // 0-359Â° - average over the last 10 minutes
     attribute "windCompass_avg_10m", "string";                 // NNE - average over the last 10 minutes
     attribute "windSpeed", "number";                           // mph
     attribute "windSpeed_avg_10m", "number";                   // mph - average over the last 10 minutes
     attribute "windGust", "number";                            // mph
     attribute "windGustMaxDaily", "number";                    // mph - max in the current day
-    attribute "windChill", "number";                           // °F - calculated using outdoor "temperature" & "windSpeed"
+    attribute "windChill", "number";                           // Â°F - calculated using outdoor "temperature" & "windSpeed"
     attribute "windDanger", "string";                          // Windchill danger level
     attribute "windColor", "string";                           // Windchill HTML color
 
     attribute "html", "string";                                //
     attribute "html1", "string";                               //
-    attribute "html2", "string";                               // e.g. "<div>Temperature: ${temperature}°F<br>Humidity: ${humidity}%</div>"
+    attribute "html2", "string";                               // e.g. "<div>Temperature: ${temperature}Â°F<br>Humidity: ${humidity}%</div>"
     attribute "html3", "string";                               //
     attribute "html4", "string";                               //
 
@@ -511,12 +515,12 @@ private Boolean attributeUpdateLowestBattery() {
 private Boolean attributeUpdateTemperature(String val, String attribTemperature) {
 
   BigDecimal degrees = val.toBigDecimal();
-  String measure = "°F";
+  String measure = "Â°F";
 
   // Convert to metric if requested
   if (unitSystemIsMetric()) {
     degrees = convert_F_to_C(degrees);
-    measure = "°C";
+    measure = "Â°C";
   }
     
   Boolean hasChanged = (attributeUpdateNumber(degrees, attribTemperature, measure, 1))  
@@ -658,7 +662,7 @@ private Boolean attributeUpdatePM(String val, String attribPm) {
 
   BigDecimal pm = val.toBigDecimal();
 
-  return (attributeUpdateNumber(pm, attribPm, "µg/m³"));
+  return (attributeUpdateNumber(pm, attribPm, "Âµg/mÂ³"));
 }
 
 // ------------------------------------------------------------
@@ -695,7 +699,8 @@ private Boolean attributeUpdateAQI(String val, Boolean pm25, String attribAqi, S
     BigDecimal aqi25 = (device.currentValue(attribAqi) as BigDecimal);
     if (aqi < aqi25) aqi = aqi25;
   }
-
+  
+    
   String danger;
   String color;
 
@@ -707,7 +712,12 @@ private Boolean attributeUpdateAQI(String val, Boolean pm25, String attribAqi, S
   else if (aqi < 401) { danger = "Hazardous";                      color = "7e0023"; }
   else {                danger = "Hazardous";                      color = "7e0023"; }
 
-  Boolean updated = attributeUpdateNumber(aqi, attribAqi, "AQI");
+ 
+   // lgk set airQualityIndex only if actual aqi not avg
+   if (attribAqi == "aqi") attributeUpdateNumber(aqi, "airQualityIndex", "AQI");
+  
+   Boolean updated = attributeUpdateNumber(aqi, attribAqi, "AQI"); 
+    
   if (attributeUpdateString(danger, attribAqiDanger)) updated = true;
   if (attributeUpdateString(color, attribAqiColor)) updated = true;
 
@@ -825,7 +835,7 @@ private Boolean attributeUpdateLight(String val, String attribSolarRadiation, St
 
   BigDecimal light = val.toBigDecimal();
 
-  Boolean updated = attributeUpdateNumber(light, attribSolarRadiation, "W/m²");
+  Boolean updated = attributeUpdateNumber(light, attribSolarRadiation, "W/mÂ²");
   if (attributeUpdateNumber(convert_Wm2_to_lux(light), attribIlluminance, "lux", 0)) updated = true;
 
   return (updated);
@@ -878,7 +888,7 @@ private Boolean attributeUpdateWindDirection(String val, String attribWindDirect
   else if (direction < 326.25)                  compass = "NW";
   else                                          compass = "NNW";
 
-  Boolean updated = attributeUpdateNumber(direction, attribWindDirection, "°");
+  Boolean updated = attributeUpdateNumber(direction, attribWindDirection, "Â°");
   if (attributeUpdateString(compass, attribWindCompass)) updated = true;
 
   return (updated);
@@ -926,7 +936,7 @@ private Boolean attributeUpdateDewPoint(String val, String attribDewPoint, Strin
       }
 
       if (attributeUpdateTemperature(degrees.toString(), attribDewPoint)) updated = true;
-      if (attributeUpdateNumber(volume, attribHumidityAbs, unitSystemIsMetric()? "g/m³": "oz/yd³", 2)) updated = true;
+      if (attributeUpdateNumber(volume, attribHumidityAbs, unitSystemIsMetric()? "g/mÂ³": "oz/ydÂ³", 2)) updated = true;
     }
   }
 
