@@ -113,24 +113,24 @@ void installed()
 def refresh()
 {
     if (logEnable) log.debug "Refresh"
-
     def cmds = []
     cmds.add(zwaveSecureEncap(zwave.indicatorV3.indicatorGet()))
     cmds.add(zwaveSecureEncap(zwave.versionV3.versionGet()))
-    cmds.add(zwaveSecureEncap(zwave.powerlevelV1.powerlevelGet()))
-    cmds.add(zwaveSecureEncap(zwave.powerlevelV1.powerlevelTestNodeGet()))
+    //cmds.add(zwaveSecureEncap(zwave.powerlevelV1.powerlevelGet()))
+    //cmds.add(zwaveSecureEncap(zwave.powerlevelV1.powerlevelTestNodeGet()))
     delayBetween(cmds, 200)
 }
 
 def scheduledRefresh()
 {
     if (logEnable) log.debug "Scheduled Refresh"
-    refresh()
+   
     if (enableScheduledRefresh)
     {   if (logEnable) log.debug "Scheduled Refresh is true, re-scheduling for one day."
         unschedule()
         runIn(86400,"scheduledRefresh")
     } 
+   runIn(5,"refresh")  
 }
 
 def configure()
@@ -158,6 +158,7 @@ def updated()
         runIn(86400,"scheduledRefresh")
     }   
     runIn(1, configure)
+    if (logEnable) runIn(1800, logsOff)
 }
 
 static String powerLevelToString(Number power)
@@ -347,4 +348,3 @@ def zwaveEvent(hubitat.zwave.Command cmd)
     if (logEnable) log.debug "Unhandled cmd: ${cmd.toString()}"
     return null
 }
-
