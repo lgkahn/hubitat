@@ -33,6 +33,7 @@
 // lgk new version with option to decide how often the weather update runs.. used to be every 15 minutes.. Motion triggers still the same.
 // lgk new version with options for number of blinks and delay settings for alerts. Also remove tap trigger .. not avail in hubitat on apps
 // alert reporting has changed so also search through the overall alert description for words like snow, sleet etc.. also fix wrong color pushed for sleet.
+// lgk new version 2.0 refined the purple color to work better with hue bulbs.
 
 import java.util.regex.*
 
@@ -524,7 +525,6 @@ def checkForWeather() {
 			sendcolor(it) //Turn light on with specified color
 			pause(delay) //leave the light on for the specified time
 			if (weatherAlert) {
-				//If there's a weather alert, turn off the light for the same amount of time it was on
 				//When a weather alert is active, each color will be looped x times, creating the blinking effect by turning the light on then off x times              
 				hues.off()
 				pause(delay)
@@ -534,7 +534,6 @@ def checkForWeather() {
        
       if ((colors.size() > 0) || (weatherAlert == true))
         {
-          hues.off()
           hues.off()
         }
 	}
@@ -585,8 +584,8 @@ def sendcolor(color) {
 			hueColor = 10
 			break;
 		case "Purple":
-			hueColor = 82
-			saturation = 100
+			hueColor = 73
+			saturation = 99
 			break;
 		case "Pink":
 			hueColor = 90.78
