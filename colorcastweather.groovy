@@ -247,7 +247,7 @@ def updated() {
 
 def getWeather()
 {
-    def forecastUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=$location.latitude&lon=$location.longitude&exclude=daily&mode=json&units=imperial&appid=$apiKey&exclude=daily,flags,minutely"
+    def forecastUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=$location.latitude&lon=$location.longitude&mode=json&units=imperial&appid=$apiKey&exclude=daily,flags,minutely"
 
   if (descLog) log.debug "url = $forecastUrl"
 	//Exclude additional unneded data from api url.
