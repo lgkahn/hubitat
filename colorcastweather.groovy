@@ -34,13 +34,14 @@
 // lgk new version with options for number of blinks and delay settings for alerts. Also remove tap trigger .. not avail in hubitat on apps
 // alert reporting has changed so also search through the overall alert description for words like snow, sleet etc.. also fix wrong color pushed for sleet.
 // lgk new version 2.0 refined the purple color to work better with hue bulbs.
+// also since dark sky is going away. change to use open weather api ... various changes based on this.. for instance there can be both rain and freezing rain in the same hour which was not handled previously.
 
 import java.util.regex.*
 
 definition(
 	name: "ColorCast Weather Lamp",
 	namespace: "lgkapps",
-	author: "Joe DiBenedetto",
+	author: "Joe DiBenedetto, laurence kahn",
 	description: "Get a simple visual indicator for the days weather whenever you leave home. ColorCast will change the color of one or more Hue lights to match the weather forecast whenever it senses motion",
 	category: "Convenience",
 	iconUrl: "http://apps.shiftedpixel.com/weather/images/icons/colorcast.png",
@@ -52,21 +53,23 @@ preferences {
 	page(name: "pageAPI", title: "API Key", nextPage: "pageSettings", install: false, uninstall: true) {
 	
 		section("First Things First") {
-			paragraph "To use this SmartApp you need an API Key from forecast.io (https://developer.forecast.io/). To obtain your key, you will need to register a free account on their site."
+			paragraph "To use this SmartApp you need an API Key from openweathermap.org (https://openweathermap.org/faq). To obtain your key, you will need to register a free account on their site. You need to sign up for the One Call Api."
 			paragraph "You will be asked for payment information, but you can ignore that part. Payment is only required if you access the data more than 1,000 times per day. If you don't give a credit card number and you somehow manage to exceed the 1,000 calls, the app will stop working until the following day when the counter resets."
 		}
 	
 		section("API Key") {
 			href(name: "hrefNotRequired",
-			title: "Get your Forecast.io API key",
+			title: "Get your openweather One Call API key",
 			required: false,
 			style: "external",
-			url: "https://developer.forecast.io/",
+			url: "https://openweathermap.org/full-price#current",
 			description: "tap to view Forecast.io website in mobile browser")
 	
 			input "apiKey", "text", title: "Enter your new key", required:true
-              input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"
-      
+            input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"
+            input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+            input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
+  
 		}
 	}
 	
@@ -208,6 +211,7 @@ def initialize() {
 	state.current = []
 
 	getWeather()
+   // getOWeather()
     
     log.debug "Refresh time currently set to: $refreshTime"
     unschedule()  
@@ -240,9 +244,12 @@ def updated() {
 	initialize()
 }
 
-def getWeather() {
-	def forecastUrl="https://api.forecast.io/forecast/$apiKey/$location.latitude,$location.longitude?exclude=daily,flags,minutely" //Create api url. Exclude unneeded data 
- log.debug "url = $forecastUrl"
+
+def getWeather()
+{
+    def forecastUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=$location.latitude&lon=$location.longitude&exclude=daily&mode=json&units=imperial&appid=14c59441dfee410f3b9073f9ffdb4b81&exclude=daily,flags,minutely"
+
+  if (descLog) log.debug "url = $forecastUrl"
 	//Exclude additional unneded data from api url.
 	if (forecastRange=='Current conditions') {
 		forecastUrl+=',hourly' //If we're checking current conditions we can exclude hourly data
@@ -254,7 +261,39 @@ def getWeather() {
 		forecastUrl+=',alerts' //If alert event is disabled then we can also exclude alert data
 	}
 	
-	log.debug forecastUrl
+	if (descLog) log.debug forecastUrl
+	
+	httpGet(forecastUrl) {response -> 
+		if (response.data) {
+            
+            //log.debug "got response - $response.data" 
+			state.weatherData = response.data
+			def d = new Date()
+			state.forecastTime = d.getTime()
+			log.debug("ow Successfully retrieved weather.")
+		} else {
+			runIn(60, getWeather)
+			log.debug("ow Failed to retrieve weather.")
+		}
+	}
+}
+
+
+def getWeatherold() {
+	def forecastUrl="https://api.forecast.io/forecast/$apiKey/$location.latitude,$location.longitude?exclude=daily,flags,minutely" //Create api url. Exclude unneeded data 
+    if (descLog) log.debug "url = $forecastUrl"
+	//Exclude additional unneded data from api url.
+	if (forecastRange=='Current conditions') {
+		forecastUrl+=',hourly' //If we're checking current conditions we can exclude hourly data
+	} else {
+		forecastUrl+=',currently' //If we're checking hourly conditions we can exclude current data
+	}
+	
+	if (alertFlash==null) {
+		forecastUrl+=',alerts' //If alert event is disabled then we can also exclude alert data
+	}
+	
+	if (descLog) log.debug forecastUrl
 	
 	httpGet(forecastUrl) {response -> 
 		if (response.data) {
@@ -268,6 +307,300 @@ def getWeather() {
 		}
 	}
 }
+
+def checkForWeatherOW() {
+
+    //log.debug "in check for weather"
+	def d = new Date()
+	if ((d.getTime() - state.forecastTime) / 1000 / 60 > 65)
+    {
+        
+        log.debug "Weather not checked for more than an hour! Rescheduling Job!"
+		//unschedule()
+		//schedule("0 0/15 * * * ?", getWeather)
+        
+      log.debug "Refresh time currently set to: $refreshTime"
+      unschedule()  
+   
+      if (refreshTime == "1-Hour")
+       schedule("33 0 0/1 * * ?", getWeather)
+      else if (refreshTime == "30-Minutes")
+       schedule("10 0/30 * * * ?", getWeather)
+      else if (refreshTime == "15-Minutes")
+       schedule("10 0/15 * * * ?", getWeather)
+      else if (refreshTime == "10-Minutes")
+       schedule("10 0/10 * * * ?", getWeather)
+      else if (refreshTime == "5-Minutes")
+       schedule("10 0/5 * * * ?", getWeather)
+    else if (refreshTime == "Disabled")
+    {
+        log.debug "Disabling..."
+    }
+      if (refreshTime != "Disabled")
+         getWeather()
+        // getOWeather()
+	}
+
+	state.current.clear()
+	hues.each {
+		state.current.add([switch: it.currentValue('switch'), hue: it.currentValue('hue'), saturation: it.currentValue('saturation'), level: it.currentValue('level')] )
+	}
+
+	def colors = [] //Initialze colors array
+
+	//Initialize weather events
+	def willRain=false;
+	def willSnow=false;
+	def willSleet=false;
+	def windy=false;
+	def tempLow
+	def tempHigh
+    def cloudy=false;
+    def humid=false;
+	def weatherAlert=false
+
+	def response = state.weatherData
+
+	if (state.weatherData) { //API response was successfull
+
+        // log.debug "got weather data - $state.weatherData"
+		def i=0
+			def lookAheadHours=1
+			def forecastData=[]
+			if (forecastRange=="Current conditions") { //Get current weather conditions
+				forecastData.push(response.currently)
+			} else {
+				forecastData=response.hourly
+                //forecastData=response.hourly
+				lookAheadHours=forecastRange.replaceAll(/\D/,"").toInteger()
+			}
+		//log.debug "got forcastdata = $forecastData"
+        
+		for (hour in forecastData){ //Iterate over hourly data
+			if (lookAheadHours<++i) { //Break if we've processed all of the specified look ahead hours. Need to strip non-numeric characters(i.e. "hours") from string so we can cast to an integer
+				break
+			} else {
+              if(debug)
+                { 
+                  log.debug "in weather loop hour = $hour"
+                  log.debug "pop = $hour.pop"
+                  log.debug "ptype = $hour.weather.main"
+                  log.debug "description = $hour.weather.description"
+                  log.debug "temp = $hour.temp, feels like = $hour.feels_like"
+                }
+               
+               if (snowColor!='Disabled' || rainColor!='Disabled' || sleetColor!='Disabled') {
+					if (hour.pop.floatValue()>=0.15) { //Consider it raining/snowing if precip probabilty is greater than 15%
+                            
+				 		if (hour.weather.main.indexOf('Rain') != -1) {
+                            if (hour.weather.description.indexOf('freezing rain') != -1)
+                             willSleet=true // preciptation is sleet
+                            else willRain=true //Precipitation type is rain      
+						} else if (hour.weather.main.indexOf('Snow') != -1) {
+							willSnow=true
+						} else {
+							willSleet=true
+						}
+					}
+				}
+			
+                if (debug) log.debug "in loop willSleet = $willSleet, willRain = $willRain, willSnow = $willSnow"
+                
+				if (tempMinColor!='Disabled') {
+					if (tempMinType=='Actual') {
+						if (tempLow==null || tempLow>hour.temp) tempLow=hour.temp //Compare the stored low temp to the current iteration temp. If it's lower overwrite the stored low with this temp
+					} else {
+						if (tempLow==null || tempLow>hour.feels_like) tempLow=hour.feels_like //Compare the stored low temp to the current iteration temp. If it's lower overwrite the stored low with this temp
+					}
+				}
+			
+				if (tempMaxColor!='Disabled') {
+					if (tempMaxType=='Actual') {
+						if (tempHigh==null || tempHigh<hour.temp) tempHigh=hour.temp //Compare the stored low temp to the current iteration temp. If it's lower overwrite the stored low with this temp
+					} else {
+						if (tempHigh==null || tempHigh<hour.feels_like) tempHigh=hour.feels_like //Compare the stored low temp to the current iteration temp. If it's lower overwrite the stored low with this temp
+					}
+				}
+			
+                if (debug) log.debug "hour: ($i) windspeed = $hour.wind_speed!"
+            
+				if (windColor!='Disabled' && hour.wind_speed>=windTrigger) windy=true //Compare to user defined value for wid speed.
+				if (cloudPercentColor!='Disabled' && hour.clouds>=cloudPercentTrigger) cloudy=true //Compare to user defined value for wind speed.
+				if (dewPointColor!='Disabled' && hour.dew_point>=dewPointTrigger) humid=true //Compare to user defined value for wind speed.
+			}
+		}
+// log.debug "after hourly loop"
+ if (debug)
+        {
+            log.debug "min temp = $tempLow"
+            log.debug "max temp = $tempHigh"
+        }
+        
+  if (descLog) log.debug "done with hour data number of alerts in report = $response.alerts!"
+   
+		if (response.alerts) { //See if Alert data is included in response
+           
+			response.alerts.each { //If it is iterate through all Alerts
+				def thisAlert=it.event;
+				log.debug thisAlert
+                def overallDesc = it.description;
+                          
+				alertFlash.each{ //Iterate through all user specified alert types
+                 if (debug) log.debug "in alert this alert = $thisAlert it = $it!"
+                  
+					if (thisAlert.toLowerCase().indexOf(it)>=0) { //If this user specified alert type matches this alert response
+						if (descLog) log.debug "ALERT: "+it
+                        
+                        // try to find color for specific event based on snow wind sleet rain etc.
+                      if ((thisAlert.toLowerCase().indexOf('wind chill') >= 0) && (tempMinColor != 'Disabled'))
+                          {
+                            if (descLog) log.debug "Found alert of type min temp!"
+                            colors.push(tempMinColor)
+                            if (descLog) log.debug "wind chill/temp min"
+                            if (descLog) log.debug tempMinColor
+                           }
+                          
+                      if ((thisAlert.toLowerCase().indexOf('wind') >= 0) && (thisAlert.toLowerCase().indexOf('wind chill') == -1)  && (windColor != 'Disabled'))
+                          {
+                            if (descLog) log.debug "Found alert of type Wind!"
+                            colors.push(windColor)
+                            if (descLog) log.debug "Wind"
+                            if (descLog) log.debug windColor
+                           }
+                           
+                        if ((thisAlert.toLowerCase().indexOf('rain') >= 0) && (rainColor != 'Disabled'))
+                        
+                          {
+                            if (descLog) log.debug "Found alert of type Rain!"
+                            colors.push(rainColor)
+                            if (descLog) log.debug "Rain"
+                            if (descLog) log.debug rainColor
+                           }
+                   if (((thisAlert.toLowerCase().indexOf('Severe Thunderstorm') >= 0) || (overallDesc.toLowerCase().indexOf('Severe Thunderstorm') >= 0)) && (rainColor != 'Disabled'))
+                        
+                          {
+                            if (descLog) log.debug "Found alert of type Severe Thunderstorm!"
+                            colors.push(rainColor)
+                            if (descLog) log.debug "Rain"
+                            if (descLog) log.debug rainColor
+                           }             
+                        if (((thisAlert.toLowerCase().indexOf('snow') >= 0) || (overallDesc.toLowerCase().indexOf('snow') >= 0)) && (snowColor != 'Disabled'))
+                          {
+                            if (descLog) log.debug "Found alert of type Snow!"
+                            colors.push(snowColor)
+                            if (descLog) log.debug "Snow"
+                            if (descLog) log.debug snowColor
+                           }
+                        if (((thisAlert.toLowerCase().indexOf('sleet') >= 0) || (overallDesc.toLowerCase().indexOf('sleet' ) >= 0)) && (sleetColor != 'Disabled'))
+                          {
+                            if (descLog) log.debug "Found alert of type Sleet!"
+                            colors.push(sleetColor)
+                            if (descLog) log.debug "Sleet"
+                            if (descLog) log.debug sleetColor
+                           }
+                           
+						weatherAlert=true //Is there currently a weather alert
+					}
+				}
+			}
+		}
+
+		if (descLog) log.debug "after alerts weatherAlert = $weatherAlert"
+		//Add color strings to the colors array to be processed later
+		if (tempMinColor!='Disabled' && tempLow<=tempMinTrigger.floatValue()) {
+			colors.push(tempMinColor)
+			if (descLog) log.debug "Cold"
+			if (descLog) log.debug tempMinColor
+		}
+		if (tempMaxColor!='Disabled' && tempHigh>=tempMaxTrigger.floatValue()) {
+			colors.push(tempMaxColor)
+			if (descLog) log.debug "Hot"
+			if (descLog) log.debug tempMaxColor
+		}
+		if (humidityColor!='Disabled' && humid) {
+			colors.push(dewPointColor)
+			if (descLog) log.debug "Humid"
+			if (descLog) log.debug dewPointColor
+		}
+		if (snowColor!='Disabled' && willSnow) {
+			colors.push(snowColor)
+			if (descLog) log.debug "Snow"
+			if (descLog) log.debug snowColor			
+		}
+		if (sleetColor!='Disabled' && willSleet) {
+			colors.push(sleetColor)
+			if (descLog) log.debug "Sleet"
+			if (descLog) log.debug sleetColor			
+		}
+		if (rainColor!='Disabled' && willRain) {
+			colors.push(rainColor)
+			if (descLog) log.debug "Rain"
+			if (descLog) log.debug rainColor
+		}
+		if (windColor!='Disabled' && windy) {
+			colors.push(windColor)
+			if (descLog) log.debug "Windy"
+			if (descLog) log.debug windColor
+		}
+		if (cloudPercentColor!='Disabled' && cloudy) {
+			colors.push(cloudPercentColor)
+			if (descLog) log.debug "Cloudy"
+			if (descLog) log.debug cloudPercentColor
+		}
+	}
+    
+   if ((colors.size() == 0) && (weatherAlert == true))
+     {
+       if (descLog) log.debug "Found a weather alert, but no specific class of weather triggererd!"  
+       //log.debug "trying to find color for specific alert event!"  
+       if (descLog) log.debug "Setting color to default Alert Color = $defaultAlertColor"
+       colors.push(defaultAlertColor)
+   }
+   
+	//If the colors array is empty, assign the "all clear" color
+	if ((colors.size() > 0) || ((colors.size() == 0) && (allClearColor != 'Disabled')))
+    {
+    
+    if (colors.size()==0)
+    {
+   		 colors.push(allClearColor)
+    }
+    
+	colors.unique()
+	log.debug colors
+
+
+	def delay=2000 //The amount of time to leave each color on
+	def iterations=1 //The number of times to show each color
+	if (weatherAlert) {
+         if (descLog) log.debug "Weather Alert!"
+		//When there's an active weather alert, shorten the duration that each color is shown but show the color multiple times. This will cause individual colors to flash when there is a weather alert
+		delay = delayBetweenBlinks.toInteger()
+		iterations=numberOfBlinks.toInteger()
+	}
+	
+	colors.each { //Iterate over each color
+		for (int i = 0; i<iterations; i++) {
+			sendcolor(it) //Turn light on with specified color
+			pause(delay) //leave the light on for the specified time
+			if (weatherAlert) {
+				//When a weather alert is active, each color will be looped x times, creating the blinking effect by turning the light on then off x times              
+				hues.off()
+				pause(delay)
+			}
+		}
+        // extra off
+       
+      if ((colors.size() > 0) || (weatherAlert == true))
+        {
+          hues.off()
+        }
+	}
+	}
+	 if ((colors.size() > 0) || (weatherAlert == true)) setLightsToOriginal() //The colors have been sent to the lamp and all colors have been shown. Now revert the lights to their original settings
+}
+
+
 
 def checkForWeather() {
 
@@ -299,6 +632,7 @@ def checkForWeather() {
     }
       if (refreshTime != "Disabled")
          getWeather()
+        // getOWeather()
 	}
 
 	state.current.clear()
@@ -323,6 +657,7 @@ def checkForWeather() {
 
 	if (state.weatherData) { //API response was successfull
 
+        // log.debug "got weather data - $state.weatherData"
 		def i=0
 			def lookAheadHours=1
 			def forecastData=[]
@@ -330,15 +665,16 @@ def checkForWeather() {
 				forecastData.push(response.currently)
 			} else {
 				forecastData=response.hourly.data
+                //forecastData=response.hourly
 				lookAheadHours=forecastRange.replaceAll(/\D/,"").toInteger()
 			}
-		//log.debug "got forcasedata = $forcastData"
+		//log.debug "got forcastdata = $forecastData"
         
 		for (hour in forecastData){ //Iterate over hourly data
 			if (lookAheadHours<++i) { //Break if we've processed all of the specified look ahead hours. Need to strip non-numeric characters(i.e. "hours") from string so we can cast to an integer
 				break
 			} else {
-             // log.debug "in weather loop hour = $hour"
+              log.debug "in weather loop hour = $hour"
 				if (snowColor!='Disabled' || rainColor!='Disabled' || sleetColor!='Disabled') {
 					if (hour.precipProbability.floatValue()>=0.15) { //Consider it raining/snowing if precip probabilty is greater than 15%
 						if (hour.precipType=='rain') {
@@ -617,12 +953,12 @@ def setLightsToOriginal() {
 def motionHandler(evt) {
     //log.debug "in motion handler"
 	if (evt.value == "active") {// If there is movement then trigger the weather display
-		log.debug "Motion detected, turning on light"
-		checkForWeather()
+		log.debug "Motion detected, in ColorCastWeather!"
+		checkForWeatherOW()
 	} 
 }
 
 def appTouchHandler(evt) {// If the button is pressed then trigger the weather display
-	checkForWeather()	
+	checkForWeatherOW()	
 	log.debug "App triggered with button press."
 }
