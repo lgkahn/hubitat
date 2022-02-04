@@ -63,7 +63,7 @@ preferences {
 			required: false,
 			style: "external",
 			url: "https://openweathermap.org/full-price#current",
-			description: "tap to view Forecast.io website in mobile browser")
+			description: "tap to view openweather website in mobile browser")
 	
 			input "apiKey", "text", title: "Enter your new key", required:true
             input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"
