@@ -259,7 +259,7 @@ def getWeather()
 	
 	if (alertFlash==null) {
 		forecastUrl+=',alerts' //If alert event is disabled then we can also exclude alert data
-	}
+ 	}
 	
 	if (descLog) log.debug forecastUrl
 	
