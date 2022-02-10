@@ -35,6 +35,13 @@
 // alert reporting has changed so also search through the overall alert description for words like snow, sleet etc.. also fix wrong color pushed for sleet.
 // lgk new version 2.0 refined the purple color to work better with hue bulbs.
 // also since dark sky is going away. change to use open weather api ... various changes based on this.. for instance there can be both rain and freezing rain in the same hour which was not handled previously.
+// lgk 2.1 fix issue where open weather is different than dark sky.. dark sky would drop through if there was a percent probablity of perciptation but no snow or rain and assume sleet.
+// in open weather is some hourly forecasts it shows a high percent probiblity but no rain and it is just cloudy ie
+
+//{"dt":1644523200,"temp":46.98,"feels_like":41.56,"pressure":1005,"humidity":68,"dew_point":36.99,"uvi":0.55,"clouds":48,"visibility":10000,"wind_speed":12.19,"wind_deg":236,"wind_gust"
+// :26.31,"weather":[{"id":802,"main":"Clouds","description":"scattered clouds","icon":"03d"}],"pop":0.86},
+// obviously no sleet here with a temp of 47 but it just says cloudy but a pop percent probablity of precip - .86 
+// seems like a bug so ignore it .
 
 import java.util.regex.*
 
@@ -142,7 +149,7 @@ preferences {
 			input "allClearColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"Disabled",  multiple:false            
 		}
 		section ("Low Temperature") {
-			input "tempMinTrigger", "number", title: "Low Temperature - 캟", required: true, defaultValue:35 //Set the minumum temperature to trigger the "Cold" color
+			input "tempMinTrigger", "number", title: "Low Temperature - 째F", required: true, defaultValue:35 //Set the minumum temperature to trigger the "Cold" color
  			input "tempMinType", "enum", title: "Temperature Type", options: [
 				"Actual",
 				"Feels like"
@@ -150,7 +157,7 @@ preferences {
 			input "tempMinColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"Blue",  multiple:false            
 		}
 		section ("High Temperature") {
-			input "tempMaxTrigger", "number", title: "High Temperature - 캟", required: true, defaultValue:80 //Set the minumum temperature to trigger the "Cold" color
+			input "tempMaxTrigger", "number", title: "High Temperature - 째F", required: true, defaultValue:80 //Set the minumum temperature to trigger the "Cold" color
 			input "tempMaxType", "enum", title: "Temperature Type", options: [
 				"Actual",
 				"Feels like"
@@ -173,14 +180,14 @@ preferences {
 			input "cloudPercentColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"White",  multiple:false            
 		}
 		section ("Dew Point\r\n(Sometimes refered to as humidity)") {
-			input "dewPointTrigger", "number", title: "Dew Point - 캟", required: true, defaultValue:65 //Set the minumum temperature to trigger the "Cold" color
+			input "dewPointTrigger", "number", title: "Dew Point - 째F", required: true, defaultValue:65 //Set the minumum temperature to trigger the "Cold" color
 			input "dewPointColor", "enum", title: "Color", options: colorsWithDisabled, required: true, defaultValue:"Orange",  multiple:false   
 			href(name: "hrefNotRequired",
 				title: "Learn more about \"Dew Point\"",
 				required: false,
 				style: "external",
 				url: "http://www.washingtonpost.com/blogs/capital-weather-gang/wp/2013/07/08/weather-weenies-prefer-dew-point-over-relative-humidity-and-you-should-too/",
-				description: "A Dew Point above 65� is generally considered \"muggy\"\r\nTap here to learn more about dew point"
+				description: "A Dew Point above 65째 is generally considered \"muggy\"\r\nTap here to learn more about dew point"
 			)
 		}
 
@@ -399,7 +406,7 @@ def checkForWeatherOW() {
 						} else if (hour.weather.main.indexOf('Snow') != -1) {
 							willSnow=true
 						} else {
-							willSleet=true
+							//willSleet=true no op.
 						}
 					}
 				}
@@ -962,4 +969,3 @@ def appTouchHandler(evt) {// If the button is pressed then trigger the weather d
 	checkForWeatherOW()	
 	log.debug "App triggered with button press."
 }
-
