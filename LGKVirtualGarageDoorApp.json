@@ -1,7 +1,7 @@
 {
   "packageName": "Virtual Garage Door App to lick relay/switch and sensor",
   "author": "Larry Kahn",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minimumHEVersion": "1.0.0",
   "dateReleased": "2020-10-19",
   "apps": [
