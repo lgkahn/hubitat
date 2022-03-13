@@ -54,6 +54,12 @@ preferences {
            // input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required: false
           //  input "phone1", "phone", title: "Send a Text Message?", required: false
        // }
+         
+         section("Logging" ) {
+             input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+            input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
+         }
+
     }
 
 }
@@ -62,8 +68,6 @@ def installed()
 {
 def realgdstate = sensor.currentContact
 def virtualgdstate = virtualgd.currentContact
-//log.debug "in installed ... current state=  $realgdstate"
-//log.debug "gd state= $virtualgd.currentContact"
 
 	subscribe(sensor, "contact", contactHandler)
     subscribe(virtualgdbutton, "contact", virtualgdcontactHandler)
@@ -77,15 +81,24 @@ def virtualgdstate = virtualgd.currentContact
             }
          else virtualgd.close()
       }
+    
+   if (descLog) log.info "Descriptive Text logging is on."
+   else log.info "Description Text logging is off."
+    
+   if (debug)
+    {
+        log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
+        runIn(1800,logsOff)
+    }
+   else log.info "Debug logging is off."
+      
+    
  }
 
 def updated()
 {
 def realgdstate = sensor.currentContact
 def virtualgdstate = virtualgd.currentContact
-//log.debug "in updated ... current state=  $realgdstate"
-//log.debug "in updated ... gd state= $virtualgd.currentContact"
-
 
 	unsubscribe()
 	subscribe(sensor, "contact", contactHandler)
@@ -107,18 +120,28 @@ def virtualgdstate = virtualgd.currentContact
      		 }
       }
   // for debugging and testing uncomment  temperatureHandlerTest()
+   if (descLog) log.info "Descriptive Text logging is on."
+   else log.info "Description Text logging is off."
+    
+   if (debug)
+    {
+        log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
+        runIn(1800,logsOff)
+    }
+   else log.info "Debug logging is off."
+           
 }
+
 
 def contactHandler(evt) 
 {
 def virtualgdstate = virtualgd.currentContact
 // how to determine which contact
-//log.debug "in contact handler for actual door open/close event. event = $evt"
 
   if("open" == evt.value)
     {
     // contact was opened, turn on a light maybe?
-    log.debug "Contact is in ${evt.value} state"
+    if (descLog) log.info "Contact is in ${evt.value} state"
     // reset virtual door if necessary
     if (virtualgdstate != "open")
       {
@@ -142,19 +165,21 @@ def virtualgdstate = virtualgd.currentContact
 def virtualgdcontactHandler(evt) {
 // how to determine which contact
 def realgdstate = sensor.currentContact
-//log.debug "in virtual gd contact/button handler event = $evt"
-//log.debug "in virtualgd contact handler check timeout = $checkTimeout"
+    
+    if (debug) 
+        log.debug "in virtualgd contact handler check timeout = $checkTimeout"
 
   if("open" == evt.value)
     {
     // contact was opened, turn on a light maybe?
-    log.debug "Contact is in ${evt.value} state"
+    if (desclog) log.debug "Contact is in ${evt.value} state"
     // check to see if door is not in open state if so open
     if (realgdstate != "open")
       {
-        log.debug "opening real gd to correspond with button press"
+        if (desclog) log.debug "opening real gd to correspond with button press"
          mysend("$virtualgd.displayName Opened syncing with Actual Device!")   
          opener.on()
+         if (debug) log.debug "scheduling checkifActuallyOpened via runin for $checkTimeout seconds."
          runIn(checkTimeout, checkIfActuallyOpened)
         
       }
@@ -162,12 +187,13 @@ def realgdstate = sensor.currentContact
   if("closed" == evt.value)
    {
     // contact was closed, turn off the light?
-    log.debug "Contact is in ${evt.value} state"
+    if (debug) log.debug "Contact is in ${evt.value} state"
     if (realgdstate != "closed")
       {
         log.debug "closing real gd to correspond with button press"
         mysend("$virtualgd.displayName Closed syncing with Actual Device!")   
         opener.on()
+        if(debug) log.debug "Schedulng checkIfActuallyClosed via runIn for $checkTimeout seconds."
         runIn(checkTimeout, checkIfActuallyClosed)
       }
    }
@@ -178,46 +204,28 @@ private mysend(msg) {
     
      // check that contact book is enabled and recipients selected
     if (location.contactBookEnabled && recipients) {
-        log.debug("sending notifications to: ${recipients?.size()}")
+        if (debug) log.debug("sending notifications to: ${recipients?.size()}")
         sendNotificationToContacts(msg, recipients)
     } else {
         if (sendPushMessage) {
-         //   log.debug("Sending Push Notification...")
+         if (debug) log.debug("Sending Push Notification...")
             sendPushMessage.deviceNotification(msg)
         } 
         
     }
 }
 
-/*
-private mysend(msg) {
-    if (location.contactBookEnabled) {
-        log.debug("sending notifications to: ${recipients?.size()}")
-        sendNotificationToContacts(msg, recipients)
-    }
-    else {
-        if (sendPushMessage != "No") {
-            log.debug("sending push message")
-            sendPush(msg)
-        }
-
-        if (phone1) {
-            log.debug("sending text message")
-            sendSms(phone1, msg)
-        }
-    }
-
-    log.debug msg
-}
-
-*/
 def checkIfActuallyClosed()
 {
 def realgdstate = sensor.currentContact
 def virtualgdstate = virtualgd.currentContact
-//log.debug "in checkifopen ... current state=  $realgdstate"
-//log.debug "in checkifopen ... gd state= $virtualgd.currentContact"
-
+ 
+    if (debug)
+    {
+      log.debug "In checkIfActuallyClosed."
+      log.debug "in checkifopen ... current state=  $realgdstate"
+      log.debug "in checkifopen ... gd state= $virtualgd.currentContact"
+    }
    
     // sync them up if need be set virtual same as actual
     if (realgdstate == "open" && virtualgdstate == "closed")
@@ -228,15 +236,18 @@ def virtualgdstate = virtualgd.currentContact
     }   
 }
 
-
-
 def checkIfActuallyOpened()
 {
 def realgdstate = sensor.currentContact
 def virtualgdstate = virtualgd.currentContact
-//log.debug "in checkifopen ... current state=  $realgdstate"
-//log.debug "in checkifopen ... gd state= $virtualgd.currentContact"
 
+    if (debug) 
+    {
+        log.debug "In checkIfActuallyOpened."
+        log.debug "in checkifopen ... current state=  $realgdstate"
+        log.debug "in checkifopen ... gd state= $virtualgd.currentContact"
+    }
+  
    
     // sync them up if need be set virtual same as actual
     if (realgdstate == "closed" && virtualgdstate == "open")
@@ -246,3 +257,10 @@ def virtualgdstate = virtualgd.currentContact
              virtualgd.close()
     }   
 }
+
+def logsOff()
+{
+    log.debug "Turning off Logging!"
+    device.updateSetting("debug",[value:"false",type:"bool"])
+}
+
