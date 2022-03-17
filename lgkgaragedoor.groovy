@@ -51,18 +51,14 @@ preferences {
        // input("recipients", "contact", title: "Send notifications to") {
         input "sendPushMessage", "capability.notification", title: "Send Push Notifications? - Notification Devices: Hubitat PhoneApp or Other?", multiple: true, required: false
 
-           // input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required: false
-          //  input "phone1", "phone", title: "Send a Text Message?", required: false
-       // }
+           }
          
-         section("Logging" ) {
-             input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-            input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
+       section("Logging" ) {
+          input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+          input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
          }
 
     }
-
-}
 
 def installed()
 {
@@ -109,13 +105,13 @@ def virtualgdstate = virtualgd.currentContact
      {
         if (realgdstate == "open")
            {
-             log.debug "opening virtual door"
+             log.info "opening virtual door"
              mysend("virtualgd.displayName Opened!")     
              virtualgd.open()
             }
          else {
               virtualgd.close()
-              log.debug "closing virtual door"
+              log.info "closing virtual door"
               mysend("$virtualgd.displayName Closed!")   
      		 }
       }
@@ -141,22 +137,22 @@ def virtualgdstate = virtualgd.currentContact
   if("open" == evt.value)
     {
     // contact was opened, turn on a light maybe?
-    if (descLog) log.info "Contact is in ${evt.value} state"
+    if (debug) log.info "Contact is in ${evt.value} state"
     // reset virtual door if necessary
     if (virtualgdstate != "open")
       {
-        mysend("$virtualgd.displayName Opened Manually syncing with Virtual Device!")   
+        mysend("$virtualgd.displayName Opened. Manually syncing with Virtual Device!")   
         virtualgd.open()
       }
      }  
   if("closed" == evt.value)
    {
    // contact was closed, turn off the light?
-    log.debug "Contact is in ${evt.value} state"
+    if (debug) log.debug "Contact is in ${evt.value} state"
     //reset virtual door
      if (virtualgdstate != "closed")
       {
-       mysend("$virtualgd.displayName Closed Manually syncing with Virtual Device!")   
+       mysend("$virtualgd.displayName Closed. Manually syncing with Virtual Device!")   
        virtualgd.close()
       }
    }
@@ -166,18 +162,17 @@ def virtualgdcontactHandler(evt) {
 // how to determine which contact
 def realgdstate = sensor.currentContact
     
-    if (debug) 
-        log.debug "in virtualgd contact handler check timeout = $checkTimeout"
+    if (debug) log.debug "in virtualgd contact handler check timeout = $checkTimeout"
 
   if("open" == evt.value)
     {
     // contact was opened, turn on a light maybe?
-    if (desclog) log.debug "Contact is in ${evt.value} state"
+    if (debug) log.debug "Contact is in ${evt.value} state"
     // check to see if door is not in open state if so open
     if (realgdstate != "open")
       {
-        if (desclog) log.debug "opening real gd to correspond with button press"
-         mysend("$virtualgd.displayName Opened syncing with Actual Device!")   
+        if (desclog) log.debug "Opening real gd to correspond with button press."
+         mysend("$virtualgd.displayName Opened. Syncing with Actual Device!")   
          opener.on()
          if (debug) log.debug "scheduling checkifActuallyOpened via runin for $checkTimeout seconds."
          runIn(checkTimeout, checkIfActuallyOpened)
@@ -190,8 +185,8 @@ def realgdstate = sensor.currentContact
     if (debug) log.debug "Contact is in ${evt.value} state"
     if (realgdstate != "closed")
       {
-        log.debug "closing real gd to correspond with button press"
-        mysend("$virtualgd.displayName Closed syncing with Actual Device!")   
+        if (descLog) log.info "closing real gd to correspond with button press."
+        mysend("$virtualgd.displayName Closed. Syncing with Actual Device!")   
         opener.on()
         if(debug) log.debug "Schedulng checkIfActuallyClosed via runIn for $checkTimeout seconds."
         runIn(checkTimeout, checkIfActuallyClosed)
@@ -252,7 +247,7 @@ def virtualgdstate = virtualgd.currentContact
     // sync them up if need be set virtual same as actual
     if (realgdstate == "closed" && virtualgdstate == "open")
      {
-             log.debug "opening virtual door as it didnt open.. track blocked?"
+             log.debug "opening virtual door as it didnt open... track blocked?"
              mysend("Resetting $virtualgd.displayName to Closed as real device didn't open! (track blocked?)")   
              virtualgd.close()
     }   
@@ -260,7 +255,7 @@ def virtualgdstate = virtualgd.currentContact
 
 def logsOff()
 {
-    log.debug "Turning off Logging!"
+    log.info "Turning off Logging!"
     device.updateSetting("debug",[value:"false",type:"bool"])
 }
 
