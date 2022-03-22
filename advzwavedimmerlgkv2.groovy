@@ -34,11 +34,10 @@ metadata {
 		capability "Refresh"
 		capability "Sensor"
         capability "Switch Level"
-        capability "Color Control"
- 		capability "Health Check"
-        
-        command "setColor"
-        command "setAdjustedColor"
+        capability "ColorControl"
+ 		 
+        //command "setColor"
+        //command "setAdjustedColor"
 
 		fingerprint inClusters: "0x26"
 	}
@@ -59,35 +58,6 @@ metadata {
 		reply "200132,delay 5000,2602": "command: 2603, payload: 32"
 		reply "20014B,delay 5000,2602": "command: 2603, payload: 4B"
 		reply "200163,delay 5000,2602": "command: 2603, payload: 63"
-	}
-
-	tiles(scale: 2) {
-		multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true){
-			tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
-				attributeState "on", label:'${name}', action:"switch.off", icon:"st.switches.switch.on", backgroundColor:"#79b821", nextState:"turningOff"
-				attributeState "off", label:'${name}', action:"switch.on", icon:"st.switches.switch.off", backgroundColor:"#ffffff", nextState:"turningOn"
-				attributeState "turningOn", label:'${name}', action:"", icon:"st.switches.switch.on", backgroundColor:"#79b821", nextState:"turningOff"
-				attributeState "turningOff", label:'${name}', action:"switch.on", icon:"st.switches.switch.off", backgroundColor:"#ffffff", nextState:"turningOn"
-			}
-			tileAttribute ("device.level", key: "SLIDER_CONTROL") {
-				attributeState "level", action:"switch level.setLevel"
-			}
-		}
-
- controlTile("rgbSelector", "device.color", "color", height: 6, width: 4, inactiveLabel: false) {
-		state "color", action:"setAdjustedColor"
-	}
-		standardTile("indicator", "device.indicatorStatus", height: 2, width: 2, inactiveLabel: false, decoration: "flat") {
-			state "when off", action:"indicator.indicatorWhenOn", icon:"st.indicators.lit-when-off"
-			state "when on", action:"indicator.indicatorNever", icon:"st.indicators.lit-when-on"
-			state "never", action:"indicator.indicatorWhenOff", icon:"st.indicators.never-lit"
-		}
-		standardTile("refresh", "device.switch", height: 2, width: 2, inactiveLabel: false, decoration: "flat") {
-			state "default", label:"", action:"refresh", icon:"st.secondary.refresh"
-		}
-
-		main(["switch"])
-		details(["switch", "rgbSelector","refresh", "indicator"])
 	}
 }
 
