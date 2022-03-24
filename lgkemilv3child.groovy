@@ -138,7 +138,7 @@ def sendMessage(String message)
 
 def cleanUp()
 {
-                if(state.debug) log.debug "In cleanup ... called from parent!"
+                if (state.debug) log.debug "In cleanup ... called from parent!"
                 unschedule()
                 sendEvent(name: "lastCommand", value: "Force Closed")
                 synchronized (lastStateMutex) { state.lastCommand = "Force Closed" }
@@ -247,7 +247,7 @@ def parse(String msg) {
     def first4 = msg.substring(0,4)
     if (first4 == "250-")
     {
-        log.debug "Skipping informational command: $msg after ehlo!"
+        if (state.debug) log.debug "Skipping informational command: $msg after ehlo!"
     }
     else
     {
@@ -346,7 +346,7 @@ def parse(String msg) {
 
          else
            {
-             if (state.debug) "Either got 250 for helo or 235 for password, Now Sending Message or ehlo"
+             if (state.debug) log.debug "Either got 250 for helo or 235 for password, Now Sending Message or ehlo"
                
             synchronized (lastStateMutex) { state.lastCommand = "sendmessage" }
             sendEvent(name: "lastCommand", value: "sendmessage") 
