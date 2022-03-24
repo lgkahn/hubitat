@@ -86,6 +86,8 @@
 * here and remove queuing and retry from the child process. add mutex and sempaphores around state variables in this driver function.
 * remove mutex in child function.. Leave semaphore around lastCommand for now, although not sure it is needed.
 * 4.51 fix bug with authentication and requires ehlo passed to child. (typos)
+*
+* v 4.6 clean up logging and missed debug on check.
 */
 
 attribute "lastCommand", "string"
@@ -146,7 +148,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.51"
+    return "4.6"
 }
 
 def logsOff()
