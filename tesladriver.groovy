@@ -27,6 +27,12 @@
  *
  * lgk 3/17/21 add set charge limit command and charge limit attribute .
  *
+ *
+ lgk 3/29/22 add attributes for longitude and latitude 
+   so maybe some rule machine rules with math can determine if you are home or approaching home to open garage door.
+* speed is already there as was heading but not as attributes that can be queried by rules so added that as well.
+* also some more info if debugging is on
+*
 */
 metadata {
 	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley, Larry Kahn") {
@@ -60,6 +66,10 @@ metadata {
         attribute "rear_drivers_window" , "number"
         attribute "rear_pass_window" , "number"
         attribute "current_charge_limit", "number"
+        attribute "longitude", "number"
+        attribute "latitude", "number"
+        attribute "speed", "number"
+        attribute "heading", "number"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -180,7 +190,7 @@ private processData(data) {
         sendEvent(name: "thermostatMode", value: data.thermostatMode)
         
         if (data.chargeState) {
-            if (debug) log.debug "chargeStte = $data.chargeState"
+            if (debug) log.debug "chargeState = $data.chargeState"
             
         	sendEvent(name: "battery", value: data.chargeState.battery)
             sendEvent(name: "batteryRange", value: data.chargeState.batteryRange.toInteger())
@@ -191,11 +201,16 @@ private processData(data) {
         }
         
         if (data.driveState) {
+            if (debug) log.debug "DriveState = $data.driveState"
+            
         	sendEvent(name: "latitude", value: data.driveState.latitude)
 			sendEvent(name: "longitude", value: data.driveState.longitude)
             sendEvent(name: "method", value: data.driveState.method)
             sendEvent(name: "heading", value: data.driveState.heading)
             sendEvent(name: "lastUpdateTime", value: data.driveState.lastUpdateTime)
+            sendEvent(name: "longitude", value: data.driveState.longitude)
+            sendEvent(name: "latitude", value: data.driveState.latitude)
+            //sendEvent(name: "speed", value: data.driveState.speed)
         }
         
         if (data.vehicleState) {
@@ -213,6 +228,7 @@ private processData(data) {
         }
         
         if (data.climateState) {
+            if (debug) log.debug "climateState = $data.climateState"
             if (tempScale == "F")
             {
         	  sendEvent(name: "temperature", value: data.climateState.temperature.toInteger(), unit: "F")
