@@ -238,7 +238,7 @@ private processData(data) {
             sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
             sendEvent(name: "valet_mode", value: data.vehicleState.valet_mode)
             
-            if (data.vehicleState.tmps_pressure_rfl != null)
+            if (data.vehicleState.tmps_pressure_fl != null)
               {   sendEvent(name: "tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
                 sendEvent(name: "last_known_tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
               }
