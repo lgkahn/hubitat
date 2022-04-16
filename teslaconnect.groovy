@@ -1,3 +1,4 @@
+
 /**
  *  Tesla Connect
  *
@@ -26,6 +27,8 @@
  * 3/17/21 add set charge limit command and charge limit coming back from api in variable.
  *
  * lgk 10/19/21 change set temp setpoint to double precision to get around integer values being used in conversions.
+ * 
+ * bsr 4/15/22 - Add valet mode and tire pressures
  */
 
 definition(
@@ -386,7 +389,12 @@ def refresh(child) {
                 front_drivers_window: vehicleState.fd_window ? "Open" : "Closed",
                 front_pass_window: vehicleState.fp_window ? "Open" : "Closed",
                 rear_drivers_window: vehicleState.rd_window ? "Open" : "Closed",
-                rear_pass_window: vehicleState.rp_window ? "Open" : "Closed"   
+                rear_pass_window: vehicleState.rp_window ? "Open" : "Closed",
+                valet_mode: vehicleState.valet_mode ? "On" : "Off",
+                tire_pressure_front_left: vehicleState.tpms_pressure_fl,
+                tire_pressure_front_right: vehicleState.tpms_pressure_fr,
+                tire_pressure_rear_left: vehicleState.tpms_pressure_rl,
+                tire_pressure_rear_right: vehicleState.tpms_pressure_rr
                 ]
 
             
