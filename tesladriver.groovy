@@ -34,7 +34,7 @@
  * also some more info if debugging is on
  *
  * bsr 4/15/22 - Add valet mode and tire pressures
- * lgk version ... integrate changes above
+ * lgk version ... integrate changes above also tire pressures are not avail when parked.. so put n/a in attribute also add last known tire pressure to be accurate.
  */
 
 metadata {
@@ -74,10 +74,14 @@ metadata {
         attribute "speed", "number"
         attribute "heading", "number"
         attribute "valet_mode", "string"
-        attribute "tire_pressure_front_left", "number"
-        attribute "tire_pressure_front_right", "number"
-        attribute "tire_pressure_rear_left", "number"
-        attribute "tire_pressure_rear_right", "number"
+        attribute "tire_pressure_front_left", "string"
+        attribute "tire_pressure_front_right", "string"
+        attribute "tire_pressure_rear_left", "string"
+        attribute "tire_pressure_rear_right", "string"
+        attribute "last_known_tire_pressure_front_left", "number"
+        attribute "last_known_tire_pressure_front_right", "number"
+        attribute "last_known_tire_pressure_rear_left", "number"
+        attribute "last_known_tire_pressure_rear_right", "number"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -233,10 +237,33 @@ private processData(data) {
             sendEvent(name: "rear_drivers_window" , value: data.vehicleState.rear_drivers_window)
             sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
             sendEvent(name: "valet_mode", value: data.vehicleState.valet_mode)
-            sendEvent(name: "tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
-            sendEvent(name: "tire_pressure_front_right", value: data.vehicleState.tpms_pressure_fr)
-            sendEvent(name: "tire_pressure_rear_left", value: data.vehicleState.tpms_pressure_rl)
-            sendEvent(name: "tire_pressure_rear_right", value: data.vehicleState.tpms_pressure_rr)
+            
+            if (data.vehicleState.tmps_pressure_rfl != null)
+              {   sendEvent(name: "tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
+                sendEvent(name: "last_known_tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
+              }
+            else  sendEvent(name: "tire_pressure_front_left", value: "n/a")
+            
+            if (data.vehicleState.tmps_pressure_fr != null) 
+              { 
+                sendEvent(name: "tire_pressure_front_right", value: data.vehicleState.tpms_pressure_fr)
+                sendEvent(name: "last_known_tire_pressure_front_right", value: data.vehicleState.tpms_pressure_fr)
+              }
+            else  sendEvent(name: "tire_pressure_front_right", value: "n/a")
+          
+            if (data.vehicleState.tmps_pressure_rl != null)
+              {
+                sendEvent(name: "tire_pressure_rear_left", value: data.vehicleState.tpms_pressure_rl)
+                sendEvent(name: "last_known_tire_pressure_rear_left", value: data.vehicleState.tpms_pressure_rl)
+              }
+            else sendEvent(name: "tire_pressure_rear_left", value: "n/a")
+ 
+            if (data.vehicleState.tmps_pressure_rr != null) 
+              {
+                sendEvent(name: "tire_pressure_rear_right", value: data.vehicleState.tpms_pressure_rr)
+                sendEvent(name: "last_known_tire_pressure_rear_right", value: data.vehicleState.tpms_pressure_rr)
+              }
+            else sendEvent(name: "tire_pressure_rear_right", value: "n/a")
 
         }
         
