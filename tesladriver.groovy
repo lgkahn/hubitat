@@ -20,7 +20,7 @@
  * 10/18/20 added unlock/open charge port command
  * 12/25/20 new attributes and functions for seat heater,windows etc thanks to gomce62f, Also add input to set temp scale to either F or C.
  
- * lgk new versino, not letting the car sleep, add option to disable and schedule it between certain times.
+ * lgk new version, not letting the car sleep, add option to disable and schedule it between certain times.
  * lgk add misssing parameter to sethermostatsetpoint.. note it is in farenheit so be aware of that.. in the future i can look at supporting both
  * with option to convert.
  * lgk add code to turn off debugging after 30 minutes.
@@ -28,12 +28,15 @@
  * lgk 3/17/21 add set charge limit command and charge limit attribute .
  *
  *
- lgk 3/29/22 add attributes for longitude and latitude 
-   so maybe some rule machine rules with math can determine if you are home or approaching home to open garage door.
-* speed is already there as was heading but not as attributes that can be queried by rules so added that as well.
-* also some more info if debugging is on
-*
-*/
+ * lgk 3/29/22 add attributes for longitude and latitude 
+ * so maybe some rule machine rules with math can determine if you are home or approaching home to open garage door.
+ * speed is already there as was heading but not as attributes that can be queried by rules so added that as well.
+ * also some more info if debugging is on
+ *
+ * bsr 4/15/22 - Add valet mode and tire pressures
+ * lgk version ... integrate changes above
+ */
+
 metadata {
 	definition (name: "Tesla", namespace: "trentfoley", author: "Trent Foley, Larry Kahn") {
 		capability "Actuator"
@@ -70,6 +73,11 @@ metadata {
         attribute "latitude", "number"
         attribute "speed", "number"
         attribute "heading", "number"
+        attribute "valet_mode", "string"
+        attribute "tire_pressure_front_left", "number"
+        attribute "tire_pressure_front_right", "number"
+        attribute "tire_pressure_rear_left", "number"
+        attribute "tire_pressure_rear_right", "number"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -224,6 +232,11 @@ private processData(data) {
             sendEvent(name: "front_pass_window" , value: data.vehicleState.front_pass_window)
             sendEvent(name: "rear_drivers_window" , value: data.vehicleState.rear_drivers_window)
             sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
+            sendEvent(name: "valet_mode", value: data.vehicleState.valet_mode)
+            sendEvent(name: "tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
+            sendEvent(name: "tire_pressure_front_right", value: data.vehicleState.tpms_pressure_fr)
+            sendEvent(name: "tire_pressure_rear_left", value: data.vehicleState.tpms_pressure_rl)
+            sendEvent(name: "tire_pressure_rear_right", value: data.vehicleState.tpms_pressure_rr)
 
         }
         
