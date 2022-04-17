@@ -34,7 +34,7 @@
  * also some more info if debugging is on
  *
  * bsr 4/15/22 - Add valet mode and tire pressures
- * lgk version ... integrate changes above also tire pressures are not avail when parked.. so put n/a in attribute also add last known tire pressure to be accurate.
+ * new version fix misspelling of tpms vs tmps and notice tire pressures were in bar so convert to psi
  */
 
 metadata {
@@ -227,6 +227,7 @@ private processData(data) {
         
         if (data.vehicleState) {
            if (debug) log.debug "vehicle state = $data.vehicleState"
+            def toPSI  = 14.503773773
             
         	sendEvent(name: "presence", value: data.vehicleState.presence)
             sendEvent(name: "lock", value: data.vehicleState.lock)
@@ -238,30 +239,35 @@ private processData(data) {
             sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
             sendEvent(name: "valet_mode", value: data.vehicleState.valet_mode)
             
-            if (data.vehicleState.tmps_pressure_fl != null)
-              {   sendEvent(name: "tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
-                sendEvent(name: "last_known_tire_pressure_front_left", value: data.vehicleState.tpms_pressure_fl)
+            if (data.vehicleState.tpms_pressure_fl != null)
+              { 
+                def thePressure = ((float)vehicleState.tpms_pressure_fl * toPSI).round(1)
+                sendEvent(name: "tire_pressure_front_left", value: thePressure)
+                sendEvent(name: "last_known_tire_pressure_front_left", value: thePressure)
               }
             else  sendEvent(name: "tire_pressure_front_left", value: "n/a")
             
-            if (data.vehicleState.tmps_pressure_fr != null) 
-              { 
-                sendEvent(name: "tire_pressure_front_right", value: data.vehicleState.tpms_pressure_fr)
-                sendEvent(name: "last_known_tire_pressure_front_right", value: data.vehicleState.tpms_pressure_fr)
+            if (data.vehicleState.tpms_pressure_fr != null) 
+              {
+                def thePressure = ((float)vehicleState.tpms_pressure_fr * toPSI).round(1) 
+                sendEvent(name: "tire_pressure_front_right", value: thePressure)
+                sendEvent(name: "last_known_tire_pressure_front_right", value: thePressure)
               }
             else  sendEvent(name: "tire_pressure_front_right", value: "n/a")
           
-            if (data.vehicleState.tmps_pressure_rl != null)
-              {
-                sendEvent(name: "tire_pressure_rear_left", value: data.vehicleState.tpms_pressure_rl)
-                sendEvent(name: "last_known_tire_pressure_rear_left", value: data.vehicleState.tpms_pressure_rl)
+            if (data.vehicleState.tpms_pressure_rl != null)tm
+              { 
+                def thePressure = ((float)vehicleState.tpms_pressure_rl * toPSI).round(1)
+                sendEvent(name: "tire_pressure_rear_left", value: thePressure)
+                sendEvent(name: "last_known_tire_pressure_rear_left", value: thePressure)
               }
             else sendEvent(name: "tire_pressure_rear_left", value: "n/a")
  
-            if (data.vehicleState.tmps_pressure_rr != null) 
+            if (data.vehicleState.tpms_pressure_rr != null) 
               {
-                sendEvent(name: "tire_pressure_rear_right", value: data.vehicleState.tpms_pressure_rr)
-                sendEvent(name: "last_known_tire_pressure_rear_right", value: data.vehicleState.tpms_pressure_rr)
+                def thePressure = ((float)vehicleState.tpms_pressure_rr * toPSI).round(1)
+                sendEvent(name: "tire_pressure_rear_right", value: thePressure)
+                sendEvent(name: "last_known_tire_pressure_rear_right", value: thePressure)
               }
             else sendEvent(name: "tire_pressure_rear_right", value: "n/a")
 
