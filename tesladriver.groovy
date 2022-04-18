@@ -245,7 +245,7 @@ private processData(data) {
             
             if (data.vehicleState.tire_pressure_front_left != null)
               { 
-                def thePressure = ((float)vehicleState.tire_pressure_front_left * toPSI).round(1)
+                def thePressure = ((float)data.vehicleState.tire_pressure_front_left * toPSI).round(1)
                 sendEvent(name: "tire_pressure_front_left", value: thePressure)
                 sendEvent(name: "last_known_tire_pressure_front_left", value: thePressure)
               }
@@ -253,7 +253,7 @@ private processData(data) {
             
             if (data.vehicleState.tire_pressure_front_right != null) 
               {
-                def thePressure = ((float)vehicleState.tire_pressure_front_right * toPSI).round(1) 
+                def thePressure = ((float)data.vehicleState.tire_pressure_front_right * toPSI).round(1) 
                 sendEvent(name: "tire_pressure_front_right", value: thePressure)
                 sendEvent(name: "last_known_tire_pressure_front_right", value: thePressure)
               }
@@ -261,7 +261,7 @@ private processData(data) {
           
             if (data.vehicleState.tire_pressure_rear_left != null)
               { 
-                def thePressure = ((float)vehicleState.tire_pressure_rear_left * toPSI).round(1)
+                def thePressure = ((float)data.vehicleState.tire_pressure_rear_left * toPSI).round(1)
                 sendEvent(name: "tire_pressure_rear_left", value: thePressure)
                 sendEvent(name: "last_known_tire_pressure_rear_left", value: thePressure)
               }
@@ -269,7 +269,7 @@ private processData(data) {
  
             if (data.vehicleState.tire_pressure_rear_right != null) 
               {
-                def thePressure = ((float)vehicleState.tire_pressure_rear_right * toPSI).round(1)
+                def thePressure = ((float)data.vehicleState.tire_pressure_rear_right * toPSI).round(1)
                 sendEvent(name: "tire_pressure_rear_right", value: thePressure)
                 sendEvent(name: "last_known_tire_pressure_rear_right", value: thePressure)
               }
