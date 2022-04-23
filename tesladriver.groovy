@@ -39,6 +39,8 @@
  * dev:12122022-04-17 02:01:10.554 pm debugprocessData: [state:online, motion:active, speed:29, vin:5YJ3E1EB9JF117593, thermostatMode:auto, 
  * vehicleState:[presence:not present, lock:locked, odometer:32665.353397, sentry_mode:Off, front_drivers_window:Closed, front_pass_window:Closed, rear_drivers_window:Closed, rear_pass_window:Closed, 
  * valet_mode:Off, tire_pressure_front_left:3.2, tire_pressure_front_right:3.2, tire_pressure_rear_left:3.175, tire_pressure_rear_right:3.15], 
+ *
+ * add code to handle 0 or null coming back from tire pressures as depending on card/sw either can be returned when not driving
  */
 
 metadata {
@@ -243,7 +245,7 @@ private processData(data) {
             sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
             sendEvent(name: "valet_mode", value: data.vehicleState.valet_mode)
             
-            if (data.vehicleState.tire_pressure_front_left != null)
+            if ((data.vehicleState.tire_pressure_front_left != null) && (data.vehicleState.tire_pressure_front_left != 0 ))
               { 
                 def thePressure = ((float)data.vehicleState.tire_pressure_front_left * toPSI).round(1)
                 sendEvent(name: "tire_pressure_front_left", value: thePressure)
@@ -251,7 +253,7 @@ private processData(data) {
               }
             else  sendEvent(name: "tire_pressure_front_left", value: "n/a")
             
-            if (data.vehicleState.tire_pressure_front_right != null) 
+           if ((data.vehicleState.tire_pressure_front_right != null) && (data.vehicleState.tire_pressure_front_right != 0 ))
               {
                 def thePressure = ((float)data.vehicleState.tire_pressure_front_right * toPSI).round(1) 
                 sendEvent(name: "tire_pressure_front_right", value: thePressure)
@@ -259,7 +261,7 @@ private processData(data) {
               }
             else  sendEvent(name: "tire_pressure_front_right", value: "n/a")
           
-            if (data.vehicleState.tire_pressure_rear_left != null)
+            if ((data.vehicleState.tire_pressure_rear_left != null) && (data.vehicleState.tire_pressure_rear_left != 0))
               { 
                 def thePressure = ((float)data.vehicleState.tire_pressure_rear_left * toPSI).round(1)
                 sendEvent(name: "tire_pressure_rear_left", value: thePressure)
@@ -267,7 +269,7 @@ private processData(data) {
               }
             else sendEvent(name: "tire_pressure_rear_left", value: "n/a")
  
-            if (data.vehicleState.tire_pressure_rear_right != null) 
+             if ((data.vehicleState.tire_pressure_rear_right != null) && (data.vehicleState.tire_pressure_rear_right != 0))
               {
                 def thePressure = ((float)data.vehicleState.tire_pressure_rear_right * toPSI).round(1)
                 sendEvent(name: "tire_pressure_rear_right", value: thePressure)
