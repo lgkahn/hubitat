@@ -60,9 +60,18 @@ def loginToTesla() {
             input "newRefreshToken", "string", title: "Input new refresh token?", required: false
             input "refreshAccessTokenURL", "string", title: "URL (on your server) that holds new access token as generated from python script?", required: false 
             input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
-		}
+	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
+            input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
+  
+        }
 		section("To use Tesla, Hubitat encrypts and securely stores a token.") {}
 	}
+}
+
+def logsOff()
+{
+    log.debug "Turning off Logging!"
+    device.updateSetting("debug",[value:"false",type:"bool"])
 }
 
 def selectVehicles() {
@@ -93,31 +102,35 @@ def getUserAgent() { "trentacular" }
 
 def getAccessToken() {
     
-    log.debug "in get access token"
-    
-   // log.debug "in get access token"
-    //log.debug "newaccess token - $newAccessToken"
-    //log.debug "old token = $state.accessToken"
-    //log.debug "last input token = $state.lastInputAccessToken "
-    
+    if (descLog) log.info "in get access token"
+    if (debug)
+    {
+        log.debug "newaccess token - $newAccessToken"
+        log.debug "old token = $state.accessToken"
+        log.debug "last input token = $state.lastInputAccessToken"   
+    }
     
     if (newAccessToken)
     {
-        log.debug "Resetting access token"
+        if (descLog) log.debug "Resetting access token."
         state.accessToken = newAccessToken
         app.clearSetting("newAccessToken")
         notifyIfEnabled("Tesla App - Succesfully refreshed token from entry!")
+        if (descLog) "Tesla App - Succesfully refreshed token from entry!"
           
     }
     else
     {
          if ((!state.accessToken) && (refreshAccessTokenURL))
         {
-           // log.debug "Attempting to get access token from url!"
+           if (descLog) log.debug "Attempting to get access token from url!"
             refreshAccessTokenfromURL()
         }  
         else if (!state.accessToken)
+        {
+            if (descLog) log.debug "Attempting to get new access token from refresh token!"
             refreshAccessToken()
+        }
     }
     
 	state.accessToken
@@ -141,13 +154,15 @@ def refreshAccessTokenfromURL() {
         ],
 	  timeout: 2
     ]
-    log.debug "sending refresh request: $params"
+    if (debug) log.debug "sending refresh request: $params"
     try {
           httpPostJson(params) { resp ->  
              if (resp.status == 200)
               {
-                  log.debug "got data = $resp.data status $resp.status"
+                  if (debug) log.debug "got data = $resp.data status $resp.status"
                   notifyIfEnabled("Tesla App - Succesfully refreshed token from URL")
+                  if (descLog) log.debug"Tesla App - Successfully refreshed token from URL"
+                      
                   state.accessToken = resp.data.access_token
                   state.refreshToken = resp.data.refresh_token
               }
@@ -155,13 +170,19 @@ def refreshAccessTokenfromURL() {
             {
                  state.accessToken = null
                  notifyIfEnabled("Tesla App - Refresh token from URL Failed bad response!")  
+                 if (debug) log.debug "Tesla App - Refresh token from URL Failed bad response!"
             }
         }
  }
     
     catch (groovyx.net.http.HttpResponseException e) {
             	log.warn e
-                notifyIfEnabled("Tesla App - Refresh token from URL Failed ($e)!")
+                if (debug) 
+                {
+                  notifyIfEnabled("Tesla App - Refresh token from URL Failed ($e)!")
+                  log.debug "Tesla App - Refresh token from URL Failed ($e)!"
+                }
+        
                 state.accessToken = null
                 if (e.response?.data?.status?.code == 14) {
                     state.refreshToken = null
@@ -170,13 +191,11 @@ def refreshAccessTokenfromURL() {
          
     }
 
-    
-
 private authorizedHttpRequest(Map options = [:], String path, String method, Closure closure) {
-    log.debug "in authorize http req"
+   if(debug) log.debug "in authorize http req"
     def attempt = options.attempt ?: 0
     
-    log.debug "authorizedHttpRequest ${method} ${path} attempt ${attempt}"
+    if (descLog) log.info "authorizedHttpRequest ${method} ${path} attempt ${attempt}"
     try {
     	def requestParameters = [
             uri: serverUrl,
@@ -192,7 +211,7 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
         } else if (method == "POST") {
         	if (options.body) {
             	requestParameters["body"] = options.body
-                log.debug "authorizedHttpRequest body: ${options.body}"
+                if (descLog) log.info "authorizedHttpRequest body: ${options.body}"
                 httpPostJson(requestParameters) { resp -> closure(resp) }
             } else {
         		httpPost(requestParameters) { resp -> closure(resp) }
@@ -225,18 +244,16 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
 }
 
 private refreshAccountVehicles() {
-   // log.debug "in refresh account vehic. atoke = $state.accessToken"
-   // if (state.accessToken == null)
-    // refreshAccessToken()
-    
-	log.debug "refreshAccountVehicles"
+   if (debug) log.debug "in refreshAccountVehicles. current token = $state.accessToken"
+   
+	if (descLog) log.info "refreshAccountVehicles"
 
 	state.accountVehicles = [:]
 
 	authorizedHttpRequest("/api/1/vehicles", "GET", { resp ->
-    	log.debug "Found ${resp.data.response.size()} vehicles"
+    	if (descLog) log.info "Found ${resp.data.response.size()} vehicles"
         resp.data.response.each { vehicle ->
-        	log.debug "${vehicle.id}: ${vehicle.display_name}"
+        	if (descLog) log.info "${vehicle.id}: ${vehicle.display_name}"
         	state.accountVehicles[vehicle.id] = vehicle.display_name
         }
     })
@@ -244,16 +261,16 @@ private refreshAccountVehicles() {
 
 
 def installed() {
-	log.debug "Installed"
+	log.info "Installed"
 	initialize()
 }
 
 def updated() {
-	log.debug "Updated"
+	log.info "Updated"
     
 
 	unsubscribe()
-	initialize()
+	initialize() 
 }
 
 def uninstalled() {
@@ -268,7 +285,7 @@ private removeChildDevices(delete) {
 }
 
 def initialize() {
-    log.debug "in initializE"
+    if (descLog) log.info "in initialize"
     ensureDevicesForSelectedVehicles()
     removeNoLongerSelectedChildDevices()
 }
@@ -283,7 +300,7 @@ private ensureDevicesForSelectedVehicles() {
                 log.debug "created device ${device.label} with id ${dni}"
                 device.initialize()
             } else {
-                log.debug "device for ${d.label} with id ${dni} already exists"
+                log.info "device for ${d.label} with id ${dni} already exists"
             }
         }
     }
@@ -306,7 +323,7 @@ private transformVehicleResponse(resp) {
 }
 
 def refresh(child) {
-    log.debug "in refresh child"
+   if (descLog) log.info "in refresh child"
     def data = [:]
 	def id = child.device.deviceNetworkId
     authorizedHttpRequest("/api/1/vehicles/${id}", "GET", { resp ->
@@ -505,9 +522,9 @@ def notifyIfEnabled(message) {
     }
 }
 
-
+/* this is no longer working as well
 def refreshAccessTokenold() {
-	//log.debug "refreshAccessToken"
+	if (debug) log.debug "refreshAccessToken"
 	try {
         if (state.refreshToken) {
         	log.debug "Found refresh token so attempting an oAuth refresh"
@@ -534,7 +551,7 @@ def refreshAccessTokenold() {
                 }
             }
         }
-
+*/
          
          // login from username password deprecated lgk
         
@@ -558,6 +575,7 @@ def refreshAccessTokenold() {
             }
         }
 */
+/*
     } catch (Exception e) {
         log.error "Unhandled exception in refreshAccessToken: $e response = $resp"
     }
@@ -571,10 +589,10 @@ def refreshAccessTokenold() {
         
         
 }
-
+*/
 
 void scheduleRefreshAccessToken() {
-    log.debug "in schedule refresh"
+   if (descLog) log.info "in schedule refresh"
     if (state.tokenExpiration) {
         Long refreshDateEpoch = state.tokenExpiration - oneHourMs*2.5 // 2.5 hours before expiration
         //Min 1 hour, max 30 days
@@ -584,7 +602,7 @@ void scheduleRefreshAccessToken() {
             refreshDateEpoch = now() + oneDayMs*30
         }
         def refreshDate = new Date(refreshDateEpoch)
-        log.debug "Scheduling token refresh for ${refreshDate}."
+        if (descLog) log.info "Scheduling token refresh for ${refreshDate}."
         runOnce(refreshDate, refreshAccessToken) 
         state.scheduleRefreshToken = false
         state.refreshSchedTime = refreshDateEpoch
@@ -594,13 +612,13 @@ void scheduleRefreshAccessToken() {
 }
     
 void acceptAccessToken (String token, Long expiresIn) {
-    log.debug "in accept access token"
+    if (descLog) log.info "in accept access token"
     app.updateSetting("newAccessToken",[type:"text",value:token])
     settings.newAccessToken = token //ST workaround for immediate setting within dynamic page
     state.accessToken = token
     state.tokenExpiration = now() + expiresIn * 1000
     def refreshDate = new Date(state.tokenExpiration)
-    log.info "Token expires on ${refreshDate}."
+    if (descLog) log.info "Token expires on ${refreshDate}."
     state.scheduleRefreshToken = true  
     state.refreshTokenSuccess = true
     getTokenDateString() //Reset access token date status
@@ -612,7 +630,7 @@ void acceptAccessToken (String token, Long expiresIn) {
   
 
 void refreshAccessToken(){
-    log.debug "in refresh access toke"
+    if (descLog) log.debug "in refresh access token"
     if (settings.newRefreshToken && settings.newRefreshToken != ""){
         String currentRefreshToken = settings.newRefreshToken
         String ssoAccessToken = ""
@@ -629,7 +647,7 @@ void refreshAccessToken(){
                     app.updateSetting("newRefreshToken",[type:"text",value:resp.data["refresh_token"]])
                     ssoAccessToken = resp.data["access_token"]
                     expiresIn = resp.data.expires_in.toLong()
-                    log.info "Successfully updated refresh token and bearer token for access token"
+                    if (descLog) log.info "Successfully updated refresh token and bearer token for access token"
                 } 
                 else {
                     log.warn "Unable to update refresh token and bearer token for access token. Status code: ${statusCode}"
@@ -646,7 +664,9 @@ void refreshAccessToken(){
             }
         }
     
-        log.info "Getting updated access token and expiry"
+        // this no longer works
+        /*
+       if (descLog) log.info "Getting updated access token and expiry"
         Map ownerPayload = ["grant_type":teslaAccessTokenAuthGrantType, "client_id":teslaAccessTokenAuthClientId]
         Map ownerApiHeaders = ["Authorization": "Bearer " + ssoAccessToken]
         try{
@@ -654,7 +674,7 @@ void refreshAccessToken(){
                 resp ->
                 Integer statusCode = resp.getStatus()
                 if (statusCode == 200){
-                    log.info "Access Token access request data: ${resp.data}"
+                    if (descLog) log.info "Access Token access request data: ${resp.data}"
                     acceptAccessToken (resp.data["access_token"], resp.data.expires_in.toLong())
                 }
                 else {
@@ -669,6 +689,8 @@ void refreshAccessToken(){
                 acceptAccessToken (ssoAccessToken, expiresIn)
             }
         }
+*/
+        
     }
 }
 
