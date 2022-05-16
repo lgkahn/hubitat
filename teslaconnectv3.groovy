@@ -29,6 +29,15 @@
  * lgk 10/19/21 change set temp setpoint to double precision to get around integer values being used in conversions.
  * 
  * bsr 4/15/22 - Add valet mode and tire pressures
+ *
+ * 5/16/22 thanks to darwin for help .. this is a new version of the app that using the new token logic.
+ *
+ * you still need to generate the initial token and refresh token.. recommend you create a separate login on tesla for it, as if
+ * you use your teslafi or other app token that uses differing login (ie regenerates the normal token) they will step on each other
+ * and it wont work.
+ * also added new debug and desc log settings.
+ * use tesla_auth.exe or something else to generate initial token pairs.
+ *
  */
 
 import groovy.transform.Field
