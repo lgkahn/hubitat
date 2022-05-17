@@ -141,7 +141,7 @@ def getAccessToken() {
             refreshAccessToken()
         }
     }
-    
+   // refreshAccessToken()
 	state.accessToken
 }
 
@@ -246,6 +246,7 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
             {
              refreshAccessTokenfromURL()
             }
+            else refreshAccessToken()
              
                 
         }
@@ -674,7 +675,7 @@ void refreshAccessToken(){
         }
     
         // this no longer works
-        /*
+        
        if (descLog) log.info "Getting updated access token and expiry"
         Map ownerPayload = ["grant_type":teslaAccessTokenAuthGrantType, "client_id":teslaAccessTokenAuthClientId]
         Map ownerApiHeaders = ["Authorization": "Bearer " + ssoAccessToken]
@@ -692,13 +693,13 @@ void refreshAccessToken(){
             }
         }
         catch (Exception e){
-            log.info "Issue getting Tesla server access token from bearer refresh token: ${e} (this is normal for now)"
+            if (debug) log.info "Issue getting Tesla server access token from bearer refresh token: ${e} (this is normal for now)"
             //Use the sso token as is:
             if (ssoAccessToken && expiresIn) {
                 acceptAccessToken (ssoAccessToken, expiresIn)
             }
         }
-*/
+
         
     }
 }
