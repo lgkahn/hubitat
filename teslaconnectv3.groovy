@@ -60,6 +60,12 @@ preferences {
 	page(name: "selectVehicles", title: "Tesla")
 }
 
+mappings {
+    path("/setToken") {
+        action: [GET: "setEndpointToken"]
+    }
+}
+
 def loginToTesla() {
 	def showUninstall = email != null && password != null
 	return dynamicPage(name: "VehicleAuth", title: "Connect your Tesla", nextPage:"selectVehicles", uninstall:showUninstall) {
@@ -68,12 +74,23 @@ def loginToTesla() {
 			input "password", "text", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
             input "newAccessToken", "string", title: "Input new access token when expired?", required: false
             input "newRefreshToken", "string", title: "Input new refresh token?", required: false
-            input "refreshAccessTokenURL", "string", title: "URL (on your server) that holds new access token as generated from python script?", required: false 
+            input "refreshAccessTokenURL", "string", title: "URL (on your server) that holds new access token as generated from python script?", required: false
+            input "allowEndpoint", "bool", title:"Activate Endpoint for updating token", required:false, submitOnUpdate:true
             input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
 	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
             input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
-  
         }
+           if (allowEndpoint){
+                section("App Endpoint Information", , hideable: false, hidden: false){
+                    if(state.accessToken == null) createAccessToken()
+                    paragraph "<b>Local Server API:</b> ${getFullLocalApiServerUrl()}/setToken?teslaToken=[Tesla Token Value]&access_token=${state.accessToken}"
+                    paragraph "<b>Cloud Server Endpoint: </b>${getFullApiServerUrl()}/setToken?teslaToken=[Tesla Token Value]&access_token=${state.accessToken}"
+
+                    input "resetToken", "button", title:"Reset Endpoint Token"
+                    input "disallow","button", title:"Remove Endpoint"
+                }
+        }  
+        
 		section("To use Tesla, Hubitat encrypts and securely stores a token.") {}
 	}
 }
@@ -113,6 +130,13 @@ def getUserAgent() { "trentacular" }
 def getAccessToken() {
     
     if (descLog) log.info "in get access token"
+    
+    if ((state.accessToken) && (!state.teslaAccessToken))
+    {
+         log.debug "Initializing tesla access token for switch over."
+         state.teslaAccessToken = state.accessToken
+    }
+    
     if (debug)
     {
         log.debug "newaccess token - $newAccessToken"
@@ -732,6 +756,46 @@ String getTokenDateString() {
         }
     }
     return msg
+}
+
+def setEndpointToken(){
+    if(allowEndpoint) {
+    	log.debug "Resetting access token from endpoint"
+        //log.debug "${params.teslaToken}"
+        newToken = params.teslaToken   
+
+	    state.accessToken = newToken
+        jsonText = "{\"status\": \"acknowledged\"}"
+        render contentType:'application/json', data: "$jsonText", status:200
+    }else 
+        render contentType:'application/json', data: "{\"status\": \"denied\"}", status:404
+}
+
+def valetModeOn(child) {
+    wake(child)
+    pause(2000)
+	return executeApiCommand(child, "set_valet_mode", body: [on: "true"])
+}
+
+def valetModeOff(child) {
+    wake(child)
+    pause(2000)
+	return executeApiCommand(child, "set_valet_mode", body: [on: "false"])
+}
+
+void appButtonHandler(btn) {
+    switch(btn) {
+          case "resetToken":
+              createAccessToken()
+              break
+          case "disallow":
+              app.updateSetting("allowEndpoint",[value:"false",type:"bool"])
+              createAccessToken() //resetting this revokes all previous
+              break
+          default: 
+              if(debugEnabled) log.error "Undefined button $btn pushed"
+              break
+      }
 }
 
 @Field static final Long oneHourMs = 1000*60*60
