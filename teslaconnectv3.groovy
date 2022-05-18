@@ -37,6 +37,7 @@
  * and it wont work.
  * also added new debug and desc log settings.
  * use tesla_auth.exe or something else to generate initial token pairs.
+ * add notify of successfull refresh and schedule
  *
  */
 
@@ -613,6 +614,7 @@ void scheduleRefreshAccessToken() {
         }
         def refreshDate = new Date(refreshDateEpoch)
         if (descLog) log.info "Scheduling token refresh for ${refreshDate}."
+         notifyIfEnabled("Tesla App - Succesfully scheduled next refresh for ${refreshDate}")
         runOnce(refreshDate, refreshAccessToken) 
         state.scheduleRefreshToken = false
         state.refreshSchedTime = refreshDateEpoch
@@ -657,7 +659,8 @@ void refreshAccessToken(){
                     app.updateSetting("newRefreshToken",[type:"text",value:resp.data["refresh_token"]])
                     ssoAccessToken = resp.data["access_token"]
                     expiresIn = resp.data.expires_in.toLong()
-                    if (descLog) log.info "Successfully updated refresh token and bearer token for access token"
+                    if (descLog) log.info "Successfully updated refresh/bearer token for access token!"
+                       notifyIfEnabled("Tesla App - Succesfully refreshed refresh/bearer token for access token!")
                 } 
                 else {
                     log.warn "Unable to update refresh token and bearer token for access token. Status code: ${statusCode}"
