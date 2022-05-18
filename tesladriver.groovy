@@ -41,6 +41,7 @@
  * valet_mode:Off, tire_pressure_front_left:3.2, tire_pressure_front_right:3.2, tire_pressure_rear_left:3.175, tire_pressure_rear_right:3.15], 
  *
  * add code to handle 0 or null coming back from tire pressures as depending on card/sw either can be returned when not driving
+ * add valet mode.
  */
 
 metadata {
@@ -99,6 +100,8 @@ metadata {
         command "setSeatHeaters", ["number","number"]  /** first attribute is seat number 0-5 and second attribute is heat level 0-3 e.g. 0,3 is drivers seat heat to max *  Future plan is to have this be  drop down list */ 
         command "sentryModeOn"
         command "sentryModeOff"
+        command "valetModeOn"
+        command "valetModeOff"        
         command "ventWindows"
         command "closeWindows"
         command "setChargeLimit", ["number"] /* integer percent */
@@ -446,6 +449,18 @@ def sentryModeOn() {
 def sentryModeOff() {
 	log.debug "Executing 'Turn Sentry Mode Off'"
 	def result = parent.sentryModeOff(this)
+    if (result) { refresh() }
+}
+
+def valetModeOn() {
+	log.debug "Executing 'Turn Valet Mode On'"
+	def result = parent.valetModeOn(this)
+    if (result) { refresh() }
+}
+
+def valetModeOff() {
+	log.debug "Executing 'Turn Valet Mode Off'"
+	def result = parent.valetModeOff(this)
     if (result) { refresh() }
 }
 
