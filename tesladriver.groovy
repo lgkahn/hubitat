@@ -105,6 +105,7 @@ metadata {
         command "ventWindows"
         command "closeWindows"
         command "setChargeLimit", ["number"] /* integer percent */
+        command "scheduleTokenRefresh"
 
 	}
 
@@ -479,4 +480,10 @@ def closeWindows() {
 
 private farenhietToCelcius(dF) {
 	return (dF - 32) * 5/9
+}
+
+
+def scheduleTokenRefresh() {
+	log.debug "Executing 'sheduleTokenRefresh'"
+    def result = parent.scheduleTokenRefresh(this)
 }
