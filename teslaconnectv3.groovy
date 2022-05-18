@@ -798,6 +798,15 @@ void appButtonHandler(btn) {
       }
 }
 
+def scheduleTokenRefresh(child) {
+  if (descLog) log.info "In force reschedule of refresh token!"
+  refreshAccessToken()
+  pause(10000)
+ if (state.scheduleRefreshToken)
+    return true
+    else return false
+}
+
 @Field static final Long oneHourMs = 1000*60*60
 @Field static final Long oneDayMs = 1000*60*60*24
 
