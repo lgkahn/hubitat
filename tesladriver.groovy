@@ -106,6 +106,7 @@ metadata {
         command "closeWindows"
         command "setChargeLimit", ["number"] /* integer percent */
         command "scheduleTokenRefresh"
+        command "transitionAccessToken"
 
 	}
 
@@ -486,4 +487,9 @@ private farenhietToCelcius(dF) {
 def scheduleTokenRefresh() {
 	log.debug "Executing 'sheduleTokenRefresh'"
     def result = parent.scheduleTokenRefresh(this)
+}
+
+def transitionAccessToken() {
+	log.debug "Executing 'transitioning accessToken to prepare for new teslaAccessToken'"
+    def result = parent.transitionAccessToken(this)
 }
