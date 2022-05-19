@@ -39,6 +39,11 @@
  * use tesla_auth.exe or something else to generate initial token pairs.
  * add notify of successfull refresh and schedule
  *
+ * lgk may 22
+ * integrate the local access point code to set token and add additional code to handle switching over from accesstoken (used by oauth)
+ * to the new teslaAccessToken use the transittionAccessToken function immeidately after saving first the driver then the app to switch over.
+ * Failure to do so will break existing installs and require removeal and reinstall.
+ *
  */
 
 import groovy.transform.Field
@@ -101,9 +106,21 @@ def logsOff()
     device.updateSetting("debug",[value:"false",type:"bool"])
 }
 
-def selectVehicles() {
+def transitionAccessToken(child)
+{
+ 
+    log.debug "Initializing tesla access token for switch over."
+    state.teslaAccessToken = state.accessToken
+    return true;
+}  
+    
+def selectVehicles() 
+{
+    if (debug) log.debug "In select vehicles"
+ 
 	try {
-		refreshAccountVehicles()
+        
+        refreshAccountVehicles()
 
 		return dynamicPage(name: "selectVehicles", title: "Tesla", install:true, uninstall:true) {
 			section("Select which Tesla to connect"){
@@ -131,23 +148,17 @@ def getAccessToken() {
     
     if (descLog) log.info "in get access token"
     
-    if ((state.accessToken) && (!state.teslaAccessToken))
-    {
-         log.debug "Initializing tesla access token for switch over."
-         state.teslaAccessToken = state.accessToken
-    }
-    
     if (debug)
     {
         log.debug "newaccess token - $newAccessToken"
-        log.debug "old token = $state.accessToken"
+        log.debug "old token = $state.teslaAccessToken"
         log.debug "last input token = $state.lastInputAccessToken"   
     }
     
     if (newAccessToken)
     {
         if (descLog) log.debug "Resetting access token."
-        state.accessToken = newAccessToken
+        state.teslaAccessToken = newAccessToken
         app.clearSetting("newAccessToken")
         notifyIfEnabled("Tesla App - Succesfully refreshed token from entry!")
         if (descLog) "Tesla App - Succesfully refreshed token from entry!"
@@ -155,19 +166,19 @@ def getAccessToken() {
     }
     else
     {
-         if ((!state.accessToken) && (refreshAccessTokenURL))
+         if ((!state.teslaAccessToken) && (refreshAccessTokenURL))
         {
            if (descLog) log.debug "Attempting to get access token from url!"
             refreshAccessTokenfromURL()
         }  
-        else if (!state.accessToken)
+        else if (!state.teslaAccessToken)
         {
             if (descLog) log.debug "Attempting to get new access token from refresh token!"
             refreshAccessToken()
         }
     }
-   // refreshAccessToken()
-	state.accessToken
+   // refreshAccessToken() for testing
+	state.teslaAccessToken
 }
 
 private convertEpochSecondsToDate(epoch) {
@@ -197,12 +208,12 @@ def refreshAccessTokenfromURL() {
                   notifyIfEnabled("Tesla App - Succesfully refreshed token from URL")
                   if (descLog) log.debug"Tesla App - Successfully refreshed token from URL"
                       
-                  state.accessToken = resp.data.access_token
+                  state.teslaAccessToken = resp.data.access_token
                   state.refreshToken = resp.data.refresh_token
               }
             else
             {
-                 state.accessToken = null
+                 state.teslaAccessToken = null  
                  notifyIfEnabled("Tesla App - Refresh token from URL Failed bad response!")  
                  if (debug) log.debug "Tesla App - Refresh token from URL Failed bad response!"
             }
@@ -217,7 +228,7 @@ def refreshAccessTokenfromURL() {
                   log.debug "Tesla App - Refresh token from URL Failed ($e)!"
                 }
         
-                state.accessToken = null
+                state.teslaAccessToken = null
                 if (e.response?.data?.status?.code == 14) {
                     state.refreshToken = null
                 }
@@ -236,7 +247,7 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
             path: path,
             headers: [
                 'User-Agent': userAgent,
-                Authorization: "Bearer ${accessToken}"
+                Authorization: "Bearer ${state.teslaAccessToken}"
             ]
         ]
     
@@ -279,7 +290,7 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
 }
 
 private refreshAccountVehicles() {
-   if (debug) log.debug "in refreshAccountVehicles. current token = $state.accessToken"
+   if (debug) log.debug "in refreshAccountVehicles. current token = $state.teslaAccessToken"
    
 	if (descLog) log.info "refreshAccountVehicles"
 
@@ -575,12 +586,12 @@ def refreshAccessTokenold() {
                         refresh_token: state.refreshToken
                     ]
                 ]) { resp ->
-                    state.accessToken = resp.data.access_token
+                    state.teslaAccessToken = resp.data.access_token
                     state.refreshToken = resp.data.refresh_token
                 }
             } catch (groovyx.net.http.HttpResponseException e) {
             	log.warn e
-                state.accessToken = null
+                state.teslaAccessToken = null
                 if (e.response?.data?.status?.code == 14) {
                     state.refreshToken = null
                 }
@@ -590,7 +601,7 @@ def refreshAccessTokenold() {
          
          // login from username password deprecated lgk
         
-       /* if (!state.accessToken) {
+       /* if (!state.teslaAccessToken) {
         	log.debug "Attemtping to get access token using password" 
             httpPostJson([
                 uri: serverUrl,
@@ -605,7 +616,7 @@ def refreshAccessTokenold() {
                 ]
             ]) { resp ->
             	log.debug "Received access token that will expire on ${convertEpochSecondsToDate(resp.data.created_at + resp.data.expires_in)}"
-                state.accessToken = resp.data.access_token
+                state.teslaAccessToken = resp.data.access_token
                 state.refreshToken = resp.data.refresh_token
             }
         }
@@ -616,7 +627,7 @@ def refreshAccessTokenold() {
     }
 
         // above is deprecated for now get using url
-       if ((!state.accessToken) && (refreshAccessTokenURL))
+       if ((!state.teslaAccessToken) && (refreshAccessTokenURL))
         {
             log.debug "Attempting to get access token from url!"
             refreshAccessTokenfromURL()
@@ -651,7 +662,7 @@ void acceptAccessToken (String token, Long expiresIn) {
     if (descLog) log.info "in accept access token"
     app.updateSetting("newAccessToken",[type:"text",value:token])
     settings.newAccessToken = token //ST workaround for immediate setting within dynamic page
-    state.accessToken = token
+    state.teslaAccessToken = token
     state.tokenExpiration = now() + expiresIn * 1000
     def refreshDate = new Date(state.tokenExpiration)
     if (descLog) log.info "Token expires on ${refreshDate}."
@@ -764,7 +775,7 @@ def setEndpointToken(){
         //log.debug "${params.teslaToken}"
         newToken = params.teslaToken   
 
-	    state.accessToken = newToken
+	    state.teslaAccessToken = newToken
         jsonText = "{\"status\": \"acknowledged\"}"
         render contentType:'application/json', data: "$jsonText", status:200
     }else 
