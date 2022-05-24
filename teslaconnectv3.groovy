@@ -419,11 +419,13 @@ def refresh(child) {
                 tire_pressure_rear_left: vehicleState.tpms_pressure_rl,
                 tire_pressure_rear_right: vehicleState.tpms_pressure_rr
                 ]
-
-            
+             
             data["climateState"] = [
             	temperature: celciusToFarenhiet(climateState.inside_temp),
+                outside_temperature: celciusToFarenhiet(climateState.outside_temp),
                 thermostatSetpoint: celciusToFarenhiet(climateState.driver_temp_setting),
+                passengerSetpoint: celciusToFarenhiet(climateState.passenger_temp_setting),
+                seat_heater_left: climateState.seat_heater_left,
                 seat_heater_left: climateState.seat_heater_left,
                 seat_heater_right: climateState.seat_heater_right, 
                 seat_heater_rear_left: climateState.seat_heater_rear_left,  
