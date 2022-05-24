@@ -71,10 +71,10 @@ metadata {
         attribute "seat_heater_rear_right", "number"
         attribute "seat_heater_rear_center", "number"    
         attribute "sentry_mode", "string"
-        attribute "front_drivers_window" , "number"
-        attribute "front_pass_window" , "number"
-        attribute "rear_drivers_window" , "number"
-        attribute "rear_pass_window" , "number"
+        attribute "front_drivers_window" , "string"
+        attribute "front_pass_window" , "string"
+        attribute "rear_drivers_window" , "string"
+        attribute "rear_pass_window" , "string"
         attribute "current_charge_limit", "number"
         attribute "longitude", "number"
         attribute "latitude", "number"
@@ -96,7 +96,7 @@ metadata {
         command "stopCharge"
         command "openFrontTrunk"
         command "openRearTrunk"
-        command "unlockandOpenChargePort"
+        command "unlockAndOpenChargePort"
         command "setSeatHeaters", ["number","number"]  /** first attribute is seat number 0-5 and second attribute is heat level 0-3 e.g. 0,3 is drivers seat heat to max *  Future plan is to have this be  drop down list */ 
         command "sentryModeOn"
         command "sentryModeOff"
@@ -416,7 +416,7 @@ def openRearTrunk() {
     // if (result) { refresh() }
 }
 
-def unlockandOpenChargePort() {
+def unlockAndOpenChargePort() {
 	log.debug "Executing 'unock and open charge port'"
     def result = parent.unlockandOpenChargePort(this)
     // if (result) { refresh() }   
