@@ -89,6 +89,8 @@ metadata {
         attribute "last_known_tire_pressure_front_right", "number"
         attribute "last_known_tire_pressure_rear_left", "number"
         attribute "last_known_tire_pressure_rear_right", "number"
+        attribute "outside_temperature", "number"
+        attribute "passengerSetpoint", "number"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -289,12 +291,16 @@ private processData(data) {
             if (tempScale == "F")
             {
         	  sendEvent(name: "temperature", value: data.climateState.temperature.toInteger(), unit: "F")
+              sendEvent(name: "outside_temperature", value: data.climateState.outside_temperature.toInteger(), unit: "F") 
               sendEvent(name: "thermostatSetpoint", value: data.climateState.thermostatSetpoint.toInteger(), unit: "F")
+              sendEvent(name: "passengerSetpoint", value: data.climateState.passengerSetpoint.toInteger(), unit: "F")  
             }
             else
             {
               sendEvent(name: "temperature", value: farenhietToCelcius(data.climateState.temperature).toInteger(), unit: "C")
+              sendEvent(name: "outside_temperature", value: farenhietToCelcius(data.climateState.outside_temperature).toInteger(), unit: "C")
               sendEvent(name: "thermostatSetpoint", value: farenhietToCelcius(data.climateState.thermostatSetpoint).toInteger(), unit: "C")
+              sendEvent(name: "passengerSetpoint", value: farenhietToCelcius(data.climateState.passengerSetpoint).toInteger(), unit: "C") 
             }
             
             sendEvent(name: "seat_heater_left", value: data.climateState.seat_heater_left)
