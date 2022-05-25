@@ -92,6 +92,7 @@ metadata {
         attribute "outside_temperature", "number"
         attribute "passengerSetpoint", "number"
         attribute "lastTokenUpdate", "string"
+        attribute "lastTokenUpdateInt", "number"
         attribute "nextTokenUpdate", "string"
 
 		command "wake"
@@ -502,8 +503,10 @@ def transitionAccessToken() {
 
 def setLastokenUpdateTime()
 {
-    def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-    sendEvent(name: "lastTokenUpdate", value: now, descriptionText: "Last Token Update: $now")
+    def now1 = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+    Long nowint = now() / 1000
+    sendEvent(name: "lastTokenUpdate", value: now1, descriptionText: "Last Token Update: $now1")
+    sendEvent(name: "lastTokenUpdateInt", value: nowint)
 }
 
 def setNextTokenUpdateTime(nextTime)
