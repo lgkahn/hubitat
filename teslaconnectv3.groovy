@@ -44,6 +44,9 @@
  * to the new teslaAccessToken use the transittionAccessToken function immeidately after saving first the driver then the app to switch over.
  * Failure to do so will break existing installs and require removeal and reinstall.
  *
+ * lgk add lastTokenRefresh and nextTokenRefresh attributes and also functions to pass to child vehicles.. 
+ * also change wait time to be configuratble instead of the now default 2 secs between wake and command issuing. Also 
+ * change the default to 4 secs as 2 seems not to work any longer.
  */
 
 import groovy.transform.Field
@@ -84,6 +87,8 @@ def loginToTesla() {
             input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
 	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
             input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
+            input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issueing the requested command.", required: true, defaultValue: "4", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
+                                                                                                                                                  
         }
            if (allowEndpoint){
                 section("App Endpoint Information", , hideable: false, hidden: false){
@@ -108,7 +113,6 @@ def logsOff()
 
 def transitionAccessToken(child)
 {
- 
     log.debug "Initializing tesla access token for switch over."
     state.teslaAccessToken = state.accessToken
     return true;
@@ -447,6 +451,7 @@ private farenhietToCelcius(dF) {
 }
 
 def wake(child) {
+       
 	def id = child.device.deviceNetworkId
     def data = [:]
     authorizedHttpRequest("/api/1/vehicles/${id}/wake_up", "POST", { resp ->
@@ -465,38 +470,39 @@ private executeApiCommand(Map options = [:], child, String command) {
 
 def lock(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "door_lock")
 }
 
 def unlock(child) {
     wake(child)
-    pause(2000)
+    if (debug) log.debug "pausetime = $pauseTime modified = ${pauseTime.toInteger() * 1000}"
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "door_unlock")
 }
 
 def unlockandOpenChargePort(child) {
     wake(child)
-    pause(2000)
+    pauseFromEnum()
 return executeApiCommand(child, "charge_port_door_open")
 }
 
 def climateAuto(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "auto_conditioning_start")
 }
 
 def climateOff(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "auto_conditioning_stop")
 }
 
 def setThermostatSetpointC(child, Number setpoint) {
 	def Double setpointCelcius = setpoint.toDouble()
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
@@ -504,63 +510,63 @@ def setThermostatSetpointC(child, Number setpoint) {
 def setThermostatSetpointF(child, Number setpoint) {
 	def Double setpointCelcius = farenhietToCelcius(setpoint).toDouble()
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
     log.debug "setting tesla temp to $setpointCelcius input = $setpoint"
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
 def startCharge(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "charge_start")
 }
 
 def stopCharge(child) {
    wake(child)
-    pause(2000)
-	return executeApiCommand(child, "charge_stop")
+   pause((pauseTime.toInteger() * 1000))
+   return executeApiCommand(child, "charge_stop")
 }
 
 def openTrunk(child, whichTrunk) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "actuate_trunk", body: [which_trunk: whichTrunk])
 }
 
 def setSeatHeaters(child, seat,level) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "remote_seat_heater_request", body: [heater: seat, level: level])
 }
 
 def sentryModeOn(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "set_sentry_mode", body: [on: "true"])
 }
 
 def sentryModeOff(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "set_sentry_mode", body: [on: "false"])
 }
 
 def ventWindows(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "window_control", body: [command: "vent"])
 }
 
 def closeWindows(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "window_control", body: [command: "close"])
 }
 
 def setChargeLimit(child,limit) {
     def limitPercent = limit.toInteger()
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
     return executeApiCommand(child,"set_charge_limit", body: [percent: limitPercent])
 }
 
@@ -652,6 +658,8 @@ void scheduleRefreshAccessToken() {
         def refreshDate = new Date(refreshDateEpoch)
         if (descLog) log.info "Scheduling token refresh for ${refreshDate}."
          notifyIfEnabled("Tesla App - Succesfully scheduled next refresh for ${refreshDate}")
+        setNextTokenUpdateTimeForVehicles(refreshDate)
+        
         runOnce(refreshDate, refreshAccessToken) 
         state.scheduleRefreshToken = false
         state.refreshSchedTime = refreshDateEpoch
@@ -677,7 +685,6 @@ void acceptAccessToken (String token, Long expiresIn) {
         } 
 }
   
-
 void refreshAccessToken(){
     if (descLog) log.debug "in refresh access token"
     if (settings.newRefreshToken && settings.newRefreshToken != ""){
@@ -698,6 +705,8 @@ void refreshAccessToken(){
                     expiresIn = resp.data.expires_in.toLong()
                     if (descLog) log.info "Successfully updated refresh/bearer token for access token!"
                        notifyIfEnabled("Tesla App - Succesfully refreshed refresh/bearer token for access token!")
+                    setLastTokenUpdateTimeForVehicles()
+ 
                 } 
                 else {
                     log.warn "Unable to update refresh token and bearer token for access token. Status code: ${statusCode}"
@@ -786,13 +795,13 @@ def setEndpointToken(){
 
 def valetModeOn(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "set_valet_mode", body: [on: "true"])
 }
 
 def valetModeOff(child) {
     wake(child)
-    pause(2000)
+    pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "set_valet_mode", body: [on: "false"])
 }
 
@@ -815,10 +824,33 @@ def scheduleTokenRefresh(child) {
   if (descLog) log.info "In force reschedule of refresh token!"
   refreshAccessToken()
   pause(10000)
- if (state.scheduleRefreshToken)
+  if (state.scheduleRefreshToken)
     return true
     else return false
 }
+
+def setLastTokenUpdateTimeForVehicles()
+{   
+  def children = getChildDevices()
+
+	if (debug) log.debug "In send update time to children" 
+    children.each {
+         def oneChild = getChildDevice(it.deviceNetworkId)
+         if (oneChild) oneChild.setLastokenUpdateTime()
+    }
+}
+
+def setNextTokenUpdateTimeForVehicles(nextTime)
+{   
+  def children = getChildDevices()
+
+	if (debug) log.debug "In send next update time to children" 
+    children.each {
+         def oneChild = getChildDevice(it.deviceNetworkId)
+         if (oneChild) oneChild.setNextTokenUpdateTime(nextTime)
+    }
+}
+
 
 @Field static final Long oneHourMs = 1000*60*60
 @Field static final Long oneDayMs = 1000*60*60*24
