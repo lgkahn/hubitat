@@ -91,6 +91,8 @@ metadata {
         attribute "last_known_tire_pressure_rear_right", "number"
         attribute "outside_temperature", "number"
         attribute "passengerSetpoint", "number"
+        attribute "lastTokenUpdate", "string"
+        attribute "nextTokenUpdate", "string"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -484,11 +486,9 @@ def closeWindows() {
     if (result) { refresh() }
 }
 
-
 private farenhietToCelcius(dF) {
 	return (dF - 32) * 5/9
 }
-
 
 def scheduleTokenRefresh() {
 	log.debug "Executing 'sheduleTokenRefresh'"
@@ -499,3 +499,18 @@ def transitionAccessToken() {
 	log.debug "Executing 'transitioning accessToken to prepare for new teslaAccessToken'"
     def result = parent.transitionAccessToken(this)
 }
+
+def setLastokenUpdateTime()
+{
+    def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+    sendEvent(name: "lastTokenUpdate", value: now, descriptionText: "Last Token Update: $now")
+}
+
+def setNextTokenUpdateTime(nextTime)
+{
+    if (nextTime)
+    {
+       sendEvent(name: "nextTokenUpdate", value: nextTime, descriptionText: "Next Token Update: $now")
+    }
+}
+        
