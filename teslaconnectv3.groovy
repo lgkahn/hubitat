@@ -46,7 +46,7 @@
  *
  * lgk add lastTokenRefresh and nextTokenRefresh attributes and also functions to pass to child vehicles.. 
  * also change wait time to be configuratble instead of the now default 2 secs between wake and command issuing. Also 
- * change the default to 4 secs as 2 seems not to work any longer.
+ * change the default to 10 secs as 2 seems not to work any longer.
  */
 
 import groovy.transform.Field
@@ -87,7 +87,7 @@ def loginToTesla() {
             input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
 	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
             input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
-            input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issueing the requested command.", required: true, defaultValue: "4", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
+            input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issueing the requested command.", required: true, defaultValue: "10", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
                                                                                                                                                   
         }
            if (allowEndpoint){
