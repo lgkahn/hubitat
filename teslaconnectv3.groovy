@@ -89,7 +89,7 @@ def loginToTesla() {
 	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
             input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
             input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issuing the requested command.", required: true, defaultValue: "10", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
-                                                                                                                                                  
+            input "wakeOnInitialTry", "bool", title: "Should I issue a wake and pause on the inital try?", required: true, defaultValue: true                                                                                                                                      
         }
            if (allowEndpoint){
                 section("App Endpoint Information", , hideable: false, hidden: false){
@@ -292,7 +292,7 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
         if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
            {
             log.debug "code - 14 or 401"
-        	if (attempts < 4) {
+        	if (attempts < 5) {
                 refreshAccessToken()
                 pause((pauseTime.toInteger() * 1000))
                 ++attempts
@@ -306,7 +306,7 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
           {
               if (descLog) log.debug "Vehicle Unavailable"
               // 408 is vehicle unavailable ie offline or asleep. 
-              if (attempts < 4)
+              if (attempts < 5)
               {
                long localPauseTime = (pauseTime.toInteger() * (attempts + 1)) 
                                       
@@ -323,7 +323,7 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
                   
               }
               else {
-                 log.error "Failed after 3 attempts (vehicle was still unavailable) to perform request: ${path}" 
+                 log.error "Failed after 4 attempts (vehicle was still unavailable) to perform request: ${path}" 
               }
           }
           else {
@@ -569,105 +569,170 @@ private executeApiCommand(Map options = [:], child, String command) {
 }
 
 def lock(child) {
-    //wake(child)
-    pause((pauseTime.toInteger() * 1000))
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "door_lock")
 }
 
 def unlock(child) {
-    wake(child)
-  //  if (debug) log.debug "pausetime = $pauseTime modified = ${pauseTime.toInteger() * 1000}"
-    pause((pauseTime.toInteger() * 1000))
+  if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "door_unlock")
 }
 
 def unlockandOpenChargePort(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
-return executeApiCommand(child, "charge_port_door_open")
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+   return executeApiCommand(child, "charge_port_door_open")
 }
 
 def climateAuto(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+  if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "auto_conditioning_start")
 }
 
 def climateOff(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+    if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "auto_conditioning_stop")
 }
 
 def setThermostatSetpointC(child, Number setpoint) {
 	def Double setpointCelcius = setpoint.toDouble()
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
 
 def setThermostatSetpointF(child, Number setpoint) {
 	def Double setpointCelcius = farenhietToCelcius(setpoint).toDouble()
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
     log.debug "setting tesla temp to $setpointCelcius input = $setpoint"
     return executeApiCommand(child, "set_temps", body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
 def startCharge(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+    if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "charge_start")
 }
 
 def stopCharge(child) {
-   wake(child)
-   pause((pauseTime.toInteger() * 1000))
+  if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
    return executeApiCommand(child, "charge_stop")
 }
 
 def openTrunk(child, whichTrunk) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+  if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "actuate_trunk", body: [which_trunk: whichTrunk])
 }
 
 def setSeatHeaters(child, seat,level) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "remote_seat_heater_request", body: [heater: seat, level: level])
 }
 
 def sentryModeOn(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+    if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "set_sentry_mode", body: [on: "true"])
 }
 
 def sentryModeOff(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+    if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "set_sentry_mode", body: [on: "false"])
 }
 
 def ventWindows(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "window_control", body: [command: "vent"])
 }
 
 def closeWindows(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
 	return executeApiCommand(child, "window_control", body: [command: "close"])
 }
 
 def setChargeLimit(child,limit) {
     def limitPercent = limit.toInteger()
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
     return executeApiCommand(child,"set_charge_limit", body: [percent: limitPercent])
+}
+
+def valetModeOn(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "set_valet_mode", body: [on: "true"])
+}
+
+def valetModeOff(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "set_valet_mode", body: [on: "false"])
 }
 
 def notifyIfEnabled(message) {
@@ -893,17 +958,6 @@ def setEndpointToken(){
         render contentType:'application/json', data: "{\"status\": \"denied\"}", status:404
 }
 
-def valetModeOn(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
-	return executeApiCommand(child, "set_valet_mode", body: [on: "true"])
-}
-
-def valetModeOff(child) {
-    wake(child)
-    pause((pauseTime.toInteger() * 1000))
-	return executeApiCommand(child, "set_valet_mode", body: [on: "false"])
-}
 
 void appButtonHandler(btn) {
     switch(btn) {
