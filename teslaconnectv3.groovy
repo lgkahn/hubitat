@@ -47,6 +47,7 @@
  * lgk add lastTokenRefresh and nextTokenRefresh attributes and also functions to pass to child vehicles.. 
  * also change wait time to be configuratble instead of the now default 2 secs between wake and command issuing. Also 
  * change the default to 10 secs as 2 seems not to work any longer.
+ * also add child to the xx function so i can retry commands on an error 408 vehicle unavailable up to 3 times with an exponential backup of the pause time between commands.
  */
 
 import groovy.transform.Field
@@ -240,10 +241,108 @@ def refreshAccessTokenfromURL() {
          
     }
 
+private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:], String path, String method, Closure closure) {
+    if (debug) log.debug "in authorize http req with child child=$child attempts=$attempts"
+    
+    if (attempts > 1) log.debug "Attempt: $attempts"
+ 
+    if (descLog) log.info "authorizedHttpRequest2 ${child} ${method} ${path} attempt ${attempts}"
+    try {
+    	def requestParameters = [
+            uri: serverUrl,
+            path: path,
+            headers: [
+                'User-Agent': userAgent,
+                Authorization: "Bearer ${state.teslaAccessToken}"
+            ]
+        ]
+    
+    	if (method == "GET") {
+            httpGet(requestParameters) { resp -> closure(resp) }
+        } else if (method == "POST") {
+        	if (options.body) {
+            	requestParameters["body"] = options.body
+                if (descLog) log.info "authorizedHttpRequest2 body: ${options.body}"
+                httpPostJson(requestParameters) { resp -> closure(resp) }
+            } else {
+        		httpPost(requestParameters) { resp -> closure(resp) }
+            }
+        } else {
+        	log.error "Invalid method ${method}"
+        }
+    } catch (groovyx.net.http.HttpResponseException e) {
+        if (descLog) log.debug "in error handler case error = $e response data = e.response data = ${e.response.data}"
+        def errorString = e.response?.data?.error
+        boolean foundVehicleUnavailable = false
+  
+        if (errorString)
+        {
+           if (debug) log.debug "got errorString = $errorString"
+           def pair = errorString.split(" ")
+           def p0 = pair[0]
+           def p1 = pair[1]
+          
+           if ((p0 == "vehicle") && (p1 == "unavailable:"))
+            {
+                 if (debug) log.debug "set unavaiable to true "
+                 foundVehicleUnavailable = true
+            }
+        }
+          
+        if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
+           {
+            log.debug "code - 14 or 401"
+        	if (attempts < 4) {
+                refreshAccessToken()
+                pause((pauseTime.toInteger() * 1000))
+                ++attempts
+                authorizedHttpRequestWithChild(child, attempts, options, path, method, closure)
+            } else {
+            	log.error "Failed after 3 attempts to perform request: ${path}"
+            }
+           }
+        
+          else if (foundVehicleUnavailable)
+          {
+              if (descLog) log.debug "Vehicle Unavailable"
+              // 408 is vehicle unavailable ie offline or asleep. 
+              if (attempts < 4)
+              {
+               long localPauseTime = (pauseTime.toInteger() * (attempts + 1)) 
+                                      
+               log.info "Got Back vehicle unavailable (408) ... Either disconnected or most likely asleep."
+               log.info "Will Issue a Wake command, wait and retry."
+               
+               if (descLog) log.info "Pausing for $localPauseTime seconds between wake and command retry."
+                  
+               pause(localPauseTime * 1000)
+               wake(child)
+               pause(localPauseTime * 1000)
+               ++attempts;
+               authorizedHttpRequestWithChild(child, attempts, options, path, method, closure)
+                  
+              }
+              else {
+                 log.error "Failed after 3 attempts (vehicle was still unavailable) to perform request: ${path}" 
+              }
+          }
+          else {
+        	log.error "Request failed for path: ${path}.  ${e.response?.data}"
+         
+           if (refreshAccessTokenURL)
+            {
+             refreshAccessTokenfromURL()
+            }
+            else refreshAccessToken() 
+
+        }
+    }
+}
+
 private authorizedHttpRequest(Map options = [:], String path, String method, Closure closure) {
    if(debug) log.debug "in authorize http req"
     def attempt = options.attempt ?: 0
-    
+   
     if (descLog) log.info "authorizedHttpRequest ${method} ${path} attempt ${attempt}"
     try {
     	def requestParameters = [
@@ -275,21 +374,22 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
             log.debug "code - 14 or 401"
         	if (attempt < 3) {
                 refreshAccessToken()
-                authorizedHttpRequest(path, mehod, closure, body: options.body, attempt: attempt++)
+                options.attempt = ++attempt
+                authorizedHttpRequestWithChild(child, options, path, method, closure )
             } else {
             	log.error "Failed after 3 attempts to perform request: ${path}"
             }
         } else {
         	log.error "Request failed for path: ${path}.  ${e.response?.data}"
-            // temp to refresh with url
-            if (refreshAccessTokenURL)
+            
+           if (refreshAccessTokenURL)
             {
              refreshAccessTokenfromURL()
             }
-            else refreshAccessToken()
-             
-                
+            else refreshAccessToken()    
+
         }
+
     }
 }
 
@@ -376,12 +476,12 @@ def refresh(child) {
    if (descLog) log.info "in refresh child"
     def data = [:]
 	def id = child.device.deviceNetworkId
-    authorizedHttpRequest("/api/1/vehicles/${id}", "GET", { resp ->
+    authorizedHttpRequestWithChild(child,1,"/api/1/vehicles/${id}", "GET", { resp ->
         data = transformVehicleResponse(resp)
     })
     
     if (data.state == "online") {
-    	authorizedHttpRequest("/api/1/vehicles/${id}/vehicle_data", "GET", { resp ->
+    	authorizedHttpRequestWithChild(child,1,"/api/1/vehicles/${id}/vehicle_data", "GET", { resp ->
             def driveState = resp.data.response.drive_state
             def chargeState = resp.data.response.charge_state
             def vehicleState = resp.data.response.vehicle_state
@@ -455,28 +555,28 @@ def wake(child) {
 	def id = child.device.deviceNetworkId
     def data = [:]
     authorizedHttpRequest("/api/1/vehicles/${id}/wake_up", "POST", { resp ->
-    	data = transformVehicleResponse(resp)
+        data = transformVehicleResponse(resp)
     })
     return data
 }
 
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
-    authorizedHttpRequest(options, "/api/1/vehicles/${child.device.deviceNetworkId}/command/${command}", "POST", { resp ->
-    	result = resp.data.result
+    authorizedHttpRequestWithChild(child,1,options, "/api/1/vehicles/${child.device.deviceNetworkId}/command/${command}", "POST", { resp ->
+       result = resp.data.result
     })
     return result
 }
 
 def lock(child) {
-    wake(child)
+    //wake(child)
     pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "door_lock")
 }
 
 def unlock(child) {
     wake(child)
-    if (debug) log.debug "pausetime = $pauseTime modified = ${pauseTime.toInteger() * 1000}"
+  //  if (debug) log.debug "pausetime = $pauseTime modified = ${pauseTime.toInteger() * 1000}"
     pause((pauseTime.toInteger() * 1000))
 	return executeApiCommand(child, "door_unlock")
 }
