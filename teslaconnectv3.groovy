@@ -293,12 +293,13 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
            {
             log.debug "code - 14 or 401"
         	if (attempts < 5) {
+                long localPauseTime = (pauseTime.toInteger() * attempts) 
                 refreshAccessToken()
-                pause((pauseTime.toInteger() * 1000))
+                pause((localPauseTime.toInteger() * 1000))
                 ++attempts
                 authorizedHttpRequestWithChild(child, attempts, options, path, method, closure)
             } else {
-            	log.error "Failed after 3 attempts to perform request: ${path}"
+            	log.error "Failed after 4 attempts to perform request: ${path}"
             }
            }
         
@@ -308,7 +309,7 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
               // 408 is vehicle unavailable ie offline or asleep. 
               if (attempts < 5)
               {
-               long localPauseTime = (pauseTime.toInteger() * (attempts + 1)) 
+               long localPauseTime = (pauseTime.toInteger() * attempts) 
                                       
                log.info "Got Back vehicle unavailable (408) ... Either disconnected or most likely asleep."
                log.info "Will Issue a Wake command, wait and retry."
