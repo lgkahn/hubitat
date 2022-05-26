@@ -583,7 +583,7 @@ def unlock(child) {
 
 def unlockandOpenChargePort(child) {
     wake(child)
-    pauseFromEnum()
+    pause((pauseTime.toInteger() * 1000))
 return executeApiCommand(child, "charge_port_door_open")
 }
 
