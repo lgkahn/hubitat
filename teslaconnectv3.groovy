@@ -88,7 +88,7 @@ def loginToTesla() {
             input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
 	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
             input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
-            input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issueing the requested command.", required: true, defaultValue: "10", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
+            input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issuing the requested command.", required: true, defaultValue: "10", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
                                                                                                                                                   
         }
            if (allowEndpoint){
