@@ -2,7 +2,7 @@
   "packageName": "Tesla Connect V3 app and driver",
   "author": "Larry Kahn",
   "version": "3.0",
-  "minimumHEVersion": "3.0.0",
+  "minimumHEVersion": "2.3.2",
   "dateReleased": "2022-05-28",
   "drivers": [
     {
