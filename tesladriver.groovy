@@ -172,8 +172,8 @@ def initialize() {
     if ((AllowSleep == true) && (fromTime != null) && (toTime != null))
     {
        log.debug "Scheduling disable and re-enable times to allow sleep!" 
-        schedule(fromTime, disable)
-        schedule(toTime, reenable)       
+       schedule(fromTime, disable)
+       schedule(toTime, reenable)       
     }
     
      if (debug)
@@ -191,13 +191,15 @@ def disable()
     unschedule()
     // schedule reenable time
     if (toTime != null)
-     schedule(toTime, reenable)
+      schedule(toTime, reenable)
 }
 
 def reenable()
 {
     log.debug "Waking up app in re-enable!"
     // now schedule the sleep again
+    // pause for 3 secs so when we reschedule it wont run again immediately
+    pause(3000)
     initialize() 
     wake()
 }
