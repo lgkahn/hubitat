@@ -50,7 +50,7 @@ preferences {
 
 def loginToTesla() {
 	def showUninstall = email != null && password != null
-	return dynamicPage(name: "VehicleAuth", title: "Connect your Tesla", nextPage:"selectVehicles", uninstall:showUninstall) {
+	return dynamicPage(name: "VehicleAuth", title: "This App has been DEPRECATED plase Get V3 of the app/driver ... Connect your Tesla", nextPage:"selectVehicles", uninstall:showUninstall) {
 		section("Token refresh options:") {
 			input "email", "text", title: "Email (no longer used - enter anything!)", required: true, autoCorrect:false
 			input "password", "text", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
