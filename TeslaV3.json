@@ -1,0 +1,27 @@
+{
+  "packageName": "Tesla Connect V3 app and drvier",
+  "author": "Larry Kahn",
+  "version": "3.0",
+  "minimumHEVersion": "3.0.0",
+  "dateReleased": "2022-05-28",
+  "drivers": [
+    {
+      "id": "c3a3166b-4488-4e95-85ac-2911ff4fa855",
+      "name": "Tesla",
+      "namespace": "trentfoley",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/tesladriver.groovy",
+      "required": true
+    }
+  ],
+  "apps": [
+    {
+      "id": "3ad6d3af-0a1f-4186-8df4-c1abe329a507",
+      "name": "Tesla Connect 3.0",
+      "namespace": "trentfoley",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/teslaconnectv3.groovy",
+      "required": true,
+      "oauth": false,
+      "primary": false
+    }
+  ]
+}
