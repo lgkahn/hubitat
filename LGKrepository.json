@@ -289,7 +289,7 @@
     },
     {
       "id": "a3f15a9c-8756-4d6b-8c1b-13f72c73c439",
-      "name": "Tesla App and Driver",
+      "name": "Tesla App and Driver (DEPRECATED Get V3 of the app)",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/Tesla.json",
       "description": "The smart connect app and driver for the tesla monitoring and control. Not written by me but modified by me to add variable poll time, lockout times when it stops polling to allow sleep and charage port lock/unlock custom capability",
@@ -329,6 +329,13 @@
       "tags": [
         "Lights & Switches"
       ]
+    },
+    {
+      "id": "145a9612-dd3d-4932-bfc2-3a50276663ad",
+      "name": "Tesla V3 App and Driver",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/TeslaV3.json",
+      "description": "The new V3 of the smart connect app and driver for the tesla monitoring and control of your autos."
     }
   ]
 }
