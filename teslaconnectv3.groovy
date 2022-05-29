@@ -76,11 +76,11 @@ mappings {
 }
 
 def loginToTesla() {
-	def showUninstall = email != null && password != null
-	return dynamicPage(name: "VehicleAuth", title: "Connect your Tesla", nextPage:"selectVehicles", uninstall:showUninstall) {
+//	def showUninstall = email != null && password != null
+	return dynamicPage(name: "VehicleAuth", title: "Connect your Tesla", nextPage:"selectVehicles", uninstall:false) {
 		section("Token refresh options:") {
-			input "email", "text", title: "Email (no longer used - enter anything!)", required: true, autoCorrect:false
-			input "password", "text", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
+//			input "email", "text", title: "Email (no longer used - enter anything!)", required: true, autoCorrect:false
+//			input "password", "text", title: "Password (no longer used - enter anything!)", required: true, autoCorrect:false
             input "newAccessToken", "string", title: "Input new access token when expired?", required: false
             input "newRefreshToken", "string", title: "Input new refresh token?", required: false
             input "refreshAccessTokenURL", "string", title: "URL (on your server) that holds new access token as generated from python script?", required: false
