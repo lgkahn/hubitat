@@ -42,6 +42,7 @@
  *
  * add code to handle 0 or null coming back from tire pressures as depending on card/sw either can be returned when not driving
  * add valet mode.
+ * v 3.0 released changed method from pause to pauseExecution as pause is only in the apps .. weird.
  */
 
 metadata {
@@ -175,7 +176,7 @@ def initialize() {
        schedule(fromTime, disable)
        schedule(toTime, reenable)       
     }
-    
+   
      if (debug)
     {
         log.debug "Turning off logging in 1/2 hour!"
@@ -199,7 +200,7 @@ def reenable()
     log.debug "Waking up app in re-enable!"
     // now schedule the sleep again
     // pause for 3 secs so when we reschedule it wont run again immediately
-    pause(3000)
+    pauseExecution(3000)
     initialize() 
     wake()
 }
