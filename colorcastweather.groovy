@@ -438,7 +438,7 @@ def checkForWeatherOW() {
                     }
                     else
                     {
-                      if (sleetThisHour) log.info "It 2ill SLeet $i hours from now!"
+                      if (sleetThisHour) log.info "It will SLeet $i hours from now!"
                       if (rainThisHour) log.info "It will Rain $i hours from now!"
                       if (snowThisHour) log.info "It will Snow $i hours from now!"  
                     }
