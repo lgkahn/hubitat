@@ -44,7 +44,7 @@
 // seems like a bug so ignore it .
 
 // new version may 2022, updates to logging, change some debugs to info, add a couple of warnings, make sure most output is either under debug or descLog
-// and comment out unused old darksky weather function.
+// and comment out unused old darksky weather function. Allso add more info if desc?Log is on about if it will sleet/rain/snow how many hours from now.
 
 import java.util.regex.*
 
@@ -414,7 +414,22 @@ def checkForWeatherOW() {
 				}
 			
                 if (debug) log.debug "in loop willSleet = $willSleet, willRain = $willRain, willSnow = $willSnow"
-                
+                if (descLog)
+                {
+                    if (hour == 1)
+                    {
+                      if (willSleet) log.info "It will SLeet in the next hour!"
+                      if (willRain) log.info "It will Rain in the next hour!"
+                      if (willSnow) log.info "It will Snow in the next hour!"
+                    }
+                    else
+                    {
+                      if (willSleet) log.info "It 2ill SLeet $hour hours from now!"
+                      if (willRain) log.info "It will Rain $hour hours from now!"
+                      if (willSnow) log.info "It will Snow $hour hours from now!"  
+                    }
+                }
+                    
 				if (tempMinColor!='Disabled') {
 					if (tempMinType=='Actual') {
 						if (tempLow==null || tempLow>hour.temp) tempLow=hour.temp //Compare the stored low temp to the current iteration temp. If it's lower overwrite the stored low with this temp
