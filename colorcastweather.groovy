@@ -389,6 +389,10 @@ def checkForWeatherOW() {
 				break
 			} else {
                 
+                def rainThisHour = false
+                def sleetThisHour = false
+                def snowThisHour = false
+                
               if(debug)
                 { 
                     log.debug "in weather loop hour = $hour"              
@@ -403,10 +407,20 @@ def checkForWeatherOW() {
                             
 				 		if (hour.weather.main.indexOf('Rain') != -1) {
                             if (hour.weather.description.indexOf('freezing rain') != -1)
-                             willSleet=true // preciptation is sleet
-                            else willRain=true //Precipitation type is rain      
+                            {
+                                willSleet=true // preciptation is sleet
+                                sleetThisHour=true
+                            }
+                            else
+                            {
+                                willRain=true //Precipitation type is rain 
+                                rainThisHour=true
+                            }
 						} else if (hour.weather.main.indexOf('Snow') != -1) {
-							willSnow=true
+                            
+                                willSnow=true
+                                snowThisHour=true
+                           
 						} else {
 							//willSleet=true no op.
 						}
@@ -416,17 +430,17 @@ def checkForWeatherOW() {
                 if (debug) log.debug "in loop willSleet = $willSleet, willRain = $willRain, willSnow = $willSnow"
                 if (descLog)
                 {
-                    if (hour == 1)
+                    if (i == 1)
                     {
-                      if (willSleet) log.info "It will SLeet in the next hour!"
-                      if (willRain) log.info "It will Rain in the next hour!"
-                      if (willSnow) log.info "It will Snow in the next hour!"
+                      if (sleetThisHour) log.info "It will SLeet in the next hour!"
+                      if (rainThisHour) log.info "It will Rain in the next hour!"
+                      if (snowThisHour) log.info "It will Snow in the next hour!"
                     }
                     else
                     {
-                      if (willSleet) log.info "It 2ill SLeet $i hours from now!"
-                      if (willRain) log.info "It will Rain $i hours from now!"
-                      if (willSnow) log.info "It will Snow $i hours from now!"  
+                      if (sleetThisHour) log.info "It 2ill SLeet $i hours from now!"
+                      if (rainThisHour) log.info "It will Rain $i hours from now!"
+                      if (snowThisHour) log.info "It will Snow $i hours from now!"  
                     }
                 }
                     
