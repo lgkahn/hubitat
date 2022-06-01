@@ -1,8 +1,8 @@
 {
   "packageName": "Color Cast Weather Alerts with Lights on Weather",
   "author": "Larry Kahn",
-  "version": "2.1",
-  "minimumHEVersion": "1.0",
+  "version": "2.2",
+  "minimumHEVersion": "2.0",
   "dateReleased": "2020-10-19",
   "apps": [
     {
