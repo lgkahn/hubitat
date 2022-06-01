@@ -652,6 +652,8 @@ private Boolean attributeUpdateRain(String val, String attribRain, Boolean hour 
  
   def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
   sendEvent(name: "rainLastUpdate", value: now)
+    
+  attributeUpdateString("false", "orphanedRain");
 
   return (attributeUpdateNumber(amount, attribRain, measure, 2));
 }
@@ -856,7 +858,9 @@ private Boolean attributeUpdateWindSpeed(String val, String attribWindSpeed) {
 
    def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
    sendEvent(name: "windLastUpdate", value: now)
- 
+    
+   attributeUpdateString("false", "orphanedWind");
+    
   return (attributeUpdateNumber(speed, attribWindSpeed, measure, 1));
 }
 
@@ -1437,21 +1441,26 @@ Boolean attributeUpdate(String key, String val) {
 Boolean updateSensorStatus(bundled) {
   Boolean orphaned = false; 
 
+     if (debug) log.debug "In update sensors status bundled - $bundled"
+         9
   if (bundled) {
     if (state.sensorTemp != null) {
+      if (debug) "In update temp sensor"
       if (state.sensorTemp == 0) orphaned = true;
       attributeUpdateString(state.sensorTemp? "false": "true", "orphanedTemp");
       state.sensorTemp = 0;
     }
     
     if (state.sensorRain != null) {
-       // log.debug "in update rain sensor"
+        
+      log.debug "in update rain sensor"
       if (state.sensorRain == 0) orphaned = true;
       attributeUpdateString(state.sensorRain? "false": "true", "orphanedRain");
       state.sensorRain = 0;
     }
      
     if (state.sensorWind != null) { 
+        if (debug) "in update wind sensor"
       if (state.sensorWind == 0) orphaned = true;
       attributeUpdateString(state.sensorWind? "false": "true", "orphanedWind");
       state.sensorWind = 0;
@@ -1459,6 +1468,7 @@ Boolean updateSensorStatus(bundled) {
   }
   else {
     if (state.sensor != null) {
+        log.debug "in update ${state.sensor} sensor"
       if (state.sensor == 0) orphaned = true;
       attributeUpdateString(state.sensor? "false": "true", "orphaned");
     }
