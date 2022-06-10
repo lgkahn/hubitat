@@ -768,8 +768,7 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       break;
 
       // Rain ws90)
-    //
-    case "wh90batt":
+
     case "rrain_piezo":
     case "erain_piezo":
     case "hrain_piezo":
