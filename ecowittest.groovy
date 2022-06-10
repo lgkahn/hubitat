@@ -767,6 +767,19 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value, 4);
       break;
 
+      // Rain ws90)
+    //
+    case "wh90batt":
+    case "rrain_piezo":
+    case "erain_piezo":
+    case "hrain_piezo":
+    case "drain_piezo":
+    case "wrain_piezo":
+    case "mrain_piezo":
+    case "yrain_piezo":
+    case "train_piezo": 
+      updated = sensor(it.key, it.value, 4);
+      break;
     //
     // Multi-channel Air Quality Sensor (WH41)
     //
