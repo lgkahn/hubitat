@@ -1185,6 +1185,7 @@ Boolean attributeUpdate(String key, String val) {
   case ~/batt[1-8]/:
   case "wh25batt":
   case "wh65batt":
+  cast "ws90batt":
     state.sensor = 1;
     updated = attributeUpdateBattery(val, "battery", "batteryIcon", "batteryOrg", 0);  // !boolean
     break;
