@@ -477,6 +477,7 @@ private void sensorMapping(Map data) {
 
   // A bit of sanity check
   if (wh69 && outdoorSensors) logWarning("The PWS should be the only outdoor sensor");
+  if (ws90 && outdoorSensors) logWarning("The PWS should be the only outdoor sensor");
   if (wh80 && wh26) logWarning("Both WH80 and WH26 are present with overlapping sensors");
 
   if (wh80) {
@@ -549,7 +550,7 @@ private String sensorName(Integer id, Integer channel) {
                   "WH80": "Wind Solar Sensor",
                   "WH34": "Water/Soil Temperature Sensor",
                   "WFST": "WeatherFlow Station",
-                  "WS90": "WittBoy Weather Statoin"];
+                  "WS90": "WittBoy Weather Station"];
 
   String model = sensorId."${sensorModel(id)}";
 
