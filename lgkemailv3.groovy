@@ -88,6 +88,9 @@
 * 4.51 fix bug with authentication and requires ehlo passed to child. (typos)
 *
 * v 4.6 clean up logging and missed debug on check.
+* 4.7 tweek to double check child is not null in case cleanup is called way after a failed messages is left in queue.
+
+
 */
 
 attribute "lastCommand", "string"
@@ -423,7 +426,9 @@ void resetChild(int index)
               def String dni = IdToDni(index);
              // if (debug) log.debug "dni = $dni"       
               com.hubitat.app.ChildDeviceWrapper theChild = getChildDevice(dni);
-              theChild.cleanUp()    
+              if (theChild != null) theChild.cleanUp()    
+              else log.warn "Null Child found... Probably left over from hub reboot... not cleaning up!"
+    
 }
     
 void incrementTries(int index)
