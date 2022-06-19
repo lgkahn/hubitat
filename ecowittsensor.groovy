@@ -1252,6 +1252,7 @@ Boolean attributeUpdate(String key, String val) {
   case "rainratein":
   case "rrain_piezo":
     state.sensor = 1;
+    state.sensorRain = 1;
     updated = attributeUpdateRain(val, "rainRate", true);
     break;
 
@@ -1259,6 +1260,7 @@ Boolean attributeUpdate(String key, String val) {
   case "eventrainin":
   case "erain_piezo":
     state.sensor = 1;
+    state.sensorRain = 1;  
     updated = attributeUpdateRain(val, "rainEvent");
     break;
 
@@ -1271,7 +1273,8 @@ Boolean attributeUpdate(String key, String val) {
   case ~/dailyrainin_wf[1-8]/:
   case "dailyrainin":
   case "drain_piezo":
-    state.sensor = 1;
+    state.sensor = 1
+    state.sensorRain = 1; 
     updated = attributeUpdateRain(val, "rainDaily");
     break;
 
@@ -1279,6 +1282,7 @@ Boolean attributeUpdate(String key, String val) {
   case "weeklyrainin":
   case "wrain_piezo": 
     state.sensor = 1;
+    state.sensorRain = 1;  
     updated = attributeUpdateRain(val, "rainWeekly");
     break;
 
@@ -1286,6 +1290,7 @@ Boolean attributeUpdate(String key, String val) {
   case "monthlyrainin":
   case "mrain_piezo": 
     state.sensor = 1;
+    state.sensorRain = 1;  
     updated = attributeUpdateRain(val, "rainMonthly");
     break;
 
@@ -1293,6 +1298,7 @@ Boolean attributeUpdate(String key, String val) {
   case "yearlyrainin":
   case "yrain_piezo": 
     state.sensor = 1;
+    state.sensorRain = 1;
     updated = attributeUpdateRain(val, "rainYearly");
     break;
 
@@ -1300,6 +1306,7 @@ Boolean attributeUpdate(String key, String val) {
   case "totalrainin":
   case "train_piezo": 
     state.sensor = 1;
+    state.sensorRain = 1;  
     updated = attributeUpdateRain(val, "rainTotal");
     break;
 
@@ -1382,18 +1389,21 @@ Boolean attributeUpdate(String key, String val) {
   case ~/winddir_wf[1-8]/:
   case "winddir":
     state.sensor = 1;
+    state.sensorWind = 1;
     updated = attributeUpdateWindDirection(val, "windDirection", "windCompass");
     break;
 
   case ~/winddir_avg10m_wf[1-8]/:
   case "winddir_avg10m":
     state.sensor = 1;
+    state.sensorWind = 1;
     updated = attributeUpdateWindDirection(val, "windDirection_avg_10m", "windCompass_avg_10m");
     break;
 
   case ~/windspeedmph_wf[1-8]/:
   case "windspeedmph":
     state.sensor = 1;
+    state.sensorWind = 1;
     updated = attributeUpdateWindSpeed(val, "windSpeed");
     if (attributeUpdateWindChill(val, "windChill", "windDanger", "windColor")) updated = true;
     break;
@@ -1401,18 +1411,21 @@ Boolean attributeUpdate(String key, String val) {
   case ~/windspdmph_avg10m_wf[1-8]/:
   case "windspdmph_avg10m":
     state.sensor = 1;
+    state.sernsorWind = 1;
     updated = attributeUpdateWindSpeed(val, "windSpeed_avg_10m");
     break;
 
   case ~/windgustmph_wf[1-8]/:
   case "windgustmph":
     state.sensor = 1;
+    state.sensorWind = 1;
     updated = attributeUpdateWindSpeed(val, "windGust");
     break;
 
   case ~/maxdailygust_wf[1-8]/:
   case "maxdailygust":
     state.sensor = 1;
+    state.sensorWind = 1;
     updated = attributeUpdateWindSpeed(val, "windGustMaxDaily");
     break;
 
