@@ -1540,8 +1540,8 @@ Boolean pollChildren(String deviceId=sBLANK,Boolean force=false){
                 
                 log.info "Update!"
                 // lgk cannot use unexpeccted error as in api as 0 as that is what is being returned here.
-               if (srcMap.attributes.mower.errorCode != null && srcMap.attributes.mower.errorCode != 0)
-                {
+                if (srcMap.attributes.mower.errorCode != null && srcMap.attributes.mower.errorCode != 0)
+                 {
                     def errorCode = srcMap.attributes.mower.errorCode 
                     errorString = translateErrorCode(errorCode)                    
                     log.warn "Got an error code!, code = $errorCode  ($errorString) !"
