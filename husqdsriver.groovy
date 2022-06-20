@@ -477,19 +477,19 @@ def getParentSetting(String settingName) {
 // lgk handle last and current errors.
 def handleErrors(String currentErrorDesc, String currentErrorTime)
 {
-     log.debug "in handle error $currentErrorDesc $currentErrorTime"
-      def led = device.getDataValue('lastErrorDesc')  
-      if (led == null)
+   // log.debug "in handle error $currentErrorDesc , $currentErrorTime"
+                              
+      def lede = device.currentValue('lastErrorDesc') 
+      if (lede == null)
        {
-        led = "No Error"
-        sendEvent(name: "lastErrorDesc", value: led) 
+        lede = "No Error"
+        sendEvent(name: "lastErrorDesc", value: lede) 
        }
-    unset('cuttingBladeUsagetime')
 
-      log.debug "got last error string = $led"
+      //log.debug "got last error string after reset = $lede"
     
      // only set last for real error and do not rewrite for no error.. that only changes current once cleared.
-     if ((currentErrorDesc != led) & (currentErrorDesc != "No Error"))
+     if ((currentErrorDesc != lede) & (currentErrorDesc != "No Error"))
       {
         log.warn "New Error: $currentErrorDesc"
         sendEvent(name: "lastErrorDesc", value: currentErrorDesc)
@@ -509,5 +509,4 @@ def handleErrors(String currentErrorDesc, String currentErrorTime)
 @Field static final String sINFO		= 'info'
 @Field static final String sTRACE		= 'trace'
 @Field static final String sWARN		= 'warn'
-
 
