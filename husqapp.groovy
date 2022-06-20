@@ -1529,8 +1529,8 @@ Boolean pollChildren(String deviceId=sBLANK,Boolean force=false){
                 // also convert error time stamp to readable time.
                 def ed = srcMap.attributes.mower.errorCodeTimestamp
                 def readableErrorDate = new Date(ed).format('MM/dd/yyyy h:mm a', TimeZone.getTimeZone('UTC'))
-                log.debug "error code time stamp = $ed rdate = $readableErrorDate"
-                //if (ed == 0) readableErrorDate = "No Error"
+               
+                if (ed == 0) readableErrorDate = "No Error"
                               
                 // lgk do collisions here otherwise it comes out as null not zero
                 def collisions = srcMap.attributes.statistics.numberofCollisions
@@ -1540,18 +1540,18 @@ Boolean pollChildren(String deviceId=sBLANK,Boolean force=false){
                 
                 log.info "Update!"
                 // lgk cannot use unexpeccted error as in api as 0 as that is what is being returned here.
-               // if (srcMap.attributes.mower.errorCode != null && srcMap.attributes.mower.errorCode != 0)
-               // {
-                    def errorCode = 16; //rcMap.attributes.mower.errorCode 
+               if (srcMap.attributes.mower.errorCode != null && srcMap.attributes.mower.errorCode != 0)
+                {
+                    def errorCode = srcMap.attributes.mower.errorCode 
                     errorString = translateErrorCode(errorCode)                    
                     log.warn "Got an error code!, code = $errorCode  ($errorString) !"
-                // }
+                 }
                        
                  // lgk call fx in child direct to handle error cases so we can easily compare current and last error.
   			     def chld1=getChildDevice(mower)
                  if (chld1)
                     {
-                        log.debug "calling handle errors with $errorString and $readableErrorDate"  
+                        //log.debug "calling handle errors with $errorString and $readableErrorDate"  
                         chld1.handleErrors(errorString, readableErrorDate)
                    }
                 
@@ -2519,4 +2519,3 @@ default: errorString = "No Error"
 @Field static final String sINFO		= 'info'
 @Field static final String sTRACE		= 'trace'
 @Field static final String sWARN		= 'warn'
-
