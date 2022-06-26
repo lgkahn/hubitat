@@ -430,6 +430,7 @@ private Boolean attributeUpdateBattery(String val, String attribBattery, String 
   BigDecimal icon;
   String unitOrg;
 
+   // log.debug "in attribute update battery val = $val attrib = $attribBattery type = $type"
   switch (type) {
   case 1:
     // Change range from voltage to (0% - 100%)
@@ -1305,6 +1306,7 @@ Boolean attributeUpdate(String key, String val) {
   case ~/totalrainin_wf[1-8]/:
   case "totalrainin":
   case "train_piezo": 
+  case "totalainin":
     state.sensor = 1;
     state.sensorRain = 1;  
     updated = attributeUpdateRain(val, "rainTotal");
