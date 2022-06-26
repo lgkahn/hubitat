@@ -750,6 +750,7 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "monthlyrainin":
     case "yearlyrainin":
     case "totalrainin":
+    case "totalainin":
       updated = sensor(it.key, it.value, 4);
       break;
 
