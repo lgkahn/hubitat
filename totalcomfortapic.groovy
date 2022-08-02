@@ -77,7 +77,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.16"  }
+ public static String version()     {  return "v1.3.17"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -433,7 +433,8 @@ def getStatusHandler(resp, data) {
           log.debug "ld = $setStatusResult.latestData.fanData"
       }
         
-	def curTemp = setStatusResult.latestData.uiData.DispTemperature
+	def curTemp = setStatusResult.latestData.uiData.DispTemperature.toDouble().round(2)
+   // def curTemp = curTemp1.toDouble().round(2)
 	def switchPos = setStatusResult.latestData.uiData.SystemSwitchPosition
 	def coolSetPoint = setStatusResult.latestData.uiData.CoolSetpoint
 	def heatSetPoint = setStatusResult.latestData.uiData.HeatSetpoint
@@ -443,8 +444,8 @@ def getStatusHandler(resp, data) {
 	def curHumidity = setStatusResult.latestData.uiData.IndoorHumidity
 	def Boolean hasOutdoorHumid = setStatusResult.latestData.uiData.OutdoorHumidityAvailable
 	def Boolean hasOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperatureAvailable
-	def curOutdoorHumidity = setStatusResult.latestData.uiData.OutdoorHumidity
-	def curOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperature
+	def curOutdoorHumidity = setStatusResult.latestData.uiData.OutdoorHumidity.toDouble().round(2)
+	def curOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperature.toDouble().round(2)
 	// EquipmentOutputStatus = 0 off 1 heating 2 cooling
 	def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
 	def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
@@ -511,6 +512,7 @@ def getStatusHandler(resp, data) {
 	sendEvent(name: 'thermostatFanMode', value: n)
 
 	n = [ 1: 'heat', 2: 'off', 3: 'cool', 5: 'auto' ][switchPos] ?: 'auto'
+        
 	sendEvent(name: 'temperature', value: curTemp, state: n, unit:device.data.unit)
 	sendEvent(name: 'thermostatMode', value: n)
 	lrM(n)
@@ -547,16 +549,16 @@ def getStatusHandler(resp, data) {
 	sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
 	
 	if (enableOutdoorTemps == "Yes") {
+        
+    if (hasOutdoorHumid) {
+        setOutdoorHumidity(curOutdoorHumidity)
+        sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer, unit:"%")
+    }
 
-	    if (hasOutdoorHumid) {
-	        setOutdoorHumidity(curOutdoorHumidity)
-	        sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer, unit:"%")
-	    }
-	
-	    if (hasOutdoorTemp) {
-	        setOutdoorTemperature(curOutdoorTemp)
-	        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:device.data.unit)
-	    }
+    if (hasOutdoorTemp) {
+        setOutdoorTemperature(curOutdoorTemp)
+        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:"°${location.temperatureScale}")
+    }
 	}
 	} else { if (descTextEnable) log.info "TCC getStatus failed" }
 }
