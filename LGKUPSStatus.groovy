@@ -32,6 +32,8 @@
 * v 2.2 fixed typo in attribute name.
 * v 2.3 cleared telnet error on close,init commands and also fixed version not passed correctly to attribute.
 * v 2.4 change password input type to password from text
+* v 2.5 aug 2022 apparently even if ups is charging but you set your low battery duration to a weird number like 20 minutes it will show battery status as discharged until it surpasses that
+* so added discharged ups status.
 */
 
 capability "Battery"
@@ -90,7 +92,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "2.3"
+	state.version = "2.5"
 }
 
 def installed() {
@@ -406,10 +408,11 @@ def parse(String msg) {
                   
                        if ((thestatus == "OnLine,") || (thestatus == "Online"))
                          thestatus = "OnLine"
+                       if ((thestatus == "Discharged,") || (thestatus == "Discharged"))
+                         thestatus = "Discharged"
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
-                     
-                 
+                                     
                     if (getloglevel() > 1) log.debug "*********************************"
                     log.debug "Got UPS Status = $thestatus!"
                     if (getloglevel() > 1) log.debug "*********************************"
