@@ -34,6 +34,7 @@
 * v 2.4 change password input type to password from text
 * v 2.5 aug 2022 apparently even if ups is charging but you set your low battery duration to a weird number like 20 minutes it will show battery status as discharged until it surpasses that
 * so added discharged ups status.
+* v 3.0 add new attribures model, serial number, manuf. date, firmware version and battery type.
 */
 
 capability "Battery"
@@ -64,6 +65,11 @@ attribute "batteryVoltage", "number"
 attribute "lastSelfTestResult", "string"
 attribute "lastSelfTestDate", "string"
 attribute "nextBatteryReplacementDate", "string"
+attribute "serialNumber" , "string"
+attribute "manufDate", "string"
+attribute "model", "string"
+attribute "firmwareVersion", "string"
+attribute "batteryType", "string"
 
 
 
@@ -92,7 +98,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "2.5"
+	state.version = "3.0"
 }
 
 def installed() {
@@ -275,6 +281,7 @@ def parse(String msg) {
                     , "detstatus -soc"
                     , "detstatus -tmp"
                     , "detstatus -all"
+                    , "upsabout"
 		        	, "quit"
 	            ]  
              def res1 = seqSend(sndMsg,500)
@@ -301,6 +308,7 @@ def parse(String msg) {
              def p2 = pair[2]
              def p3 = pair[3]
              def p4 = pair[4]
+             def firmware
                 
              if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4"
           
@@ -321,7 +329,15 @@ def parse(String msg) {
                {
                    sendEvent(name: "nextBatteryReplacementDate", value: p4)
                    if (getloglevel() > 0) log.debug "Next Battery Replacment Date: $p4"
-               }                
+               }  
+                
+               else if ((p0 == "Firmware") && (p1 == "Revision:")) 
+               {
+                   firmware = p2 + " " + p3 + " " + p4
+                   sendEvent(name: "firmwareVersion", value: firmware)
+                   if (getloglevel() > 0) log.debug "Got Firmware version: $firmware"
+               }          
+              
             }  // length = 5        
         
        if (pair.length == 3)
@@ -330,6 +346,7 @@ def parse(String msg) {
              def p0 = pair[0]
              def p1 = pair[1]
              def p2 = pair[2]
+             def model
             
              if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2"
            
@@ -338,6 +355,28 @@ def parse(String msg) {
                          sendEvent(name: "lastSelfTestDate", value: p2) 
                          if (getloglevel() > 0) log.debug "Last Self Test Date: $p2"
                 } 
+               else if ((p0 == "Battery") && (p1 == "SKU:"))
+               {
+                     sendEvent(name: "batteryType", value: p2)
+                     if (getloglevel() > 0) log.debug "Got Battery Type: $p2"
+               }
+               else if ((p0 == "Manufacture") && (p1 == "Date:"))
+               {
+                     sendEvent(name: "manufDate", value: p2)
+                     if (getloglevel() > 0) log.debug "Got Manufacture Date: $p2"
+               }  
+               else if ((p0 == "Serial") && (p1 == "Number:"))
+               {
+                     sendEvent(name: "serialNumber", value: p2)
+                     if (getloglevel() > 0) log.debug "Got Serial Number $p2"
+               }  
+              else if (p0 == "Model:")
+               {
+                   model = p1 + " " + p2
+                   sendEvent(name: "model", value: model)
+                   if (getloglevel() > 0) log.debug "Got Model: $model"
+               }  
+                   
             } // length = 3
             
        if (pair.length == 4)
