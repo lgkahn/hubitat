@@ -20,6 +20,8 @@
  * also add debuging 
  * 
  * ;gk b4 remove gas and change to naturalGas add capability gas detector.
+ * lgk 9/22 as istatechange = true to force a clear status to always go in the log.. otherwise when hit refresh nothing
+ * but battery events go in.
  *
  */
  
@@ -125,8 +127,8 @@ private Map parseReportAttributeMessage(String description) {
        else if ((descMap?.cluster == "0500" && descMap.attrInt == 0x0002) && ((descMap.value == '0030') || (descMap.value == '0020')))
         {  //Zone Status
                 log.debug "${device.displayName} is clear"
-                sendEvent(name: "smoke", value: "clear")
-                sendEvent(name: "naturalGas", value: "clear")
+                sendEvent(name: "smoke", value: "clear", isStateChange: true)
+                sendEvent(name: "naturalGas", value: "clear", isStateChange: true)
         }
        else if (descMap?.cluster == "0000" && descMap.attrInt == 0x0004)
         {  //Manufacture
