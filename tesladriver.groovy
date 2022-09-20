@@ -43,6 +43,7 @@
  * add code to handle 0 or null coming back from tire pressures as depending on card/sw either can be returned when not driving
  * add valet mode.
  * v 3.0 released changed method from pause to pauseExecution as pause is only in the apps .. weird.
+ * lgk v3.02 9/20/22 add option to display in odometer and speed km instead of miles
  */
 
 metadata {
@@ -129,6 +130,7 @@ metadata {
        input "fromTime", "time", title: "From", required:false, width: 6, submitOnChange:true
        input "toTime", "time", title: "To", required:false, width: 6 
        input "tempScale", "enum", title: "Display temperature in F or C ?", options: ["F", "C"], required: true, defaultValue: "F" 
+       input "mileageScale", "enum", title: "Display mileage/speed in Miles or Kilometers ?", options: ["M", "K"], required: true, defaultValue: "M"  
        input "debug", "bool", title: "Turn on Debug Logging?", required:true, defaultValue: false   
     }
 }
@@ -216,7 +218,17 @@ private processData(data) {
         
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
-        sendEvent(name: "speed", value: data.speed, unit: "mph")
+        
+        if (mileageScale == "M")
+          {
+           sendEvent(name: "speed", value: data.speed, unit: "mph")
+          }   
+         else
+          {
+           double kspd = (data.speed) *  1.609344   
+           sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
+          }
+          
         sendEvent(name: "vin", value: data.vin)
         sendEvent(name: "thermostatMode", value: data.thermostatMode)
         
@@ -250,7 +262,17 @@ private processData(data) {
             
         	sendEvent(name: "presence", value: data.vehicleState.presence)
             sendEvent(name: "lock", value: data.vehicleState.lock)
-            sendEvent(name: "odometer", value: data.vehicleState.odometer.toInteger())
+           
+            if (mileageScale == "M")
+            {
+              sendEvent(name: "odometer", value: data.vehicleState.odometer.toInteger())
+            }   
+            else
+            {
+              double odom = (data.vehicleState.odometer) *  1.609344   
+              sendEvent(name: "odometer", value: odom.toInteger()) 
+            }
+            
             sendEvent(name: "sentry_mode", value: data.vehicleState.sentry_mode)
             sendEvent(name: "front_drivers_window" , value: data.vehicleState.front_drivers_window)
             sendEvent(name: "front_pass_window" , value: data.vehicleState.front_pass_window)
