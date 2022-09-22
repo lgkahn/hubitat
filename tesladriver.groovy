@@ -9,7 +9,7 @@
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIO`NS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  * lgk kahn@lgk.com 10/13/20 Added user selectable refresh update schedule instead of default 15 minutes.
@@ -44,6 +44,7 @@
  * add valet mode.
  * v 3.0 released changed method from pause to pauseExecution as pause is only in the apps .. weird.
  * lgk v3.02 9/20/22 add option to display in odometer and speed km instead of miles
+ * lgk v3.03 fix remove extra long latitude sendevents.
  */
 
 metadata {
@@ -245,9 +246,7 @@ private processData(data) {
         
         if (data.driveState) {
             if (debug) log.debug "DriveState = $data.driveState"
-            
-        	sendEvent(name: "latitude", value: data.driveState.latitude)
-			sendEvent(name: "longitude", value: data.driveState.longitude)
+           	
             sendEvent(name: "method", value: data.driveState.method)
             sendEvent(name: "heading", value: data.driveState.heading)
             sendEvent(name: "lastUpdateTime", value: data.driveState.lastUpdateTime)
