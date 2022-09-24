@@ -45,6 +45,7 @@
  * v 3.0 released changed method from pause to pauseExecution as pause is only in the apps .. weird.
  * lgk v3.02 9/20/22 add option to display in odometer and speed km instead of miles
  * lgk v3.03 fix remove extra long latitude sendevents.
+ * lgk v 3.04 add batteryrange to conversion from miles to km if needed.
  */
 
 metadata {
@@ -237,7 +238,17 @@ private processData(data) {
             if (debug) log.debug "chargeState = $data.chargeState"
             
         	sendEvent(name: "battery", value: data.chargeState.battery)
-            sendEvent(name: "batteryRange", value: data.chargeState.batteryRange.toInteger())
+            
+            if (mileageScale == "M")
+              {
+                sendEvent(name: "batteryRange", value: data.chargeState.batteryRange.toInteger())
+              }   
+            else
+              {
+                double kmrange = (data.chargeState.batteryRange) *  1.609344   
+                sendEvent(name: "batteryRange", value: kmrange.toInteger())   
+              }
+          
             sendEvent(name: "chargingState", value: data.chargeState.chargingState)
             sendEvent(name: "minutes_to_full_charge", value: data.chargeState.minutes_to_full_charge)
             sendEvent(name: "current_charge_limit", value: data.chargeState.chargeLimit)
