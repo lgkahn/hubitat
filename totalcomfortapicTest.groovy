@@ -431,6 +431,9 @@ def getStatusHandler(resp, data) {
           log.debug "ld = $setStatusResult.latestData.fanData"
       }
         
+        
+    sendEvent(name: 'supportedThermostatFanModes', value: ["\"auto\"", "\"circulate\"", "\"on\""] )
+	    
 	def curTemp = setStatusResult.latestData.uiData.DispTemperature.toDouble().round(2)
    // def curTemp = curTemp1.toDouble().round(2)
 	def switchPos = setStatusResult.latestData.uiData.SystemSwitchPosition
@@ -457,6 +460,11 @@ def getStatusHandler(resp, data) {
 	state.coolLowerSetptLimit = setStatusResult.latestData.uiData.CoolLowerSetptLimit 
 	state.coolUpperSetptLimit = setStatusResult.latestData.uiData.CoolUpperSetptLimit 
 	
+    if (isEmergencyHeatAllowed)    
+      sendEvent(name: 'supportedThermostatModes', value: ["\"auto\"", "\"cool\"", "\"emergency heat\"", "\"heat\"", "\"off\""] )  
+    else
+      sendEvent(name: 'supportedThermostatModes', value: ["\"auto\"", "\"cool\"", "\"heat\"", "\"off\""] )  
+        
 	def fanMode = setStatusResult.latestData.fanData.fanMode
 	def fanIsRunning = setStatusResult.latestData.fanData.fanIsRunning
      // reset display units as above doesntg work
@@ -518,8 +526,9 @@ def getStatusHandler(resp, data) {
 	n = [ 0: 'auto', 2: 'circulate', 1: 'on', 3: 'followSchedule' ][fanMode]
 	sendEvent(name: 'thermostatFanMode', value: n)
 
-	n = [ 1: 'heat', 2: 'off', 3: 'cool', 4: 'auto'][switchPos] ?: 'auto'
-        //log.debug "in here sending temp = $curTemp"
+    if (isEmergencyHeatAllowed) n = [ 1: 'heat', 2: 'off', 3: 'cool', 4: 'emergency heat', 5: 'auto'][switchPos] ?: 'auto'
+    else n = [ 1: 'heat', 2: 'off', 3: 'cool', 4: 'auto'][switchPos] ?: 'auto'
+     
 	sendEvent(name: 'temperature', value: curTemp, state: n, unit:"°${location.temperatureScale}")
 	sendEvent(name: 'thermostatMode', value: n)
 	lrM(n)
