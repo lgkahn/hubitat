@@ -84,6 +84,7 @@
  * 2021.11-25 -lgk change attribute from time to lastUpdate to avoid weird output on device page.. also remove timeUtcToLocalOlf function and improve way to query date/time.
  * 11/30/21   - lgk add parameters for using a weather device in a remote location so that dynamic dns ddns will work to resolve name and change ip address if it changes. Also
  *             add the function for this.
+ * 9/22 lgk add additional options for ip check as ffing nat changes every 5 minutes, change input to minutes. 
  */
 
 public static String version() { return "v1.23.17"; }
@@ -114,7 +115,7 @@ metadata {
   preferences {
     input(name: "macAddress", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>MAC / IP Address</font>", description: "<font style='font-size:12px; font-style: italic'>Wi-Fi gateway MAC or IP address</font>", defaultValue: "", required: true);
     input(name: "DDNSName", type: "text", title: "Dynamic DNS Name to use to resolve a changing ip address. Leave Blank if not used.", description: "Enter DDNS Name", required: false)
-    input(name: "DDNSRefreshTime", type: "number", title: "How often (in Hours) to check/resolve the DDNS Name to discover an IP address change on a remote weather station? (Range 1 - 720, Default 24)?", range: "1..720", defaultValue: 3, required: false)
+    input(name: "DDNSRefreshTime", type: "number", title: "How often (in Minutes) to check/resolve the DDNS Name to discover an IP address change on a remote weather station? (Range 1 - 720, Default 24)?", range: "2..43200", defaultValue: 3, required: false)
     input(name: "bundleSensors", type: "bool", title: "<font style='font-size:12px; color:#1a77c9'>Compound Outdoor Sensors</font>", description: "<font style='font-size:12px; font-style: italic'>Combine sensors in a virtual PWS array</font>", defaultValue: true);
     input(name: "unitSystem", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>System of Measurement</font>", description: "<font style='font-size:12px; font-style: italic'>Unit system all values are converted to</font>", options: [0:"Imperial", 1:"Metric"], multiple: false, defaultValue: 0, required: true);
     input(name: "logLevel", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>Log Verbosity</font>", description: "<font style='font-size:12px; font-style: italic'>Default: 'Debug' for 30 min and 'Info' thereafter</font>", options: [0:"Error", 1:"Warning", 2:"Info", 3:"Debug", 4:"Trace"], multiple: false, defaultValue: 3, required: true);
@@ -993,7 +994,7 @@ void updated() {
       // now schedule next run of update
       if ((ddnsupdatetime != null) && (ddnsupdatetime != 00))
           {
-              def thesecs = ddnsupdatetime * 3600
+              def thesecs = ddnsupdatetime * 60
              logInfo("Rescheduling IP Address Check to run again in $thesecs seconds.")
              runIn(thesecs, "DNSCheckCallback");
           }
