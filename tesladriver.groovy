@@ -46,6 +46,9 @@
  * lgk v3.02 9/20/22 add option to display in odometer and speed km instead of miles
  * lgk v3.03 fix remove extra long latitude sendevents.
  * lgk v 3.04 add batteryrange to conversion from miles to km if needed.
+ * lgk v 3.05 change to only the tesla driver to add variable logging level. Setting to Info will be exactly the same as previous. Setting Full is the same as previously
+ * turning on debuging, Setting to None turns all of except during initialize or an error.
+ * Note: this is only for the driver, no effect on debugging in the related application.
  */
 
 metadata {
@@ -133,14 +136,14 @@ metadata {
        input "toTime", "time", title: "To", required:false, width: 6 
        input "tempScale", "enum", title: "Display temperature in F or C ?", options: ["F", "C"], required: true, defaultValue: "F" 
        input "mileageScale", "enum", title: "Display mileage/speed in Miles or Kilometers ?", options: ["M", "K"], required: true, defaultValue: "M"  
-       input "debug", "bool", title: "Turn on Debug Logging?", required:true, defaultValue: false   
+       input "debugLevel", "enum", title: "Set Debug/Logging Level (Full will automatically change to Info after an hour)?", options: ["Full","Info","None"], required:true,defaultValue: "Info"
     }
 }
 
 def logsOff()
 {
     log.debug "Turning off Logging!"
-    device.updateSetting("debug",[value:"false",type:"bool"])
+    device.updateSetting("debugLevel",[value:"Info",type:"enum"])
 }
 
 def initialize() {
@@ -181,10 +184,10 @@ def initialize() {
        schedule(toTime, reenable)       
     }
    
-     if (debug)
+     if (debugLevel == "Full")
     {
-        log.debug "Turning off logging in 1/2 hour!"
-        runIn(1800,logsOff)
+        log.debug "Turning off logging in 1 hour!"
+        runIn(3600,logsOff)
     } 
    
 }
@@ -192,7 +195,7 @@ def initialize() {
 
 def disable()
 {
-    log.debug "Disabling to allow sleep!"
+    if (debugLevel != "None") log.debug "Disabling to allow sleep!"
     unschedule()
     // schedule reenable time
     if (toTime != null)
@@ -201,7 +204,7 @@ def disable()
 
 def reenable()
 {
-    log.debug "Waking up app in re-enable!"
+    if (debugLevel != "None") log.debug "Waking up app in re-enable!"
     // now schedule the sleep again
     // pause for 3 secs so when we reschedule it wont run again immediately
     pauseExecution(3000)
@@ -211,12 +214,12 @@ def reenable()
 
 // parse events into attributes
 def parse(String description) {
-	log.debug "Parsing '${description}'"
+	if (debugLevel == "Full") log.debug "Parsing '${description}'"
 }
     
 private processData(data) {
 	if(data) {
-    	log.debug "processData: ${data}"
+    	if (debugLevel != "None") log.debug "processData: ${data}"
         
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
@@ -235,7 +238,7 @@ private processData(data) {
         sendEvent(name: "thermostatMode", value: data.thermostatMode)
         
         if (data.chargeState) {
-            if (debug) log.debug "chargeState = $data.chargeState"
+            if (debugLevel == "Full") log.debug "chargeState = $data.chargeState"
             
         	sendEvent(name: "battery", value: data.chargeState.battery)
             
@@ -256,7 +259,7 @@ private processData(data) {
         }
         
         if (data.driveState) {
-            if (debug) log.debug "DriveState = $data.driveState"
+            if (debugLevel == "Full") log.debug "DriveState = $data.driveState"
            	
             sendEvent(name: "method", value: data.driveState.method)
             sendEvent(name: "heading", value: data.driveState.heading)
@@ -267,7 +270,7 @@ private processData(data) {
         }
         
         if (data.vehicleState) {
-           if (debug) log.debug "vehicle state = $data.vehicleState"
+           if (debugLevel == "Full") log.debug "vehicle state = $data.vehicleState"
             def toPSI  = 14.503773773
             
         	sendEvent(name: "presence", value: data.vehicleState.presence)
@@ -325,7 +328,7 @@ private processData(data) {
         }
         
         if (data.climateState) {
-            if (debug) log.debug "climateState = $data.climateState"
+            if (debugLevel == "Full") log.debug "climateState = $data.climateState"
             if (tempScale == "F")
             {
         	  sendEvent(name: "temperature", value: data.climateState.temperature.toInteger(), unit: "F")
@@ -354,7 +357,7 @@ private processData(data) {
 }
 
 def refresh() {
-	log.debug "Executing 'refresh'"
+	if (debugLevel != "None") log.debug "Executing 'refresh'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
@@ -363,53 +366,53 @@ def refresh() {
 }
 
 def wake() {
-	log.debug "Executing 'wake'"
+	if (debugLevel != "None") log.debug "Executing 'wake'"
 	def data = parent.wake(this)
     processData(data)
     runIn(30, refresh)
 }
 
 def lock() {
-	log.debug "Executing 'lock'"
+	if (debugLevel != "None") log.debug "Executing 'lock'"
 	def result = parent.lock(this)
     if (result) { refresh() }
 }
 
 def unlock() {
-	log.debug "Executing 'unlock'"
+	if (debugLevel != "None") log.debug "Executing 'unlock'"
 	def result = parent.unlock(this)
     if (result) { refresh() }
 }
 
 def auto() {
-	log.debug "Executing 'auto'"
+	if (debugLevel != "None") log.debug "Executing 'auto'"
 	def result = parent.climateAuto(this)
     if (result) { refresh() }
 }
 
 def off() {
-	log.debug "Executing 'off'"
+	if (debugLevel != "None") log.debug "Executing 'off'"
 	def result = parent.climateOff(this)
     if (result) { refresh() }
 }
 
 def heat() {
-	log.debug "Executing 'heat'"
+	if (debugLevel != "None") log.debug "Executing 'heat'"
 	// Not supported
 }
 
 def emergencyHeat() {
-	log.debug "Executing 'emergencyHeat'"
+	if (debugLevel != "None") log.debug "Executing 'emergencyHeat'"
 	// Not supported
 }
 
 def cool() {
-	log.debug "Executing 'cool'"
+	if (debugLevel != "None") log.debug "Executing 'cool'"
 	// Not supported
 }
 
 def setThermostatMode(mode) {
-	log.debug "Executing 'setThermostatMode'"
+	if (debugLevel != "None") log.debug "Executing 'setThermostatMode'"
 	switch (mode) {
     	case "auto":
         	auto()
@@ -423,7 +426,7 @@ def setThermostatMode(mode) {
 }
 
 def setThermostatSetpoint(Number setpoint) {
-	log.debug "Executing 'setThermostatSetpoint with temp scale $tempScale'"
+	if (debugLevel != "None") log.debug "Executing 'setThermostatSetpoint with temp scale $tempScale'"
     if (tempScale == "F")
       {
 	    def result = parent.setThermostatSetpointF(this, setpoint)
@@ -437,38 +440,38 @@ def setThermostatSetpoint(Number setpoint) {
 }
 
 def startCharge() {
-	log.debug "Executing 'startCharge'"
+	if (debugLevel != "None") log.debug "Executing 'startCharge'"
     def result = parent.startCharge(this)
     if (result) { refresh() }
 }
 
 def stopCharge() {
-	log.debug "Executing 'stopCharge'"
+	if (debugLevel != "None") log.debug "Executing 'stopCharge'"
     def result = parent.stopCharge(this)
     if (result) { refresh() }
 }
 
 def openFrontTrunk() {
-	log.debug "Executing 'openFrontTrunk'"
+	if (debugLevel != "None") log.debug "Executing 'openFrontTrunk'"
     def result = parent.openTrunk(this, "front")
     // if (result) { refresh() }
 }
 
 def openRearTrunk() {
-	log.debug "Executing 'openRearTrunk'"
+	if (debugLevel != "None") log.debug "Executing 'openRearTrunk'"
     def result = parent.openTrunk(this, "rear")
     // if (result) { refresh() }
 }
 
 def unlockAndOpenChargePort() {
-	log.debug "Executing 'unock and open charge port'"
+	if (debugLevel != "None") log.debug "Executing 'unock and open charge port'"
     def result = parent.unlockandOpenChargePort(this)
     // if (result) { refresh() }   
 }  
 
 def setChargeLimit(Number Limit)
 {
- log.debug "Executing 'setChargeLimit with limit of $Limit %"
+    if (debugLevel != "None") log.debug "Executing 'setChargeLimit with limit of $Limit %"
 	def result = parent.setChargeLimit(this, Limit)
         if (result) { refresh() }
 }  
@@ -481,43 +484,43 @@ def updated()
 }
 
 def setSeatHeaters(seat,level) {
-	log.debug "Executing 'setSeatheater'"
+	if (debugLevel != "None") log.debug "Executing 'setSeatheater'"
 	def result = parent.setSeatHeaters(this, seat,level)
     if (result) { refresh() }
 }
 
 def sentryModeOn() {
-	log.debug "Executing 'Turn Sentry Mode On'"
+	if (debugLevel != "None") log.debug "Executing 'Turn Sentry Mode On'"
 	def result = parent.sentryModeOn(this)
     if (result) { refresh() }
 }
 
 def sentryModeOff() {
-	log.debug "Executing 'Turn Sentry Mode Off'"
+	if (debugLevel != "None") log.debug "Executing 'Turn Sentry Mode Off'"
 	def result = parent.sentryModeOff(this)
     if (result) { refresh() }
 }
 
 def valetModeOn() {
-	log.debug "Executing 'Turn Valet Mode On'"
+	if (debugLevel != "None") log.debug "Executing 'Turn Valet Mode On'"
 	def result = parent.valetModeOn(this)
     if (result) { refresh() }
 }
 
 def valetModeOff() {
-	log.debug "Executing 'Turn Valet Mode Off'"
+	if (debugLevel != "None") log.debug "Executing 'Turn Valet Mode Off'"
 	def result = parent.valetModeOff(this)
     if (result) { refresh() }
 }
 
 def ventWindows() {
-	log.debug "Executing 'Venting Windows'"
+	if (debugLevel != "None") log.debug "Executing 'Venting Windows'"
 	def result = parent.ventWindows(this)
     if (result) { refresh() }
 }
 
 def closeWindows() {
-	log.debug "Executing 'Close Windows'"
+	if (debugLevel != "None") log.debug "Executing 'Close Windows'"
 	def result = parent.closeWindows(this)
     if (result) { refresh() }
 }
@@ -527,12 +530,12 @@ private farenhietToCelcius(dF) {
 }
 
 def scheduleTokenRefresh() {
-	log.debug "Executing 'sheduleTokenRefresh'"
+	if (debugLevel != "None") log.debug "Executing 'sheduleTokenRefresh'"
     def result = parent.scheduleTokenRefresh(this)
 }
 
 def transitionAccessToken() {
-	log.debug "Executing 'transitioning accessToken to prepare for new teslaAccessToken'"
+	if (debugLevel != "None") log.debug "Executing 'transitioning accessToken to prepare for new teslaAccessToken'"
     def result = parent.transitionAccessToken(this)
 }
 
