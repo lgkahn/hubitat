@@ -1,7 +1,6 @@
 /**
-*   simple sendmail  .. lg kahn kahn@lgk.com
-*  You should have received a copy of the GNU General Public License
-*  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+* 
+* https://github.com/lgkahn/hubitat/blob/master/sendmail%20V2
 * 
 * v 2.1 added desciprtive text and cleaned up debugging
 * v 2.2 added hostname option and lookup ip if blank.
@@ -59,7 +58,8 @@
 * v 3.6 noticed while i was having internet problems that the app kept spawning off retrying forever.. Notice the 2 attempts was not working.
 * fixed it so it gives up after two failed attemps. also unchedules all pending and resets and tries again.
 * v 4. add optional ehlo for servers that require it. Also need to handle the additional processing of EHLO informational messages coming back.
-* v 4.01 bug gound with two typos with misspelling of lastCommand. Fix brought to light corresponding missing 250 checks.
+* v 4.01 bug found with two typos with misspelling of lastCommand. Fix brought to light corresponding missing 250 checks.
+* v 4.02 Replaced descLog with txtEnable to conform with built-in drivers and consolidate Hubitat Preference Manager entries for better user experience (2022-10-06)
 */
 
 attribute "lastCommand", "string"
@@ -83,7 +83,7 @@ preferences {
 	input("Subject", "text", title: "Subject:", description: "")
     input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", required: false)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-    input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
+    input("txtEnable", "bool", title: "Enable descriptionText logging", required: false, defaultValue: true)
     input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
     input("RequiresEHLO", "bool", title: "Does the server require the EHLO command instead of the std HELO?", required: false, defaultValue: false)
     input("Username", "text", title: "Username for Authentication - (base64 encoded)?", required: false, defaultValue: "")
@@ -91,7 +91,7 @@ preferences {
 }
 
 metadata {
-    definition (name: "LGK Sendmail V2", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
+    definition (name: "SMS", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
     capability "Notification"
     capability "Actuator"
 	capability "Telnet"
@@ -143,7 +143,7 @@ def initialize() {
         sendEvent(name: "myHostName", value: myHostName) 
     }
     
-   if (descLog) log.info "Descriptive Text logging is on."
+   if (txtEnable) log.info "Descriptive Text logging is on."
    else log.info "Description Text logging if off."
     
    if (debug)
@@ -290,7 +290,7 @@ synchronized (lastStateMutex)
                 def Integer addAmount = Math.floor((Math.random() * 60) + 1)
                 def Integer waitTime = 30 + addAmount
                   
-                if (debug || descLog) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
+				if (debug || txtEnable) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
                 addToQueue(message)
   
                 // now reschedule this queue item.
@@ -486,7 +486,7 @@ def parse(String msg) {
                    
                  def res1 = seqSend(sndMsg,500) 
                  state.messageSent = true  
-                 if (debug || descLog) log.info "Sent Message: $emlBody"     
+				 if (debug || txtEnable) log.info "Sent Message: $emlBody"     
          }
          }
          else
@@ -500,7 +500,7 @@ def parse(String msg) {
        if (debug) log.debug "In send message case"
              if ((response == "220") || (response == "250"))
                  {
-                     if (debug || descLog) log.info "sending quit"
+					 if (debug || txtEnable) log.info "sending quit"
                      synchronized (lastStateMutex) { state.lastCommand = "quit" } 
                      sendEvent(name: "lastCommand", value: "quit")     
                      def res1 = sendData("quit",500)
