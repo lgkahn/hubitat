@@ -59,7 +59,7 @@
 * fixed it so it gives up after two failed attemps. also unchedules all pending and resets and tries again.
 * v 4. add optional ehlo for servers that require it. Also need to handle the additional processing of EHLO informational messages coming back.
 * v 4.01 bug found with two typos with misspelling of lastCommand. Fix brought to light corresponding missing 250 checks.
-* v 4.02 Replaced descLog with txtEnable to conform with built-in drivers and consolidate Hubitat Preference Manager entries for better user experience (2022-10-06)
+* v 4.02 Replaced descLog with txtEnable and debug with logEnable to conform with built-in drivers and consolidate Hubitat Preference Manager entries for better user experience (2022-10-06)
 */
 
 attribute "lastCommand", "string"
@@ -82,7 +82,7 @@ preferences {
  	input("To", "text", title: "To:", description: "", required: true)
 	input("Subject", "text", title: "Subject:", description: "")
     input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", required: false)
-    input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+    input("logEnable", "bool", title: "Enable debug logging", required: false, defaultValue: false)
     input("txtEnable", "bool", title: "Enable descriptionText logging", required: false, defaultValue: true)
     input("Authenticate", "bool", title: "Use Authentication on the server?", required: false, defaultValue: false)
     input("RequiresEHLO", "bool", title: "Does the server require the EHLO command instead of the std HELO?", required: false, defaultValue: false)
@@ -115,7 +115,7 @@ def configure()
 def logsOff()
 {
     log.debug "Turning off Logging!"
-    device.updateSetting("debug",[value:"false",type:"bool"])
+    device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
 def initialize() {
@@ -146,7 +146,7 @@ def initialize() {
    if (txtEnable) log.info "Descriptive Text logging is on."
    else log.info "Description Text logging if off."
     
-   if (debug)
+   if (logEnable)
     {
         log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
         runIn(1800,logsOff)
@@ -166,22 +166,22 @@ def processQueue(Boolean fromRunIn = false)
     def Boolean doprocess  = false
     def String msg = []
     
-     if (debug) log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
+     if (logEnable) log.debug "in process queue queue = $lqueue, fromRunIn = $fromRunIn"
       if (mutex.tryAcquire(waitTime,TimeUnit.MILLISECONDS))
        {  
         def isempty = lqueue.isEmpty()
-        if (debug) log.debug "in process queue current empty = $isempty"
+        if (logEnable) log.debug "in process queue current empty = $isempty"
 
         if (!isempty)
          {
-          if (debug) 
+          if (logEnable) 
              {
                  log.debug "Getting item to process"
      	         log.debug "Got mutex"
              }
              
            msg = lqueue.poll()
-           if (debug) log.debug "Got item $msg to process."
+           if (logEnable) log.debug "Got item $msg to process."
            mutex.release()   
            doProcess = true
          }
@@ -204,14 +204,14 @@ def processQueue(Boolean fromRunIn = false)
     mutex.release()  
     if (doProcess) deviceNotification(msg,fromRunIn) 
     
-    if (debug) log.debug "after run queue = $lqueue"
+    if (logEnable) log.debug "after run queue = $lqueue"
 }     
 
 def addToQueue(String message)
 
 {
-    if (debug) log.debug "in add to queue current queue = $lqueue"
-    if (debug) log.debug("Acquiring semaphore.")
+    if (logEnable) log.debug "in add to queue current queue = $lqueue"
+    if (logEnable) log.debug("Acquiring semaphore.")
    
     def Integer  waitTime = 30000
     
@@ -219,7 +219,7 @@ def addToQueue(String message)
     {    
         
        def isempty = lqueue.isEmpty()
-       if (debug) log.debug "in process queue current empty = $empty"
+       if (logEnable) log.debug "in process queue current empty = $empty"
        lqueue.add(message)
     }
     else
@@ -231,7 +231,7 @@ def addToQueue(String message)
     }
     
     mutex.release()
-    if (debug) log.debug "after queue = $lqueue"
+    if (logEnable) log.debug "after queue = $lqueue"
 }
 
 def deviceNotification(String message, Boolean fromRunIn = false) {
@@ -246,14 +246,14 @@ synchronized (lastStateMutex)
      if (state.lastCommand == null) state.lastCommand = "quit"
     }
     
-    if (debug) log.debug "-------> In lgk sendmail Version ($version)"
+    if (logEnable) log.debug "-------> In lgk sendmail Version ($version)"
     
     // lgk now check if we are already in middle of a message and if so wait for a minute.. if after that we still are force close the connection and resume this
     // message
     def oldState
     synchronized (lastStateMutex) { oldState = state.lastCommand }
     
-    if (debug) log.debug "Initial state found: ($oldState)"
+    if (logEnable) log.debug "Initial state found: ($oldState)"
     
     if (!((oldState == "Sent Ok") || (oldState == "Send Failed") || (oldState == "Connection Closed") || (oldState == "quit") || (oldState == "Force Closed")))   
       { 
@@ -271,7 +271,7 @@ synchronized (lastStateMutex)
                 goOn = false
                 
                 // if debuging on redo the job to turn off
-                if (debug)
+                if (logEnable)
                  {
                   log.info "Debug logging is on. Turning off debug logging in 1/2 hour."
                   runIn(1800,logsOff)
@@ -290,7 +290,7 @@ synchronized (lastStateMutex)
                 def Integer addAmount = Math.floor((Math.random() * 60) + 1)
                 def Integer waitTime = 30 + addAmount
                   
-				if (debug || txtEnable) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
+				if (logEnable || txtEnable) log.info "Existing state ($oldState) indicates last run did not complete. Adding to queue, Waiting $waitTime secs. then trying again!"
                 addToQueue(message)
   
                 // now reschedule this queue item.
@@ -300,18 +300,18 @@ synchronized (lastStateMutex)
 
        if (goOn)
         { 
-            if (debug) log.debug "Found ok initial state ($oldState) ... going on!"
+            if (logEnable) log.debug "Found ok initial state ($oldState) ... going on!"
             
            synchronized (lastStateMutex) { state.lastCommand = "initialConnect"
                                            sendEvent(name: "lastCommand", value: "initialConnect")
                                          }
             
-            if (debug) synchronized (lastStateMutex) { log.debug "set last command to $state.lastCommand" }
+            if (logEnable) synchronized (lastStateMutex) { log.debug "set last command to $state.lastCommand" }
     
 	       state.EmailBody = "${message}"
 	       state.LastCode = 0
         
-           if (debug) log.debug "Connecting to ${EmailServer}:${EmailPort}"
+           if (logEnable) log.debug "Connecting to ${EmailServer}:${EmailPort}"
 	
 	       telnetConnect(EmailServer, EmailPort.toInteger(), null, null)  
            // telnetConnect([ terminalType: 'VT100' ], EmailServer, EmailPort.toInteger(), null, null)
@@ -320,7 +320,7 @@ synchronized (lastStateMutex)
 
 def sendData(String msg, Integer millsec) {
     
-    if (debug) log.debug "$msg"
+    if (logEnable) log.debug "$msg"
 	
 	def hubCmd = sendHubCommand(new hubitat.device.HubAction("${msg}", hubitat.device.Protocol.TELNET))
 	pauseExecution(millsec)
@@ -334,7 +334,7 @@ def parse(String msg) {
    
     synchronized (lastStateMutex) { lastCommand = state.lastCommand }
     
-    if (debug) {
+    if (logEnable) {
         log.debug "In parse - ${msg}"
         log.debug "lastCommand = $lastCommand"
     }
@@ -351,17 +351,17 @@ def parse(String msg) {
     def response = pair[0]
     def value = pair[1]
     
-   if (debug) log.debug "Got server response $response value = $value lastCommand = ($lastCommand)"
+   if (logEnable) log.debug "Got server response $response value = $value lastCommand = ($lastCommand)"
     
    if (lastCommand == "initialConnect")
         {
-         if (debug) log.debug "In initialConnect case"
+         if (logEnable) log.debug "In initialConnect case"
              if (response == "220")
                  { 
                      sendEvent([name: "telnet", value: "Ok"])
                      if (RequiresEHLO)
                      {
-                        if (debug) log.debug "Using EHLO instead of HELO!"
+                        if (logEnable) log.debug "Using EHLO instead of HELO!"
                         synchronized (lastStateMutex) { state.lastCommand = "ehlo" }
                         sendEvent(name: "lastCommand", value: "ehlo")      
                         def res1 = sendData("ehlo $state.myHostName",500)
@@ -381,10 +381,10 @@ def parse(String msg) {
     
    else if (lastCommand == "Auth")
     {
-     if (debug) log.debug "In auth response looking for 334"
+     if (logEnable) log.debug "In auth response looking for 334"
      if (response == "334")
      {
-       if (debug) log.debug "Got auth response now sending username"
+       if (logEnable) log.debug "Got auth response now sending username"
  
        synchronized (lastStateMutex) { state.lastCommand = "Username" }
        sendEvent(name: "lastCommand", value: "Username")
@@ -402,11 +402,11 @@ def parse(String msg) {
    else if (lastCommand == "Username")
     {
         
-     if (debug) log.debug "In Username response looking for 334"
+     if (logEnable) log.debug "In Username response looking for 334"
         
      if (response == "334")
      {
-       if (debug) log.debug "Got username response now sending password"
+       if (logEnable) log.debug "Got username response now sending password"
        synchronized (lastStateMutex) { state.lastCommand = "Password" }
        sendEvent(name: "lastCommand", value: "Password")
        def res1 = sendData("$Password",500)
@@ -424,14 +424,14 @@ def parse(String msg) {
     else if ((lastCommand == "helo") || (lastCommand == "ehlo") || (lastCommand == "Password"))
         {
             
-        if (debug) log.debug "In helo/ehlo/Password case"
+        if (logEnable) log.debug "In helo/ehlo/Password case"
             
          if ((response == "250") || (response == "235"))
          {
         
           if (((lastCommand == "helo") || (lastCommand == "ehlo")) && (Authenticate) && (Username) && (Password))
           {
-           if (debug) log.debug "Trying authentication"
+           if (logEnable) log.debug "Trying authentication"
               
            synchronized (lastStateMutex) { state.lastCommand = "Auth" }
            sendEvent(name: "lastCommand", value: "Auth")
@@ -440,7 +440,7 @@ def parse(String msg) {
 
          else
            {
-           if (debug) "Either got 250 for helo or 235 for password, Now Sending Message or ehlo"
+           if (logEnable) "Either got 250 for helo or 235 for password, Now Sending Message or ehlo"
                
             synchronized (lastStateMutex) { state.lastCommand = "sendmessage" }
             sendEvent(name: "lastCommand", value: "sendmessage") 
@@ -497,7 +497,7 @@ def parse(String msg) {
     
     else if (lastCommand == "sendmessage")
         {
-       if (debug) log.debug "In send message case"
+       if (logEnable) log.debug "In send message case"
              if ((response == "220") || (response == "250"))
                  {
 					 if (debug || txtEnable) log.info "sending quit"
@@ -513,7 +513,7 @@ def parse(String msg) {
        else if ((lastCommand == "quit") || ((response == "221") && (lastCommand == "other")))
                                             //&& ((value == "bye") || (value == "2.0.0") || (value = "Goodbye"))))
         {
-          if (debug) log.debug "In quit case"
+          if (logEnable) log.debug "In quit case"
                if (response == "220" || response == "221" || response == "250")
                  { 
                    if (state.messageSent)
@@ -550,7 +550,7 @@ def telnetStatus(status) {
     // response are still returned on the socket after. ignore stream is closed errors.
     if (status != "receive error: Stream is closed") 
     {    
-        if (debug) synchronized (lastStateMutex) { log.debug "telnetStatus: ${status} lastcommand is ($state.lastCommand)" }
+        if (logEnable) synchronized (lastStateMutex) { log.debug "telnetStatus: ${status} lastcommand is ($state.lastCommand)" }
         sendEvent([name: "telnet", value: "${status}"])
     }
 }
@@ -563,7 +563,7 @@ def closeConnection()
                     synchronized (lastStateMutex) { state.lastCommand = "Connection Closed" }
                     sendEvent(name: "lastCommand", value: "Connection Closed")
                 } catch(e) {
-                    if (debug) log.debug("Connection Closed")
+                    if (logEnable) log.debug("Connection Closed")
                 }
                 
 			}
@@ -571,7 +571,7 @@ def closeConnection()
     
 boolean seqSend(msgs, Integer millisec)
 {
-    if (debug) log.debug "in sendData"
+    if (logEnable) log.debug "in sendData"
   
 			msgs.each {
 				sendData("${it}",millisec)
