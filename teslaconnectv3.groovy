@@ -48,6 +48,7 @@
  * also change wait time to be configuratble instead of the now default 2 secs between wake and command issuing. Also 
  * change the default to 10 secs as 2 seems not to work any longer.
  * also add child to the xx function so i can retry commands on an error 408 vehicle unavailable up to 3 times with an exponential backup of the pause time between commands.
+ * lgk 10/22 v3.1 add code to handle having a vehicle with no name just the "Tesla xxxx" driver name.
  */
 
 import groovy.transform.Field
@@ -272,6 +273,8 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
         }
     } catch (groovyx.net.http.HttpResponseException e) {
         if (descLog) log.debug "in error handler case error = $e response data = e.response data = ${e.response.data}"
+       if (e.response?.data?.error)
+        {
         def errorString = e.response?.data?.error
         boolean foundVehicleUnavailable = false
   
@@ -287,6 +290,7 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
                  if (debug) log.debug "set unavaiable to true "
                  foundVehicleUnavailable = true
             }
+        }
         }
           
         if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
@@ -405,7 +409,13 @@ private refreshAccountVehicles() {
     	if (descLog) log.info "Found ${resp.data.response.size()} vehicles"
         resp.data.response.each { vehicle ->
         	if (descLog) log.info "${vehicle.id}: ${vehicle.display_name}"
-        	state.accountVehicles[vehicle.id] = vehicle.display_name
+        	if (vehicle.display_name != null)
+            {
+               if (vehicle.display_name != "")
+                state.accountVehicles[vehicle.id] = vehicle.display_name
+              else state.accountVehicles[vehicle.id] = "Tesla ${vehicle.id}"
+            }
+           else state.accountVehicles[vehicle.id] = "Tesla ${vehicle.id}"
         }
     })
 }
