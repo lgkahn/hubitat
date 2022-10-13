@@ -29,7 +29,16 @@
 * Vesion 3,1 :
 * Found bug in code when random was off it had a check xxxx = true instead of xxxx == true so it automatically controlled each light (if you have more than one)
 * individually even if you hadn't enabled that setting.
-
+*
+* v 4.0 oct 2022 fix requirement to make sure holiday works ( need random on). Turn on random if we have holiday mode on automatically.
+* Add fade in and fade out options in seconds.
+* Add new options for 10, 15, 30 etc seconds to schedule time. Also if the transitions are ?= schedule time, reset the schedule time to 2 minutes.
+* Note fade out only works if you dont separate the fixtures as we need to pause execution for the fade off time, else it would immediately turn off or on again the command
+* executes immeately even though the light will take the x numbers of seconds to finish the transtion, and without a pause execution the next turn on would happen
+* before the transition time has expired. 
+*
+* Also be warned some lights do not work well or correctly with the setLevel(level,duration) command for fading.
+*
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
 */
@@ -53,15 +62,20 @@ preferences {
 	}
 
 	section("Choose cycle time between color changes? ") {
-            input "cycletime", "enum", title: "Cycle time in minutes?" , options: [
-                                "1",
-                                "5",
-				"10", 
-				"15", 
-				"30", 
-				"1 hour", 
-				"3 hours"
-			], required: true, defaultValue: "30"
+            input "cycleTime", "enum", title: "Cycle time?" , options: [
+                                "10 seconds",
+                                "20 seconds",
+                                "30 seconds",
+                                "45 seconds",
+                                "1 minute",
+                                "2 minutes",
+                                "5 minutes",
+			                	"10 minutes", 
+				                "15 minutes", 
+				                "30 minutes", 
+				                "1 hour", 
+				                "3 hours"
+			], required: true, defaultValue: "30 minutes"
 	}
 
      section( "Turn Off How Many Hours before Sunrise?") {
@@ -72,8 +86,11 @@ preferences {
      section( "Enabled/Disabled" ) {
         input "enabled","bool", title: "Enabled?", required: true, defaultValue: true
         input "enableswitch", "capability.switch", title: "Optional: Do you have a switch/virtual switch which the application enable/disable functionality should follow? If you do not want this feature leave blank.", multiple:false, required: false
+        input("fadeOnTime", "enum", title: "Optional time to fade when turning on/setting color?", options: ["Off","5","10","15","20","30"], required: true, defaultValue: "Off")
+        input("fadeOffTime", "enum", title: "Optional time to fade when turning off (does work if you separate fixtures)?", options: ["Off","5","10","15","20","30"], required: true, defaultValue: "Off")
+         
         input "randomMode","bool", title: "Enable Random Mode?", required: true, defaultValue: false
-        input "individualControl","bool", title: "Control Each light Color Individually?", required: false, defaultValue: false
+        input "individualControl","bool", title: "Control Each light Fixture Individually?", required: false, defaultValue: false
      }
     
 
@@ -110,6 +127,86 @@ preferences {
   }
 }
 	
+int getCycleTimeinSeconds()
+
+{ 
+    def ctime = 1800 // default if not found 30 minutes
+    if (settings.cycleTime != null)
+    {
+      switch(settings.cycleTime)
+        {
+            case "10 seconds":
+            ctime = 10
+            break;
+            
+            case "20 seconds":
+            ctime = 20
+            break;
+            
+            case "30 seconds":
+            ctime = 30
+            break;
+            
+            case "45 seconds":
+            ctime = 45
+            break;
+            
+            case "1 minute":
+            ctime = 60
+            break;
+            
+            case "2 minutes":
+            ctime = 120
+            break;
+            
+            case "5 minutes":
+            ctime = 300
+            break;
+            
+            case "10 minutes":
+            ctime = 600
+            break;
+            
+            case "15 minutes":
+            ctime = 900
+            break;
+            
+            case "30 minutes":
+            ctime = 1800
+            break;
+            
+            case "1 hour":
+            ctime = 3600
+            break;
+            
+            case "3 hours":
+            ctime = 10800
+            break;
+            
+            default:
+             ctime = 1800
+            break;
+            
+        }
+        // now check for problems in time and if so override
+        def time1 = 0
+        def time2 = 0
+        
+        if (settings.fadeOnTime != "Off") time1 = settings.fadeOnTime.toInteger()
+        if (settings.fadeOffTime != "Off") time2 = settings.fadeOffTime.toInteger()
+        
+        if (ctime <= (time1 + time2))
+        {
+            log.warn "Error in settings, the cycle Time of $settings.cycleTime is less than your total fade times of ${time1 + time2}!"
+            log.warn "Overriding cycle time to the default 2 minutes!"
+            app.updateSetting("cycleTime", [value:"2 minutes", type:"enum"])
+            state.cycleTime = ctime
+            ctime = 120
+        }
+    }
+   return ctime      
+}           
+            
 def installed() {
     unsubscribe()
     unschedule()
@@ -140,6 +237,7 @@ def updated() {
     {
      // must always turn off here even if disabled, because this gets called when the switch disables and turns stuff off.
      TurnOffAlways()
+     runIn(10,"TurnOffAlways")
     }
     
    if (settings.enabled == true)
@@ -153,7 +251,7 @@ def updated() {
        subscribe(enableswitch,"switch",EnableSwitchHandler)
      }
      
-    if (hues)
+  if (hues)
     {
         def currSwitches = hues.currentSwitch    
         def onHues = currSwitches.findAll { switchVal -> switchVal == "on" ? true : false }
@@ -161,6 +259,8 @@ def updated() {
         def onstr = numberon.toString() 
         log.debug "in updated on = $onstr"  
     }
+    
+    
 }
 
 def EnableSwitchHandler(evt)
@@ -182,62 +282,102 @@ def EnableSwitchHandler(evt)
      }
 }
 
-
 private def initialize() {
-    log.debug(" in initialize() for $app.label with settings: ${settings}")
+     state.version = "4.0"  
+     log.debug(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
+    // for holiday. mode to work random must be on so if no turn on.
+    if ((settings.holidayMode == true) && (settings.randomMode == false))
+    {
+        log.debug "Overriding and turning on random mode so holiday mode works correctly!"
+        app.updateSetting("randomMode", [value:true, type:"bool"])
+    }
+    
+    unschedule()  
     if(hues) 
     {
         subscribe(hues, "switch.on", changeHandler)    
         subscribe(location, "sunset", SunsetHandler)
         subscribe(location, "sunrise", SunriseHandler)
     
-// uses the run every instead of direct schedule to take load off of fixed times on hub
-    switch (settings.cycletime)
+    // uses the run every instead of direct schedule to take load off of fixed times on hub        
+    def ct = getCycleTimeinSeconds()
+    log.debug "Cycle Time is ${settings.cycleTime}, ($ct)"
+      
+    switch (ct)
     {
-     case "1":
-     log.debug "Switching color every minute."
-     schedule("1 * * * * ?",changeHandler)
+        
+     case "10":
+     schedule("0/10 * * * * ? *", "changeHandler")   
      break;
-
-     case "5":
+        
+      case "15":
+      log.debug "Switching color every 15 seconds." 
+      schedule("0/15 * * * * ? *", "changeHandler")  
+      break;
+        
+      case "20":
+      log.debug "Switching color every 20 seconds."
+      schedule("0/20 * * * * ? *", "changeHandler") 
+      break;
+        
+      case "30":
+       log.debug "Switching color every 3 seconds."
+       schedule("0/30 * * * * ? *", "changeHandler") 
+      break;
+        
+     case "45":
+      log.debug "Switching color every 45 seconds."
+      schedule("0/45 * * * * ? *", "changeHandler")  
+     break;
+       
+     case "60":
+     log.debug "Switching color every minute."
+     schedule("0 */1 * * * ? *","changeHandler")
+     break;
+     
+      case "120":
+      log.debug "Switching color every 2 minutes."
+      schedule("0 */2 * * * ? *","changeHandler")
+      break;
+        
+     case "300":
      log.debug "Switching color every 5 minutes."
-     runEvery5Minutes(changeHandler)
+     runEvery5Minutes("changeHandler")
      break;
       
-     case "10":
+     case "600":
      log.debug "Switching color every 10 minutes."
-     runEvery10Minutes(changeHandler)
+     runEvery10Minutes("changeHandler")
      break;
     
-     case "15":
+     case "900":
      log.debug "Switching color every 15 minutes."
-     runEvery15Minutes(changeHandler)
+     runEvery15Minutes("changeHandler")
      break;
     
-     case "30":
+     case "1800":
      log.debug "Switching color every 30 minutes."
-     runEvery30Minutes(changeHandler)
+     runEvery30Minutes("changeHandler")
      break;
     
-     case "1 hour":
+     case "3600":
      log.debug "Switching color every hour."
-     runEvery1Hour(changeHandler)
+     runEvery1Hour("changeHandler")
      break;
     
-     case  "3 hours":
+     case  "10800":
      log.debug "Switching color every 3 hours"
-     runEvery3Hours(changeHandler)
+     runEvery3Hours("changeHandler")
      break;
       
      default:
      log.debug "Switching color every 30 minutes."
-     runEvery30Minutes(changeHandler)
+     runEvery30Minutes("changeHandler")
      break;
      
     }
-   // schedule("0 */15 * * * ?", changeHandler)
-    // if selectd app it will run
+        
     subscribe(app,changeHandler)
     
     state.nextOnTime = 0
@@ -266,6 +406,11 @@ def SunsetHandler(evt)
  scheduleNextSunrise()
  }
  
+def TurnOffAgain()
+{
+    huse.off()
+}
+
 def TurnOff()
 {
     if (debug) log.debug "In turn off"
@@ -275,6 +420,9 @@ def TurnOff()
         mysend("$appLabel: Turning Off!")
 	}
 	hues.off()
+    // incase light was in a cycle of dimming or brightening the turn off can be ignored schedule again in case
+    runIn(30,"TurOffAgain")
+    
 }    
 
 
@@ -284,6 +432,8 @@ def TurnOffAlways()
       def appLabel = app.getLabel()
       mysend("$appLabel: Turning Off!")
 	  hues.off()
+      // incase light was in a cycle of dimming or brightening the turn off can be ignored schedule again in case
+      runIn(30,"TurOffAgain") 
 }    
 
 def TurnOn()
@@ -355,7 +505,7 @@ def changeHandler(evt) {
          def numberon = onHues.size();
          def onstr = numberon.toString() 
          
-       if (debug) log.debug "found $onstr that were on!"
+       if ((debug) && (settings.enabled == true)) log.debug "found $onstr that were on!"
       // log.debug "holiday mode = $settings.holidayMode"
        // log.debug "Random mode = $settings.randomMode"
     
@@ -369,7 +519,7 @@ def changeHandler(evt) {
        // lgk define alternate color array if holiday mode enabled
        if (settings.holidayMode == true)
          {
-            log.debug "Holiday Mode = On, getting count of colors Enabled."
+            if (debug) log.debug "Holiday Mode = On, getting count of colors Enabled."
             
          // now define new array
          def enabledColorArray = []
@@ -434,8 +584,8 @@ def changeHandler(evt) {
                 if (debug) log.debug "Random Number = $nextValue"
                 newColor = enabledColorArray[nextValue]
 
-                //log.debug("$app.label: Setting Color to $newColor.")
-                hues.on()
+                log.debug("$app.label: Setting Color to $newColor.")
+                //hues.on()
                 sendcolor(newColor)
 
               }
@@ -452,8 +602,8 @@ def changeHandler(evt) {
         if (debug) log.debug "Random Number = $nextValue"
         newColor = colorArray[nextValue]    
 
-       // log.debug("$app.label: Setting Color to $newColor.")
-        hues.on()
+         log.debug("$app.label: Setting Color to $newColor.")
+        //hues.on()
         sendcolor(newColor)
   
         }
@@ -524,7 +674,7 @@ def changeHandler(evt) {
 	}
 
       log.debug "After Check new color = $newColor"
-      hues.on()
+      //hues.on()
       sendcolor(newColor)
 
     } // end random or not
@@ -573,7 +723,7 @@ def sendcolor(color) {
 			hueColor = 65
 			break;
 		case "Green":
-			hueColor = 33
+			hueColor = 35
 			break;
         case "Turquoise":
         	hueColor = 47
@@ -617,18 +767,55 @@ def sendcolor(color) {
 	}
 
 	//Change the color of the light
-	def newValue = [hue: hueColor, saturation: saturation, level: brightnessLevel]  
-	hues*.setColor(newValue)
-        state.currentColor = color
-        mysend("$app.label: Setting Color = $color")
-        log.debug "$app.label: Setting Color = $color"
+    
+    if (settings.fadeOnTime == "Off")
+    {
+        
+       if (settings.fadeOffTime != "Off")
+        {
+           // case with only fade off.. 
+           def fOffTime = settings.fadeOffTime.toInteger() 
+           if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+           hues*.setLevel(1,fOffTime)
+           pauseExecution(fOffTime*1000) 
+        }
+            
+	     def newValue = [hue: hueColor, saturation: saturation, level: brightnessLevel]  
+	     hues*.setColor(newValue)
+         state.currentColor = color
+         mysend("$app.label: Setting Color = $color")
+         if (debug) log.debug "$app.label: Setting Color = $color"
+    }
+    else
+    {
+      if (settings.fadeOffTime != "Off")
+        {
+         
+            // fade out first before changing color if enabled
+            def fOffTime = settings.fadeOffTime.toInteger() 
+            if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+            hues*.setLevel(1,fOffTime)
+            pauseExecution(fOffTime*1000)
+        }
+       else
+       {
+        if (settings.fadeOnTime != "Off") hues*.setLevel(1,0)   
+       }
+        
+        // now turn on at level 1 and fade up
+        def fOnTime = settings.fadeOnTime.toInteger()
+        if (debug) log.debug "Turning on at level 1, then fading up to $brightnessLevel in $fOnTime seconds."
+        def newValue = [hue: hueColor, saturation: saturation, level: 1]  
+	    hues*.setColor(newValue)
+        hues*.setLevel(brightnessLevel,fOnTime)
+    }
 
 }
 
 
 def sendcolor(color,which)
 {
-        if (debug) log.debug "In send color for hue $which"
+     if (debug) log.debug "In send color for hue $which"
 	//Initialize the hue and saturation
 	def hueColor = 0
 	def saturation = 100
@@ -709,13 +896,32 @@ def sendcolor(color,which)
             break;                
 	}
 
+   if (settings.fadeOnTime == "Off")
+    {
+    
 	//Change the color of the light
 	def newValue = [hue: hueColor, saturation: saturation, level: brightnessLevel]  
 	hues[which].setColor(newValue)
         state.currentColor = color
         mysend("$app.label: hue: $which, Setting Color = $color")
         log.debug "$app.label: hue: $which Setting Color = $color"
-
+    }
+    
+    else
+    {
+        
+        //cannot do fade off here as we need to pause execution for the fade off time before turning back on the other color and with each fixture being separate 
+        // this cannot be done or they will not come on at the same time. just fade immediately t0 1 if we want to fade bsck up
+        
+        if (settings.fadeOnTime != "Off") hues[which].setLevel(1,0)   
+        // now turn on at level 1 and fade up
+        def fOnTime = settings.fadeOnTime.toInteger()
+        if (debug) log.debug "Turning fixture $which on at level 1, then fading up to $brightnessLevel in $fOnTime seconds."
+        def newValue = [hue: hueColor, saturation: saturation, level: 1]  
+	    hues[which].setColor(newValue)
+        hues[which].setLevel(brightnessLevel,fOnTime)
+    }
+        
 }
 
 private mysend(msg) {
