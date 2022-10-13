@@ -4,7 +4,7 @@
 *
 *
 * Assumptions: APC smart ups device with network card
-*
+*  
 * lgk.com c 2020  free for personal use.. do not post
 *
 * version 1.2
@@ -37,6 +37,7 @@
 * v 3.0 add new attribures model, serial number, manuf. date, firmware version and battery type.
 * v 3.5 cannot do quit at end of battery and cannot include in initial string as the libraries now close the telnet immediately
 * change order to detstatus -all last and close on battery sku which i hope every one returns.
+* v 3.6 add outputWatts = outputCurrent * outputVoltage truncate to integer.
 */
 
 capability "Battery"
@@ -72,6 +73,7 @@ attribute "manufDate", "string"
 attribute "model", "string"
 attribute "firmwareVersion", "string"
 attribute "batteryType", "string"
+attribute "outputWatts", "number"
 
 
 
@@ -100,7 +102,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "3.0"
+	state.version = "3.6"
 }
 
 def installed() {
@@ -147,10 +149,7 @@ def initialize() {
     sendEvent(name: "FTemp", value: 0.0)
     sendEvent(name: "CTemp", value: 0.0)
     sendEvent(name: "telnet", value: "Ok")
-    
-   
-    
-    
+ 
     if ((tempUnits == null) || (tempUnits == ""))
       device.tempUnits = "F"
 
@@ -402,6 +401,8 @@ def parse(String msg) {
                      {
                          sendEvent(name: "outputVoltage", value: p2) 
                          if (getloglevel() > 0) log.debug "Output Voltage: $p2"
+                         state.outputVoltage = p2
+                        
                      }  
                     else if (p1 == "Frequency:")
                     {
@@ -412,6 +413,10 @@ def parse(String msg) {
                     {
                         sendEvent(name: "outputCurrent", value: p2)
                         if (getloglevel() > 0) log.debug "Output Current: $p2"
+                        
+                         double watts = state.outputVoltage.toDouble() * p2.toDouble()
+                         def intWatts = watts.toInteger()
+                         sendEvent(name: "outputWatts", value: intWatts)
                     }
                     else if (p1 == "Energy:")
                     {
