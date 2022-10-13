@@ -421,7 +421,7 @@ def TurnOff()
 	}
 	hues.off()
     // incase light was in a cycle of dimming or brightening the turn off can be ignored schedule again in case
-    runIn(30,"TurOffAgain")
+    runIn(30,"TurnOffAgain")
     
 }    
 
@@ -433,7 +433,7 @@ def TurnOffAlways()
       mysend("$appLabel: Turning Off!")
 	  hues.off()
       // incase light was in a cycle of dimming or brightening the turn off can be ignored schedule again in case
-      runIn(30,"TurOffAgain") 
+      runIn(30,"TurnOffAgain") 
 }    
 
 def TurnOn()
