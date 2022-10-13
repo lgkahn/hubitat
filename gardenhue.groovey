@@ -408,7 +408,7 @@ def SunsetHandler(evt)
  
 def TurnOffAgain()
 {
-    huse.off()
+    hues.off()
 }
 
 def TurnOff()
