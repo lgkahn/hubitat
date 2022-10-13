@@ -35,6 +35,8 @@
 * v 2.5 aug 2022 apparently even if ups is charging but you set your low battery duration to a weird number like 20 minutes it will show battery status as discharged until it surpasses that
 * so added discharged ups status.
 * v 3.0 add new attribures model, serial number, manuf. date, firmware version and battery type.
+* v 3.5 cannot do quit at end of battery and cannot include in initial string as the libraries now close the telnet immediately
+* change order to detstatus -all last and close on battery sku which i hope every one returns.
 */
 
 capability "Battery"
@@ -223,6 +225,7 @@ def initialize() {
 
 def refresh() {
 
+    
     if (!disable)
     {
 
@@ -276,19 +279,19 @@ def parse(String msg) {
 	        def sndMsg =[
 	        		"$Username"
 	        		, "$Password"
-	        		, "detstatus -rt"
+	        	    , "detstatus -rt"
                     , "detstatus -ss"
                     , "detstatus -soc"
-                    , "detstatus -tmp"
                     , "detstatus -all"
+                    , "detstatus -tmp"
                     , "upsabout"
-		        	, "quit"
+                   
 	            ]  
              def res1 = seqSend(sndMsg,500)
          }
         
    
-       else if (lastCommand == "quit")
+       else if (lastCommand == "quit")//  , "quit"
         { 
             sendEvent(name: "lastCommand", value: "Rescheduled")
             log.debug "Will run again in $state.currentCheckTime Minutes!"
@@ -359,6 +362,10 @@ def parse(String msg) {
                {
                      sendEvent(name: "batteryType", value: p2)
                      if (getloglevel() > 0) log.debug "Got Battery Type: $p2"
+                   
+                   sendEvent(name: "lastCommand", value: "quit")  
+                   def res1 = sendData("quit",500)
+                   
                }
                else if ((p0 == "Manufacture") && (p1 == "Date:"))
                {
@@ -628,8 +635,6 @@ def parse(String msg) {
                     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
                     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
 
-                    sendEvent(name: "lastCommand", value: "quit")  
-                    def res1 = sendData("quit",500)
                  }
            
                 } // length = 6
