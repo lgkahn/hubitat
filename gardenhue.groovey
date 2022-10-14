@@ -37,7 +37,12 @@
 * executes immeately even though the light will take the x numbers of seconds to finish the transtion, and without a pause execution the next turn on would happen
 * before the transition time has expired. 
 *
-* Also be warned some lights do not work well or correctly with the setLevel(level,duration) command for fading.
+* Also be warned some lights do not work well or correctly with the setLevel(level,duration) command for fading. Namely the generic zigbee rgb switch does not,
+* but the advanced zigbee rgb bulb does.
+*
+* v 4.1 missing a line needed in the new code for non random rgbiv color changing mode to work correctly. Also figure how to add fade off with the suspendExecution
+* in the separate light fixture and random mode. I added it for all fixtures on once outside the separate fixture loop.
+* Also was missing code for the non-holiday, random, separated fixture case.
 *
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
@@ -283,7 +288,7 @@ def EnableSwitchHandler(evt)
 }
 
 private def initialize() {
-     state.version = "4.0"  
+     state.version = "4.1"  
      log.debug(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
@@ -425,8 +430,6 @@ def TurnOff()
     
 }    
 
-
- 
 def TurnOffAlways()
 {
       def appLabel = app.getLabel()
@@ -515,7 +518,6 @@ def changeHandler(evt) {
       if (settings.randomMode == true)
        {
 
- 
        // lgk define alternate color array if holiday mode enabled
        if (settings.holidayMode == true)
          {
@@ -557,8 +559,6 @@ def changeHandler(evt) {
            if (whiteEnabled == true)
                enabledColorArray <<  "White"
 
-
-
            def int colorsEnabled = enabledColorArray.size
            if (debug) log.debug "Enabled Color Count = $colorsEnabled"
            if (debug) log.debug "Enabled Color Array = $enabledColorArray"
@@ -566,13 +566,23 @@ def changeHandler(evt) {
            if ((numberon > 1) && (settings.individualControl == true))
              {
 
+                 // this needs to be done here outside the loop and not in the individual fixture loop becuase of the pauseExecution otherwise fixtures
+                 // will be out of sync.
+                 if (settings.fadeOffTime != "Off")
+                   {                  
+                       def fOffTime = settings.fadeOffTime.toInteger() 
+                       if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+                       hues*.setLevel(1,fOffTime)
+                       pauseExecution(fOffTime*1000) 
+                   }
+                            
                  for (def i=0; i<numberon; i++) 
                       {
                             def int nextValue = new Random().nextInt(colorsEnabled)
-                           if (debug) log.debug "Hue: $i, Random Number = $nextValue"
+                            if (debug) log.debug "Hue: $i, Random Number = $nextValue"
                             newColor = enabledColorArray[nextValue]
 
-                            log.debug("$app.label: Hue:$i - Setting Color to $newColor.")
+                            log.debug("$app.label: Hue:$i - Setting Color to $newColor.")                         
                             sendcolor(newColor,i)
                      }
              } // do each individually
@@ -594,18 +604,45 @@ def changeHandler(evt) {
 
 
      else {
-        // not holiday mode
+        // not holiday mode but random
+              
+          if ((numberon > 1) && (settings.individualControl == true))
+             {
+                 if (debug) log.debug "Non Holiday, Random, Separated case"
+                 // this needs to be done here outside the loop and not in the individual fixture loop becuase of the pauseExecution otherwise fixtures
+                 // will be out of sync.
+                 if (settings.fadeOffTime != "Off")
+                   {                  
+                       def fOffTime = settings.fadeOffTime.toInteger() 
+                       if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+                       hues*.setLevel(1,fOffTime)
+                       pauseExecution(fOffTime*1000) 
+                   }
+                            
+                 for (def i=0; i<numberon; i++) 
+                      {
+                           def int nextValue = new Random().nextInt(16)
+                           def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
+                           if (debug) log.debug "Hue: $i, Random Number = $nextValue"
+                            newColor = colorArray[nextValue]
+                            log.debug("$app.label: Hue:$i - Setting Color to $newColor.")                         
+                            sendcolor(newColor,i)
+                     }
+             } // do each individually
+          else
+          {
+           if (debug) log.debug "Holiday mode is not on."
+           def int nextValue = new Random().nextInt(16)
+           def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
 
-        def int nextValue = new Random().nextInt(16)
-        def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
+           if (debug) log.debug "Random Number = $nextValue"
+           newColor = colorArray[nextValue]    
 
-        if (debug) log.debug "Random Number = $nextValue"
-        newColor = colorArray[nextValue]    
-
-         log.debug("$app.label: Setting Color to $newColor.")
-        //hues.on()
-        sendcolor(newColor)
+            log.debug("$app.label: Setting Color to $newColor.")
+            //hues.on()
+             sendcolor(newColor)
   
+          } 
         }
 
        }
@@ -615,7 +652,7 @@ def changeHandler(evt) {
       { // not random
       
        def currentColor = state.currentColor
-       if (debug) log.debug " in changeHandler got current color = $currentColor"
+       if (debug) log.debug " in changeHandler non-random case, got current color = $currentColor"
 
        switch(currentColor) {
     
@@ -640,13 +677,13 @@ def changeHandler(evt) {
 		case "Green":
 			newColor = "Turquoise"
 			break;
-                case "Turquoise":
+        case "Turquoise":
 			newColor = "Aqua"
 			break;
 		case "Aqua":
 			newColor = "Navy Blue"
 			break;
-                case "Navy Blue":
+        case "Navy Blue":
 			newColor = "Blue"
 			break;
 		case "Blue":
@@ -655,21 +692,21 @@ def changeHandler(evt) {
 		case "Indigo":
 			newColor = "Purple"
 			break;
-                case "Purple":
+        case "Purple":
 			newColor = "Pink"
 			break;
-            	case "Pink":
+        case "Pink":
 			newColor = "Rasberry"
 			break;
-                case "Rasberry":
+        case "Rasberry":
 			newColor = "White"
 			break;
-                case "White":
+         case "White":
 			newColor = "Red"
 			break;
-                default:
-        	//log.debug "in default"
-             newColor = "Red"
+         default:
+        	log.debug "in default"
+            newColor = "Red"
 			break;
 	}
 
@@ -769,8 +806,7 @@ def sendcolor(color) {
 	//Change the color of the light
     
     if (settings.fadeOnTime == "Off")
-    {
-        
+    {       
        if (settings.fadeOffTime != "Off")
         {
            // case with only fade off.. 
@@ -805,13 +841,13 @@ def sendcolor(color) {
         // now turn on at level 1 and fade up
         def fOnTime = settings.fadeOnTime.toInteger()
         if (debug) log.debug "Turning on at level 1, then fading up to $brightnessLevel in $fOnTime seconds."
-        def newValue = [hue: hueColor, saturation: saturation, level: 1]  
+        def newValue = [hue: hueColor, saturation: saturation, level: 1] 
+        state.currentColor = color
 	    hues*.setColor(newValue)
         hues*.setLevel(brightnessLevel,fOnTime)
     }
 
 }
-
 
 def sendcolor(color,which)
 {
@@ -911,7 +947,7 @@ def sendcolor(color,which)
     {
         
         //cannot do fade off here as we need to pause execution for the fade off time before turning back on the other color and with each fixture being separate 
-        // this cannot be done or they will not come on at the same time. just fade immediately t0 1 if we want to fade bsck up
+        // this is done prior to the call for all fixtures if necessary not here in the looop
         
         if (settings.fadeOnTime != "Off") hues[which].setLevel(1,0)   
         // now turn on at level 1 and fade up
@@ -939,5 +975,4 @@ private mysend(msg) {
         
     }
 }
-
 
