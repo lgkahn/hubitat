@@ -39,6 +39,7 @@
 * change order to detstatus -all last and close on battery sku which i hope every one returns.
 * v 3.6 add outputWatts = outputCurrent * outputVoltage truncate to integer.
 * v 3.7 fix issue where more that 59 minutes causes error add range to parameters.
+* v 3.8 was turning off debugging even if set to minimal only turn off specifically if set to maximum.
 */
 
 capability "Battery"
@@ -101,7 +102,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "3.7"
+	state.version = "3.8"
 }
 
 def installed() {
@@ -160,7 +161,7 @@ def initialize() {
     
     unschedule()
         
-     if (getloglevel() > 0) 
+     if (getloglevel() > 1) 
       {
         log.debug "Scheduling logging to turn off in 30 minutes."
         runIn(1800,logsOff)
