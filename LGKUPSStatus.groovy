@@ -38,6 +38,7 @@
 * v 3.5 cannot do quit at end of battery and cannot include in initial string as the libraries now close the telnet immediately
 * change order to detstatus -all last and close on battery sku which i hope every one returns.
 * v 3.6 add outputWatts = outputCurrent * outputVoltage truncate to integer.
+* v 3.7 fix issue where more that 59 minutes causes error add range to parameters.
 */
 
 capability "Battery"
@@ -84,8 +85,8 @@ preferences {
     input("UPSPort", "integer", title: "Port #:", description: "Enter port number, default 23", defaultValue: 23)
     input("Username", "text", title: "Username for Login?", required: true, defaultValue: "")
     input("Password", "password", title: "Password for Login?", required: true, defaultValue: "")
-    input("runTime", "integer", title: "How often to check UPS Status  (in Minutes)>", required: true, defaultValue: 30)  
-    input("runTimeOnBattery", "integer", title: "How often to check UPS Status when on Battery (in Minutes)>", required: true, defaultValue: 10)
+    input("runTime", "number", title: "How often to check UPS Status  (in Minutes 1-59)?", required: true, defaultValue: 30, range: "1..59")  
+    input("runTimeOnBattery", "number", title: "How often to check UPS Status when on Battery (in Minutes 1-59)?", required: true, defaultValue: 10,range: "1..59")
     input("logLevel", "enum", title: "Logging Level (off,minimial,maximum) ?", options: ["off","minimal", "maximum"], required: true, defaultValue: "off")
     input("disable", "bool", title: "Disable?", required: false, defaultValue: false)
     input("tempUnits", "enum", title: "Units for Temperature Capabilty?", options: ["F","C"], required: true, defaultValue: "F")
@@ -102,7 +103,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "3.6"
+	state.version = "3.7"
 }
 
 def installed() {
