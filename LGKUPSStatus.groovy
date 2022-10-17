@@ -76,8 +76,6 @@ attribute "firmwareVersion", "string"
 attribute "batteryType", "string"
 attribute "outputWatts", "number"
 
-
-
 command "refresh"
 
 preferences {
@@ -168,7 +166,16 @@ def initialize() {
         runIn(1800,logsOff)
       }
         
-    if (!disable)
+        
+      // make sure inputs are integers note cannot do this directly inline in the update statements as they come out as 2.0 instead.
+       
+       def runTimeInt = runTime.toDouble().trunc().toInteger()
+       def runTimeOnBatteryInt = runTimeOnBattery.toDouble().trunc().toInteger() 
+          
+       device.updateSetting("runTime", [value: runTimeInt , type:"number"])
+       device.updateSetting("runTimeOnBattery", [value: runTimeOnBatteryInt , type:"number"])
+        
+     if (!disable)
         {
           if ((state.origAppName) && (state.origAppName != "") && (state.origAppName != device.getLabel()))
             {
@@ -183,11 +190,11 @@ def initialize() {
             // only reset name if was not disabled
             if (state.disabled != true) state.origAppName =  device.getLabel()  
             state.disabled = false 
-            log.debug "Scheduling to run Every $runTime Minutes!"
-            state.currentCheckTime = runTime
+            log.debug "Scheduling to run Every ${runTimeInt.toString()} Minutes!"
+            state.currentCheckTime = runTimeInt
             sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
              
-            scheduleString = "0 */" + runTime.toString() + " * ? * * *"
+            scheduleString = "0 */" + runTimeInt.toString() + " * ? * * *"
             if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
             
            schedule(scheduleString, refresh)
