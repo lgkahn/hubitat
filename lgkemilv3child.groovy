@@ -8,7 +8,8 @@ attribute "myHostName", "string"
 
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
-import groovy.transform.Field    
+import groovy.transform.Field   
+import groovy.xml.XmlUtil
 
 @Field static java.util.concurrent.Semaphore lastStateMutex = new java.util.concurrent.Semaphore(1)
 
@@ -18,14 +19,6 @@ preferences {
 
 metadata {
     definition (name: "LGK Sendmail V3 Child", namespace: "lgkapps", author: "larry kahn kahn@lgk.com") {
-   // capability "Notification"
-  //  capability "Actuator"
-	//capability "Telnet"
-//	capability "Configuration"
-        
-        
-    //command "sendMessage", ["String"]
-    //command "forceFailure" // used for testing
     }
 }
 
@@ -376,12 +369,33 @@ def parse(String msg) {
 	        	emlSubject = (Subject != null ? "${Subject}" : "")
 	        } 
         
+            def modifiedTo = "" 
+            def toList = To.split(",")
+            def toListSize = toList.size()
+                             
+             if (state.debug) log.debug "Number of To addresses = $toListSize"
+             if (toListSize > 1)
+               {
+                 for (ctr= 0; ctr < toListSize; ctr++)
+                  {
+                    def oneToAddress = toList[ctr].replaceAll(' ','')
+                    if (state.debug) log.debug "one email address = *$oneToAddress*"
+                    modifiedTo = modifiedTo + "RCPT TO: <${oneToAddress}>\r\n"
+                  }  
+               }
+              else
+              {
+                  modifiedTo = "RCPT TO: <${To}>"
+              }
+             
+               if (state.debug) log.debug "From = ${From}, To = ${To}, Subject = ${emlSubject} modifiedTo =  ${groovy.xml.XmlUtil.escapeXml(modifiedTo)}"
+               
 	              def sndMsg =[
-                      "MAIL FROM: <${From}>"
-                    , "RCPT TO: <${To}>"
+                    "MAIL FROM: <${From}>"
+                    , "${modifiedTo}"
 	        		, "DATA"
                     , "From: ${From}"
-                    , "To: ${To}"
+                    , "RCPT TO: <${To}>"                  
                     , "Date: ${emlDateTime}"
                     , "Message-ID: ${msgId}"
                     , "Subject: ${emlSubject}"  
@@ -393,8 +407,8 @@ def parse(String msg) {
                     , ""
 	        		, "."
 		        	, "quit"
-	            ]  
-                   
+	           ]
+               
                  def res1 = seqSend(sndMsg,500) 
                  state.messageSent = true  
                  if (state.debug || state.descLog) log.info "Sent Message: $emlBody" 
@@ -488,7 +502,7 @@ def closeConnection()
     
 boolean seqSend(msgs, Integer millisec)
 {
-     if (state.debug) log.debug "in sendData"
+    if (state.debug) log.debug "in sendData, message = ${msgs}"
   
 			msgs.each {
 				sendData("${it}",millisec)
