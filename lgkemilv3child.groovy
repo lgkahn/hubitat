@@ -378,7 +378,7 @@ def parse(String msg) {
         
 	              def sndMsg =[
                       "MAIL FROM: <${From}>"
-                    , "RCPT TO: <${To}>"
+                    , To.tokenize(", ").collect {"RCPT TO: <${it}>"}
 	        		, "DATA"
                     , "From: ${From}"
                     , "To: ${To}"
@@ -393,7 +393,7 @@ def parse(String msg) {
                     , ""
 	        		, "."
 		        	, "quit"
-	            ]  
+	            ].flatten()
                    
                  def res1 = seqSend(sndMsg,500) 
                  state.messageSent = true  
