@@ -89,6 +89,12 @@
 *
 * v 4.6 clean up logging and missed debug on check.
 * 4.7 tweek to double check child is not null in case cleanup is called way after a failed messages is left in queue.
+*
+* v 4.8 thanks to recommendations from mingaldrichgan Ming Aldrich-Gan
+* support multiple emails in the to address.
+* Add support for multiple recipients in "To", separated with commas, e.g. "abc@def.xyz, ghi@jkl.xyz"  
+* Each recipient is sent to the SMTP server on a separate "RCPT TO" line. I had to rewrite his 
+* recommended code changes using a different approach however as they were not working correctly in my tests.
 
 
 */
@@ -111,7 +117,7 @@ preferences {
 	input("EmailServer", "text", title: "Email Server:", description: "Enter location of email server", required: true)
 	input("EmailPort", "number", title: "Port #:", description: "Enter port number, default 25", defaultValue: 25)
 	input("From", "text", title: "From:", description: "", required: true)
- 	input("To", "text", title: "To:", description: "", required: true)
+ 	input("To", "text", title: "To Addresses (comma deliminated lists if more than one):", description: "", required: true)
 	input("Subject", "text", title: "Subject:", description: "")
     input("myHostName", "text", title: "Your host name:", description: "Fully qualified domain/hostname (FQDN) to use in initial HELO/EHELO command. If blank you ip address will be used?", defaultValue: " ", required: false)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
@@ -151,7 +157,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.6"
+    return "4.8"
 }
 
 def logsOff()
