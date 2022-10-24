@@ -95,6 +95,8 @@
 * Add support for multiple recipients in "To", separated with commas, e.g. "abc@def.xyz, ghi@jkl.xyz"  
 * Each recipient is sent to the SMTP server on a separate "RCPT TO" line. I had to rewrite his 
 * recommended code changes using a different approach however as they were not working correctly in my tests.
+*
+* v 4.81 changes screwed up the subject and was mismatch between to and recpt to so total rewrite of new features.
 
 
 */
@@ -157,7 +159,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.8"
+    return "4.81"
 }
 
 def logsOff()
