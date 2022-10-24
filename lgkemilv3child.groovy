@@ -204,6 +204,7 @@ synchronized (lastStateMutex)
 	
             // handle failed connect probabaly due to bad ip address
               try {
+                    closeConnection()
                     telnetConnect(EmailServer, EmailPort.toInteger(), null, null) 
                   
                 } catch(e) {
@@ -369,33 +370,34 @@ def parse(String msg) {
 	        	emlSubject = (Subject != null ? "${Subject}" : "")
 	        } 
         
-            def modifiedTo = "" 
+         
             def toList = To.split(",")
             def toListSize = toList.size()
                              
              if (state.debug) log.debug "Number of To addresses = $toListSize"
-             if (toListSize > 1)
-               {
-                 for (ctr= 0; ctr < toListSize; ctr++)
-                  {
-                    def oneToAddress = toList[ctr].replaceAll(' ','')
-                    if (state.debug) log.debug "one email address = *$oneToAddress*"
-                    modifiedTo = modifiedTo + "RCPT TO: <${oneToAddress}>\r\n"
-                  }  
-               }
-              else
-              {
-                  modifiedTo = "RCPT TO: <${To}>"
-              }
-             
-               if (state.debug) log.debug "From = ${From}, To = ${To}, Subject = ${emlSubject} modifiedTo =  ${groovy.xml.XmlUtil.escapeXml(modifiedTo)}"
+             if (state.debug) log.debug "From = ${From}, To = ${To}, Subject = ${emlSubject}"
                
 	              def sndMsg =[
-                    "MAIL FROM: <${From}>"
-                    , "${modifiedTo}"
-	        		, "DATA"
+                    "MAIL FROM: <${From}>" ]
+               
+                  if (toListSize > 1)
+                   {
+                     for (ctr= 0; ctr < toListSize; ctr++)
+                       {
+                        def oneToAddress = toList[ctr].replaceAll(' ','')
+                        if (state.debug) log.debug "one email address = *$oneToAddress*"
+                        sndMsg = sndMsg + [  "RCPT TO: <${oneToAddress}>" ]
+                       }
+                   }
+                   else
+                       {
+                        sndMsg = sndMsg + [ "RCPT TO: <${To}>" ]
+                       }
+               
+                   sndMsg = sndMsg +
+                    [ "DATA"
                     , "From: ${From}"
-                    , "RCPT TO: <${To}>"                  
+                    , "To: ${To}"              
                     , "Date: ${emlDateTime}"
                     , "Message-ID: ${msgId}"
                     , "Subject: ${emlSubject}"  
