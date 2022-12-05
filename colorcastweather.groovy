@@ -46,6 +46,9 @@
 // new version may 2022, updates to logging, change some debugs to info, add a couple of warnings, make sure most output is either under debug or descLog
 // and comment out unused old darksky weather function. Allso add more info if desc?Log is on about if it will sleet/rain/snow how many hours from now.
 
+// lgk 12/22 slight change to yellow color to better reflect newer hue bulbs.
+// add option to enable 3.0 api calls for the newer openweather apis.
+//
 import java.util.regex.*
 
 definition(
@@ -77,6 +80,7 @@ preferences {
 	
 			input "apiKey", "text", title: "Enter your new key", required:true
             input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"
+            input "useVersion30API", "bool", title: "Use the newer Version 3.0 api/key? Default is false/off, which uses original ver 2.5 api.", required: true, defaultValue: false
             input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
             input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
   
@@ -258,7 +262,13 @@ def getWeather()
 {
     def forecastUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=$location.latitude&lon=$location.longitude&mode=json&units=imperial&appid=$apiKey&exclude=daily,flags,minutely"
 
-  if (descLog) log.info "Forecase URL = $forecastUrl"
+   if (useVersion30API)
+    {
+        if (descLog) log.info "Overriding url for ver 3.0 api key."
+        forecastUrl = "https://api.openweathermap.org/data/3.0/onecall?lat=$location.latitude&lon=$location.longitude&mode=json&units=imperial&appid=$apiKey&exclude=daily,flags,minutely"
+    }
+    
+  if (descLog) log.info "Forecast URL = $forecastUrl"
 	//Exclude additional unneded data from api url.
 	if (forecastRange=='Current conditions') {
 		forecastUrl+=',hourly' //If we're checking current conditions we can exclude hourly data
@@ -957,7 +967,7 @@ def sendcolor(color) {
 			hueColor = 33
 			break;
 		case "Yellow":
-			hueColor = 25
+			hueColor = 17
 			break;
 		case "Orange":
 			hueColor = 10
