@@ -46,7 +46,7 @@
 *
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
-* lgk v 4.2 add 4 custom color hsv templates. notes range not work so change range of colors 0-100 in intialize, also section titles not showing up in the
+* lgk v 4.2 add 4 custom color hsv templates. note: range input checking is also not working so also added code to check the range range of colors 0-100 in intialize, also section titles not showing up in the
 * page so add paragraph for titles.
 * the custom colors only work in random mode as the non random is ROYGBIV that goes through the rainbow and wouldnt make sense to add a custom color in there.
 *
@@ -128,7 +128,7 @@ preferences {
 	            
     section ("Custom Colors Enabled") {        
      
-      paragraph "Enable Custom Colors? - Only used in non random ROYGBIV mode."
+      paragraph "Enable Custom Colors? - Only used in non random/non ROYGBIV mode."
  
         input "custom1Enabled", "bool", title: "Enable Custom Color 1?", required: false, defaultValue: false  
         input "custom2Enabled", "bool", title: "Enable Custom Color 2?", required: false, defaultValue: false  
