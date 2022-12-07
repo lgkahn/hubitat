@@ -46,6 +46,10 @@
 *
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
+* lgk v 4.2 add 4 customer color hsv templates. notes range not work so change range of colors 0-100 in intialize, also section titles not showing up in the
+* page so add paragraph for titles.
+* the custom colors only work in random mode as the non random is ROYGBIV that goes through the rainbox and wouldnt make sense add a random color in there.
+*
 */
 
 definition(
@@ -62,11 +66,17 @@ iconX3Url: "http://mail.lgk.com/huetree2.png",
 preferences {
 
 	section("Choose hue lights you wish to control?") {
+           
+          paragraph "Choose hue lights you wish to control?"
+              
             input "hues", "capability.colorControl", title: "Which Color Changing Bulbs?", multiple:true, required: true
         	input "brightnessLevel", "number", title: "Brightness Level (1-100)?", required:false, defaultValue:100 //Select brightness
 	}
 
 	section("Choose cycle time between color changes? ") {
+        
+         paragraph "Choose cycle time between color changes?"
+        
             input "cycleTime", "enum", title: "Cycle time?" , options: [
                                 "10 seconds",
                                 "20 seconds",
@@ -89,6 +99,9 @@ preferences {
      }
      
      section( "Enabled/Disabled" ) {
+         
+        paragraph "Enabled/Disabled options?"
+         
         input "enabled","bool", title: "Enabled?", required: true, defaultValue: true
         input "enableswitch", "capability.switch", title: "Optional: Do you have a switch/virtual switch which the application enable/disable functionality should follow? If you do not want this feature leave blank.", multiple:false, required: false
         input("fadeOnTime", "enum", title: "Optional time to fade when turning on/setting color?", options: ["Off","5","10","15","20","30"], required: true, defaultValue: "Off")
@@ -98,8 +111,35 @@ preferences {
         input "individualControl","bool", title: "Control Each light Fixture Individually?", required: false, defaultValue: false
      }
     
+    section ("Custom Colors") {
+        
+        paragraph "Custom Colors - Optional?"
+        
+        input "custom1Hue", "number", title: "Custom color 1 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
+        input "custom1Saturation", "number", title: "Custom color 1 Saturation - (0-100)?", required: false, defaultValue: 75
+        input "custom2Hue", "number", title: "Custom color 2 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
+        input "custom2Saturation", "number", title: "Custom color 2 Saturation - (0-100)?", required: false, defaultValue: 75
+        input "custom3Hue", "number", title: "Custom color 3 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
+        input "custom3Saturation", "number", title: "Custom color 3 Saturation - (0-100)?", required: false, defaultValue: 75
+        input "custom4Hue", "number", title: "Custom color 4 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
+        input "custom4Saturation", "number", title: "Custom color 4 Saturation - (0-100)?", required: false, defaultValue: 75
 
-    section (" Colors Enabled") {
+    }
+	            
+    section ("Custom Colors Enabled") {        
+     
+      paragraph "Enable Custom Colors? - Only used in non random ROYGBIV mode."
+ 
+        input "custom1Enabled", "bool", title: "Enable Custom Color 1?", required: false, defaultValue: false  
+        input "custom2Enabled", "bool", title: "Enable Custom Color 2?", required: false, defaultValue: false  
+        input "custom3Enabled", "bool", title: "Enable Custom Color 3?", required: false, defaultValue: false  
+        input "custom4Enabled", "bool", title: "Enable Custom Color 4?", required: false, defaultValue: false  
+    }   
+             
+    section ("Colors Enabled") {
+        
+           paragraph "Colors Enabled?"
+       
         input "holidayMode","bool", title: "Allow Enable/Disable for Each Color/Holiday Mode?", required: false, defaultValue: false
 
         input "redEnabled", "bool", title: "Enable Red?", required: false, defaultValue: true    
@@ -117,11 +157,13 @@ preferences {
         input "purpleEnabled", "bool", title: "Enable Purple?", required: false, defaultValue: true    
         input "pinkEnabled", "bool", title: "Enable Pink?", required: false, defaultValue: true    
         input "rasberryEnabled", "bool", title: "Enable Rasberry?", required: false, defaultValue: true    
-        input "whiteEnabled", "bool", title: "Enable White?", required: false, defaultValue: true    
-
+        input "whiteEnabled", "bool", title: "Enable White?", required: false, defaultValue: true 
 }
 
      section( "Notifications" ) {
+         
+         paragraph "Notification options?"
+         
      //   input("recipients", "contact", title: "Send notifications to") {
             //input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required: false
             input "sendPushMessage", "capability.notification", title: "Notification Devices: Hubitat PhoneApp or Pushover", multiple: true, required: false
@@ -288,7 +330,7 @@ def EnableSwitchHandler(evt)
 }
 
 private def initialize() {
-     state.version = "4.1"  
+     state.version = "4.2"  
      log.debug(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
@@ -382,6 +424,51 @@ private def initialize() {
      break;
      
     }
+        
+    // make sure hues are legal ranges 0 -100
+    if ((custom1Hue < 0) || (custom1Hue > 100))
+      {
+       log.debug "Custom 1 Hue illegal, changed to default."
+       custom1Hue = 75
+      }      
+    if ((custom1Saturation < 0) || (custom1Saturation > 100))
+      {
+       log.debug "Custom 1 Saturation illegal, changed to default."
+       custom1Saturation = 75
+      }
+        
+    if ((custom2Hue < 0) || (custom2Hue > 100))
+      {
+       log.debug "Custom 2 Hue illegal, changed to default."
+       custom2Hue = 75
+      }      
+    if ((custom2Saturation < 0) || (custom2Saturation > 100))
+      {
+       log.debug "Custom 2 Saturation illegal, changed to default."
+       custom2Saturation = 75
+      }
+        
+    if ((custom3Hue < 0) || (custom3Hue > 100))
+      {
+       log.debug "Custom 3 Hue illegal, changed to default."
+       custom3Hue = 75
+      }      
+    if ((custom3Saturation < 0) || (custom3Saturation > 100))
+      {
+       log.debug "Custom 3 Saturation illegal, changed to default."
+       custom3Saturation = 75
+      }  
+        
+    if ((custom4Hue < 0) || (custom4Hue > 100))
+      {
+       log.debug "Custom 4 Hue illegal, changed to default."
+       custom4Hue = 75
+      }     
+    if ((custom4Saturation < 0) || (custom4Saturation > 100))
+      {
+       log.debug "Custom 4 Saturation illegal, changed to default."
+       custom4Saturation = 75
+      }  
         
     subscribe(app,changeHandler)
     
@@ -558,7 +645,15 @@ def changeHandler(evt) {
                enabledColorArray <<  "Rasberry"
            if (whiteEnabled == true)
                enabledColorArray <<  "White"
-
+           if (custom1Enabled == true)
+               enabledColorArray << "Custom1"
+           if (custom2Enabled == true)
+               enabledColorArray << "Custom2"
+           if (custom3Enabled == true)
+               enabledColorArray << "Custom3"
+           if (custom4Enabled == true)
+               enabledColorArray << "Custom4"
+            
            def int colorsEnabled = enabledColorArray.size
            if (debug) log.debug "Enabled Color Count = $colorsEnabled"
            if (debug) log.debug "Enabled Color Array = $enabledColorArray"
@@ -579,7 +674,7 @@ def changeHandler(evt) {
                  for (def i=0; i<numberon; i++) 
                       {
                             def int nextValue = new Random().nextInt(colorsEnabled)
-                            if (debug) log.debug "Hue: $i, Random Number = $nextValue"
+                            if (debug) log.debug "Colors Enabled: $colorsEnabled, Hue: $i, Random Number = $nextValue"
                             newColor = enabledColorArray[nextValue]
 
                             log.debug("$app.label: Hue:$i - Setting Color to $newColor.")                         
@@ -591,7 +686,7 @@ def changeHandler(evt) {
                {
 
                 def int nextValue = new Random().nextInt(colorsEnabled)
-                if (debug) log.debug "Random Number = $nextValue"
+                if (debug) log.debug "Colors Enabled: $colorsEnabled, Random Number = $nextValue"
                 newColor = enabledColorArray[nextValue]
 
                 log.debug("$app.label: Setting Color to $newColor.")
@@ -621,8 +716,39 @@ def changeHandler(evt) {
                             
                  for (def i=0; i<numberon; i++) 
                       {
-                           def int nextValue = new Random().nextInt(16)
-                           def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
+                          def maxColors = 16
+                          def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
+                        
+                          if (custom1Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Custom1"
+                              if(debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                              
+                          if (custom2Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Custom2"
+                              if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                          
+                         if (custom3Enabled == true)
+                           {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Custom3"
+                              if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                           }
+                          
+                         if (custom4Enabled == true)
+                           {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Custom4"
+                              if (debug) log.debug "color arrary = $colorArray, maxColors = $maxColors"
+                           }
+                          
+                     
+                           def int nextValue = new Random().nextInt(maxColors)
                            if (debug) log.debug "Hue: $i, Random Number = $nextValue"
                             newColor = colorArray[nextValue]
                             log.debug("$app.label: Hue:$i - Setting Color to $newColor.")                         
@@ -630,11 +756,42 @@ def changeHandler(evt) {
                      }
              } // do each individually
           else
-          {
+          { 
+           def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
+           def maxColors = 16
+           
+ 
+           if (custom1Enabled == true)
+             {
+               ++maxColors
+               colorArray[maxColors-1] = "Custom1"
+               if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+             }
+                              
+           if (custom2Enabled == true)
+              {
+                ++maxColors
+                colorArray[maxColors-1] = "Custom2"
+                if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+                          
+            if (custom3Enabled == true)
+              {
+                ++maxColors
+                colorArray[maxColors-1] = "Custom3"
+                if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+                          
+            if (custom4Enabled == true)
+              {
+               ++maxColors
+               colorArray[maxColors-1] = "Custom4"
+               if (debug) log.debug "color arrary = $colorArray, maxColors = $maxColors"
+              }            
+              
            if (debug) log.debug "Holiday mode is not on."
            def int nextValue = new Random().nextInt(16)
-           def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
-
+         
            if (debug) log.debug "Random Number = $nextValue"
            newColor = colorArray[nextValue]    
 
@@ -650,7 +807,7 @@ def changeHandler(evt) {
       else
       
       { // not random
-      
+        // note custom colors not used in raindbow ie not random mode.2
        def currentColor = state.currentColor
        if (debug) log.debug " in changeHandler non-random case, got current color = $currentColor"
 
@@ -701,9 +858,9 @@ def changeHandler(evt) {
         case "Rasberry":
 			newColor = "White"
 			break;
-         case "White":
+        case "White":
 			newColor = "Red"
-			break;
+			break;  
          default:
         	log.debug "in default"
             newColor = "Red"
@@ -798,9 +955,25 @@ def sendcolor(color) {
 		case "Red":
 			hueColor = 0
 			break;
-         case "Brick Red":
+        case "Brick Red":
             hueColor = 4
-            break;                
+            break; 
+        case "Custom1":
+            hueColor = custom1Hue
+            saturation = custom1Saturation
+            break;
+        case "Custom2":
+            hueColor = custom2Hue
+            saturation = custom2Saturation
+            break;
+        case "Custom3":
+            hueColor = custom3Hue
+            saturation = custom3Saturation
+            break;
+        case "Custom4":
+            hueColor = custom4Hue
+            saturation = Custom4Saturation
+            break;
 	}
 
 	//Change the color of the light
@@ -927,10 +1100,26 @@ def sendcolor(color,which)
 		case "Red":
 			hueColor = 0
 			break;
-         case "Brick Red":
+        case "Brick Red":
             hueColor = 4
-            break;                
-	}
+            break;
+        case "Custom1":
+            hueColor = custom1Hue
+            saturation = custom1Saturation
+            break;
+        case "Custom2":
+            hueColor = custom2Hue
+            saturation = custom2Saturation
+            break;
+        case "Custom3":
+            hueColor = custom3Hue
+            saturation = custom3Saturation
+            break;
+        case "Custom4":
+            hueColor = custom4Hue
+            saturation = Custom4Saturation
+            break;
+    }
 
    if (settings.fadeOnTime == "Off")
     {
