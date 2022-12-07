@@ -46,7 +46,7 @@
 *
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
-* lgk v 4.2 add 4 customer color hsv templates. notes range not work so change range of colors 0-100 in intialize, also section titles not showing up in the
+* lgk v 4.2 add 4 custom color hsv templates. notes range not work so change range of colors 0-100 in intialize, also section titles not showing up in the
 * page so add paragraph for titles.
 * the custom colors only work in random mode as the non random is ROYGBIV that goes through the rainbox and wouldnt make sense add a random color in there.
 *
