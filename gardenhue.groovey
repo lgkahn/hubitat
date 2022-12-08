@@ -46,10 +46,11 @@
 *
 * https://github.com/lgkapps/SmartThingsPublic/gardenhue
 *
-* lgk v 4.2 add 4 custom color hsv templates. note: range input checking is also not working so also added code to check the range range of colors 0-100 in intialize, also section titles not showing up in the
+* lgk v 4.2 add 4 custom color hsv templates. notes range not work so change range of colors 0-100 in intialize, also section titles not showing up in the
 * page so add paragraph for titles.
 * the custom colors only work in random mode as the non random is ROYGBIV that goes through the rainbow and wouldnt make sense to add a custom color in there.
 *
+* 4.3 fixed but with random mode and all colors on custom colors not kicking in.. missed one change of the hard coded 16 to maxColors variable.
 */
 
 definition(
@@ -330,7 +331,7 @@ def EnableSwitchHandler(evt)
 }
 
 private def initialize() {
-     state.version = "4.2"  
+     state.version = "4.3"  
      log.debug(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
@@ -790,7 +791,7 @@ def changeHandler(evt) {
               }            
               
            if (debug) log.debug "Holiday mode is not on."
-           def int nextValue = new Random().nextInt(16)
+           def int nextValue = new Random().nextInt(maxColors)
          
            if (debug) log.debug "Random Number = $nextValue"
            newColor = colorArray[nextValue]    
