@@ -51,6 +51,9 @@
 * the custom colors only work in random mode as the non random is ROYGBIV that goes through the rainbow and wouldnt make sense to add a custom color in there.
 *
 * 4.3 fixed but with random mode and all colors on custom colors not kicking in.. missed one change of the hard coded 16 to maxColors variable.
+* v 4.4 slight change to fade off code for separate color for each fixture, random (ie holiday mode) there was an extra fade for each
+* fixture that was not removed.. all fixtures should have faded off at the same time instead it did that and then did an extra for each which
+* made them not come on with the new color at exactly the same time. (left over code artifact from before fade was implemented).
 */
 
 definition(
@@ -1037,7 +1040,6 @@ def sendcolor(color,which)
     else if (brightnessLevel>100) {
 		brightnessLevel=100
 	}
-
 	//Set the hue and saturation for the specified color.
 	switch(color) {
 		case "White":
@@ -1139,7 +1141,7 @@ def sendcolor(color,which)
         //cannot do fade off here as we need to pause execution for the fade off time before turning back on the other color and with each fixture being separate 
         // this is done prior to the call for all fixtures if necessary not here in the looop
         
-        if (settings.fadeOnTime != "Off") hues[which].setLevel(1,0)   
+       // if (settings.fadeOnTime != "Off") hues[which].setLevel(1,0)   
         // now turn on at level 1 and fade up
         def fOnTime = settings.fadeOnTime.toInteger()
         if (debug) log.debug "Turning fixture $which on at level 1, then fading up to $brightnessLevel in $fOnTime seconds."
