@@ -54,6 +54,22 @@
 * v 4.4 slight change to fade off code for separate color for each fixture, random (ie holiday mode) there was an extra fade for each
 * fixture that was not removed.. all fixtures should have faded off at the same time instead it did that and then did an extra for each which
 * made them not come on with the new color at exactly the same time. (left over code artifact from before fade was implemented).
+
+* v 4.5 multitude of changes.
+* 
+* 1. removed paragraph lines as hubitat now fixed the section headers to include the text which was previously not coming out on the page.
+*
+* 2. someone pointed out that color input box was now available since 2.3.x so I added that for the custom 1 -4 colors.
+*    and removed the hardcoded hue and saturation fields.. Note if you previously set these you now need to  RESET them
+*    using the new color selections boxes.
+*
+*    also related to this I used the custom level as well as hue and staturation which will override the default level you have set .
+*    this may not work perfectly as some lights dont show colors well with low levels, if so let me know and i will remove this code.
+     But by using this it will try to do the color exactly has you set it. 
+*
+*    My default colors took that into consideration and only have colors that work well with a level of close to 100%
+*
+
 */
 
 definition(
@@ -67,20 +83,17 @@ iconX2Url:"http://mail.lgk.com/huetree2.png",
 iconX3Url: "http://mail.lgk.com/huetree2.png",
 )
 
+import hubitat.helper.ColorUtils
 preferences {
 
 	section("Choose hue lights you wish to control?") {
-           
-          paragraph "Choose hue lights you wish to control?"
-              
+                   
             input "hues", "capability.colorControl", title: "Which Color Changing Bulbs?", multiple:true, required: true
         	input "brightnessLevel", "number", title: "Brightness Level (1-100)?", required:false, defaultValue:100 //Select brightness
 	}
 
 	section("Choose cycle time between color changes? ") {
-        
-         paragraph "Choose cycle time between color changes?"
-        
+             
             input "cycleTime", "enum", title: "Cycle time?" , options: [
                                 "10 seconds",
                                 "20 seconds",
@@ -98,14 +111,13 @@ preferences {
 	}
 
      section( "Turn Off How Many Hours before Sunrise?") {
+         
         input "offset", "enum", title: "Turn Off How many hours before sunrise?",options: ["0", "-1", "-2", "-3", "-4", "-5"],
         required: true, defaultValue: "0"
      }
      
-     section( "Enabled/Disabled" ) {
-         
-        paragraph "Enabled/Disabled options?"
-         
+     section( "Enabled/Disabled options?" ) {
+             
         input "enabled","bool", title: "Enabled?", required: true, defaultValue: true
         input "enableswitch", "capability.switch", title: "Optional: Do you have a switch/virtual switch which the application enable/disable functionality should follow? If you do not want this feature leave blank.", multiple:false, required: false
         input("fadeOnTime", "enum", title: "Optional time to fade when turning on/setting color?", options: ["Off","5","10","15","20","30"], required: true, defaultValue: "Off")
@@ -115,34 +127,27 @@ preferences {
         input "individualControl","bool", title: "Control Each light Fixture Individually?", required: false, defaultValue: false
      }
     
-    section ("Custom Colors") {
+    section ("Custom Colors - Optional (Enable in Next Section)?") {
         
-        paragraph "Custom Colors - Optional?"
-        
-        input "custom1Hue", "number", title: "Custom color 1 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
-        input "custom1Saturation", "number", title: "Custom color 1 Saturation - (0-100)?", required: false, defaultValue: 75
-        input "custom2Hue", "number", title: "Custom color 2 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
-        input "custom2Saturation", "number", title: "Custom color 2 Saturation - (0-100)?", required: false, defaultValue: 75
-        input "custom3Hue", "number", title: "Custom color 3 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
-        input "custom3Saturation", "number", title: "Custom color 3 Saturation - (0-100)?", required: false, defaultValue: 75
-        input "custom4Hue", "number", title: "Custom color 4 Hue - (0-100)? Enable in next section.", required: false, defaultValue: 75
-        input "custom4Saturation", "number", title: "Custom color 4 Saturation - (0-100)?", required: false, defaultValue: 75
+        input "customColor1", "color", title: "Custom Color 1?", width: 2, required: false, defaultValue: "#750000"
+        paragraph ""
+        input "customColor2", "color", title: "Custom Color 2?", width: 2, required: false, defaultValue: "#007500"
+        paragraph ""
+        input "customColor3", "color", title: "Custom Color 3?", width: 2, required: false, defaultValue: "#000075"
+          paragraph ""
+        input "customColor4", "color", title: "Custom Color 3?", width: 2, required: false, defaultValue: "#750075"
 
     }
-	            
-    section ("Custom Colors Enabled") {        
+	           
+    section ("Custom Colors Enabled - Only used in non random/non ROYGBIV mode") {        
      
-      paragraph "Enable Custom Colors? - Only used in non random/non ROYGBIV mode."
- 
         input "custom1Enabled", "bool", title: "Enable Custom Color 1?", required: false, defaultValue: false  
         input "custom2Enabled", "bool", title: "Enable Custom Color 2?", required: false, defaultValue: false  
         input "custom3Enabled", "bool", title: "Enable Custom Color 3?", required: false, defaultValue: false  
         input "custom4Enabled", "bool", title: "Enable Custom Color 4?", required: false, defaultValue: false  
     }   
              
-    section ("Colors Enabled") {
-        
-           paragraph "Colors Enabled?"
+    section ("Colors Enabled?") {
        
         input "holidayMode","bool", title: "Allow Enable/Disable for Each Color/Holiday Mode?", required: false, defaultValue: false
 
@@ -164,9 +169,8 @@ preferences {
         input "whiteEnabled", "bool", title: "Enable White?", required: false, defaultValue: true 
 }
 
-     section( "Notifications" ) {
+     section( "Notification options?" ) {
          
-         paragraph "Notification options?"
          
      //   input("recipients", "contact", title: "Send notifications to") {
             //input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required: false
@@ -356,8 +360,7 @@ private def initialize() {
     log.debug "Cycle Time is ${settings.cycleTime}, ($ct)"
       
     switch (ct)
-    {
-        
+    {      
      case "10":
      schedule("0/10 * * * * ? *", "changeHandler")   
      break;
@@ -428,52 +431,31 @@ private def initialize() {
      break;
      
     }
+    
+       def colorList1 =  hubitat.helper.ColorUtils.rgbToHSV(hubitat.helper.ColorUtils.hexToRGB(customColor1))
+       def colorList2 =  hubitat.helper.ColorUtils.rgbToHSV(hubitat.helper.ColorUtils.hexToRGB(customColor2))
+       def colorList3 =  hubitat.helper.ColorUtils.rgbToHSV(hubitat.helper.ColorUtils.hexToRGB(customColor3))
+       def colorList4 =  hubitat.helper.ColorUtils.rgbToHSV(hubitat.helper.ColorUtils.hexToRGB(customColor4))
+             
+          log.debug "Custom Color 1 - ${colorList1}"  
+          log.debug "Custom Color 2 - ${colorList2}" 
+          log.debug "Custom Color 3 - ${colorList3}" 
+          log.debug "Custom Colot 4 - ${colorList4}" 
         
-    // make sure hues are legal ranges 0 -100
-    if ((custom1Hue < 0) || (custom1Hue > 100))
-      {
-       log.debug "Custom 1 Hue illegal, changed to default."
-       custom1Hue = 75
-      }      
-    if ((custom1Saturation < 0) || (custom1Saturation > 100))
-      {
-       log.debug "Custom 1 Saturation illegal, changed to default."
-       custom1Saturation = 75
-      }
-        
-    if ((custom2Hue < 0) || (custom2Hue > 100))
-      {
-       log.debug "Custom 2 Hue illegal, changed to default."
-       custom2Hue = 75
-      }      
-    if ((custom2Saturation < 0) || (custom2Saturation > 100))
-      {
-       log.debug "Custom 2 Saturation illegal, changed to default."
-       custom2Saturation = 75
-      }
-        
-    if ((custom3Hue < 0) || (custom3Hue > 100))
-      {
-       log.debug "Custom 3 Hue illegal, changed to default."
-       custom3Hue = 75
-      }      
-    if ((custom3Saturation < 0) || (custom3Saturation > 100))
-      {
-       log.debug "Custom 3 Saturation illegal, changed to default."
-       custom3Saturation = 75
-      }  
-        
-    if ((custom4Hue < 0) || (custom4Hue > 100))
-      {
-       log.debug "Custom 4 Hue illegal, changed to default."
-       custom4Hue = 75
-      }     
-    if ((custom4Saturation < 0) || (custom4Saturation > 100))
-      {
-       log.debug "Custom 4 Saturation illegal, changed to default."
-       custom4Saturation = 75
-      }  
-        
+        state.custom1Hue = colorList1.get(0)
+        state.custom1Saturation = colorList1.get(1)
+        state.custom1Level = colorList1.get(2)
+        state.custom2Hue = colorList2.get(0)
+        state.custom2Saturation = colorList2.get(1)
+        state.custom2Level = colorList2.get(2)
+        state.custom3Hue = colorList3.get(0)
+        state.custom3Saturation = colorList3.get(1)
+        state.custom3Level = colorList3.get(2)
+        state.custom4Hue = colorList4.get(0)
+        state.custom4Saturation = colorList4.get(1) 
+        state.custom4Level = colorList4.get(2)
+       
+  
     subscribe(app,changeHandler)
     
     state.nextOnTime = 0
@@ -895,7 +877,8 @@ def sendcolor(color) {
     else if (brightnessLevel>100) {
 		brightnessLevel=100
 	}
-
+   
+    blevel = brightnessLevel
 	//Set the hue and saturation for the specified color.
 	switch(color) {
 		case "White":
@@ -963,24 +946,34 @@ def sendcolor(color) {
             hueColor = 4
             break; 
         case "Custom1":
-            hueColor = custom1Hue
-            saturation = custom1Saturation
+            hueColor = state.custom1Hue
+            saturation = state.custom1Saturation
+            blevel = state.custom1Level
             break;
         case "Custom2":
-            hueColor = custom2Hue
-            saturation = custom2Saturation
+            hueColor = state.custom2Hue
+            saturation = state.custom2Saturation
+            blevel = state.custom2Level
             break;
         case "Custom3":
-            hueColor = custom3Hue
-            saturation = custom3Saturation
+            hueColor = state.custom3Hue
+            saturation = state.custom3Saturation
+            blevel = state.custom3Level
             break;
         case "Custom4":
-            hueColor = custom4Hue
-            saturation = Custom4Saturation
+            hueColor = state.custom4Hue
+            saturation = state.custom4Saturation
+            blevel = state.custom4Level
             break;
 	}
 
 	//Change the color of the light
+    
+    if (blevel == null)
+    {
+        log.warn "Error: brlighnes level was 0 reseting to 100"
+        blevel = 100
+    }
     
     if (settings.fadeOnTime == "Off")
     {       
@@ -993,7 +986,7 @@ def sendcolor(color) {
            pauseExecution(fOffTime*1000) 
         }
             
-	     def newValue = [hue: hueColor, saturation: saturation, level: brightnessLevel]  
+	     def newValue = [hue: hueColor, saturation: saturation, level: blevel]  
 	     hues*.setColor(newValue)
          state.currentColor = color
          mysend("$app.label: Setting Color = $color")
@@ -1017,11 +1010,13 @@ def sendcolor(color) {
         
         // now turn on at level 1 and fade up
         def fOnTime = settings.fadeOnTime.toInteger()
-        if (debug) log.debug "Turning on at level 1, then fading up to $brightnessLevel in $fOnTime seconds."
+        if (debug) log.debug "Turning on at level 1, then fading up to $blevel in $fOnTime seconds."
+        if (debug) log.debug "new hue: $hueColor, new staturation: $saturation, new Level: $blevel"
         def newValue = [hue: hueColor, saturation: saturation, level: 1] 
+        
         state.currentColor = color
 	    hues*.setColor(newValue)
-        hues*.setLevel(brightnessLevel,fOnTime)
+        hues*.setLevel(blevel,fOnTime)
     }
 
 }
@@ -1040,6 +1035,9 @@ def sendcolor(color,which)
     else if (brightnessLevel>100) {
 		brightnessLevel=100
 	}
+    
+    blevel = brightnessLevel
+    
 	//Set the hue and saturation for the specified color.
 	switch(color) {
 		case "White":
@@ -1107,32 +1105,42 @@ def sendcolor(color,which)
             hueColor = 4
             break;
         case "Custom1":
-            hueColor = custom1Hue
-            saturation = custom1Saturation
+            hueColor = state.custom1Hue
+            saturation = state.custom1Saturation
+            blevel = state.custom1Level
             break;
         case "Custom2":
-            hueColor = custom2Hue
-            saturation = custom2Saturation
+            hueColor = state.custom2Hue
+            saturation = state.custom2Saturation
+            blevel = state.custom2Level
             break;
         case "Custom3":
-            hueColor = custom3Hue
-            saturation = custom3Saturation
+            hueColor = state.custom3Hue
+            saturation = state.custom3Saturation
+            blevel = state.custom3Level
             break;
         case "Custom4":
-            hueColor = custom4Hue
-            saturation = Custom4Saturation
+            hueColor = state.custom4Hue
+            saturation = state.custom4Saturation
+            blevel = state.custom4Level
             break;
     }
-
+    
+   if (blevel == null)
+    {
+        log.warn "Error: brlighnes level was 0 reseting to 100"
+        blevel = 100
+    }
+    
    if (settings.fadeOnTime == "Off")
     {
     
 	//Change the color of the light
-	def newValue = [hue: hueColor, saturation: saturation, level: brightnessLevel]  
+	def newValue = [hue: hueColor, saturation: saturation, level: blevel]  
 	hues[which].setColor(newValue)
-        state.currentColor = color
-        mysend("$app.label: hue: $which, Setting Color = $color")
-        log.debug "$app.label: hue: $which Setting Color = $color"
+    state.currentColor = color
+    mysend("$app.label: hue: $which, Setting Color = $color")
+    log.debug "$app.label: hue: $which Setting Color = $color"
     }
     
     else
@@ -1144,10 +1152,11 @@ def sendcolor(color,which)
        // if (settings.fadeOnTime != "Off") hues[which].setLevel(1,0)   
         // now turn on at level 1 and fade up
         def fOnTime = settings.fadeOnTime.toInteger()
-        if (debug) log.debug "Turning fixture $which on at level 1, then fading up to $brightnessLevel in $fOnTime seconds."
+        if (debug) log.debug "Turning fixture $which on at level 1, then fading up to $blevel in $fOnTime seconds."
+        if (debug) log.debug "new hue: $hueColor, new staturation: $saturation, new Level: $blevel"
         def newValue = [hue: hueColor, saturation: saturation, level: 1]  
 	    hues[which].setColor(newValue)
-        hues[which].setLevel(brightnessLevel,fOnTime)
+        hues[which].setLevel(blevel,fOnTime)
     }
         
 }
