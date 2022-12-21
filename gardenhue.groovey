@@ -135,11 +135,11 @@ preferences {
         paragraph ""
         input "customColor3", "color", title: "Custom Color 3?", width: 2, required: false, defaultValue: "#000075"
           paragraph ""
-        input "customColor4", "color", title: "Custom Color 3?", width: 2, required: false, defaultValue: "#750075"
+        input "customColor4", "color", title: "Custom Color 4?", width: 2, required: false, defaultValue: "#750075"
 
     }
 	           
-    section ("Custom Colors Enabled - Only used in non random/non ROYGBIV mode") {        
+    section ("Custom Colors Enabled - Only used in non ROYGBIV mode") {        
      
         input "custom1Enabled", "bool", title: "Enable Custom Color 1?", required: false, defaultValue: false  
         input "custom2Enabled", "bool", title: "Enable Custom Color 2?", required: false, defaultValue: false  
