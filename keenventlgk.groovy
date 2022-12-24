@@ -13,6 +13,7 @@ metadata {
        // lgk 10/20 had to modify by calling this function to get the corrected description map in Hubitat.. This was not necesary in Snmarthings so something is different in the underlying achitecture.
        // zigbee.parseDescriptionAsMap(description) 
         // lgk 12/22 add ventStatus custom attribute open,closed, obstructed, clearing
+        // also add pressure attribute
         
 		capability "Door Control"
         capability "Contact Sensor"
@@ -25,6 +26,7 @@ metadata {
         command "setZigBeeIdTile"
         command "clearObstruction"
         attribute "ventStatus", "String"
+        attribute "pressure", "number"
 
         fingerprint endpoint: "1",
         profileId: "0104",
@@ -242,6 +244,7 @@ private Map makePressureResult(rawValue) {
     def linkText = getLinkText(device)
 
     def pascals = rawValue / 10
+    
     def result = [
         name: 'pressure',
         descriptionText: "${linkText} pressure is ${pascals}Pa",
