@@ -12,6 +12,7 @@ metadata {
        // also add label/words open closed when viewing from list of devices in room
        // lgk 10/20 had to modify by calling this function to get the corrected description map in Hubitat.. This was not necesary in Snmarthings so something is different in the underlying achitecture.
        // zigbee.parseDescriptionAsMap(description) 
+        // lgk 12/22 add ventStatus custom attribute open,closed, obstructed, clearing
         
 		capability "Door Control"
         capability "Contact Sensor"
@@ -23,6 +24,7 @@ metadata {
         command "getTemperature"
         command "setZigBeeIdTile"
         command "clearObstruction"
+        attribute "ventStatus", "String"
 
         fingerprint endpoint: "1",
         profileId: "0104",
@@ -215,6 +217,7 @@ private Map makeLevelResult(rawValue) {
     // catch obstruction level
     if (value == 255) {
         log.debug "${linkText} is obstructed"
+         sendEvent(name: 'ventStatus', value: "obstructed")
         // Just return here. Once the vent is power cycled
         // it will go back to the previous level before obstruction.
         // Therefore, no need to update level on the display.
@@ -357,9 +360,11 @@ def on() {
     }
 
   // LGK
+ 
     sendEvent(name: "contact", value: "open")
     sendEvent(name: "door", value: "open")
     sendEvent(name: "level", value: 100)
+    sendEvent(name: 'ventStatus', value: "open")
 
     sendEvent(makeOnOffResult(1))
     "st cmd 0x${device.deviceNetworkId} 1 6 1 {}"
@@ -383,6 +388,7 @@ def off() {
     sendEvent(name: "contact", value: "closed")
     sendEvent(name: "door", value: "closed") 
     sendEvent(name: "level", value: 0)
+    sendEvent(name: 'ventStatus', value: "closed")
     
 
 	sendEvent(makeOnOffResult(0))
@@ -394,7 +400,8 @@ def off() {
 def clearObstruction() {
     def linkText = getLinkText(device)
     log.debug "attempting to clear ${linkText} obstruction"
-
+    sendEvent(name: 'ventStatus', value: "clearing")
+    
     sendEvent([
         name: "switch",
         value: "clearing",
@@ -426,12 +433,14 @@ def setLevel(value) {
     if (value > 0) {
         sendEvent(name: "switch", value: "on", descriptionText: "${linkText} is on by setting a level")
         sendEvent(name: "contact", value: "open")
-        sendEvent(name: "door", value: "open")  
+        sendEvent(name: "door", value: "open") 
+        sendEvent(name: 'ventStatus', value: "open")
     }
     else {
         sendEvent(name: "switch", value: "off", descriptionText: "${linkText} is off by setting level to 0")
         sendEvent(name: "contact", value: "closed")
         sendEvent(name: "door", value: "closed")
+        sendEvent(name: 'ventStatus', value: "closed")
 
     }
 
