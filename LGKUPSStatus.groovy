@@ -40,6 +40,8 @@
 * v 3.6 add outputWatts = outputCurrent * outputVoltage truncate to integer.
 * v 3.7 fix issue where more that 59 minutes causes error add range to parameters.
 * v 3.8 was turning off debugging even if set to minimal only turn off specifically if set to maximum.
+* v 3.9 in order to get all output some were repeatedly coming out more than once, there was no way around this so added variabled to not put out more than once.
+* also change messages that cannot be turned off to info instead of debug.
 */
 
 capability "Battery"
@@ -102,7 +104,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "3.8"
+	state.version = "3.9"
 }
 
 def installed() {
@@ -232,11 +234,14 @@ def initialize() {
  }
 
 def refresh() {
-
-    
+   
     if (!disable)
     {
-
+       state.upsBattery = "Unknown"
+       state.runtime = "Unknown"
+       state.upsStatus = "Unknown"
+       state.nextRunTime = "Unknown"
+        
      if (getloglevel() > 0) log.debug "lgk SmartUPS Status Version ($state.version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
    
@@ -302,7 +307,8 @@ def parse(String msg) {
        else if (lastCommand == "quit")//  , "quit"
         { 
             sendEvent(name: "lastCommand", value: "Rescheduled")
-            log.debug "Will run again in $state.currentCheckTime Minutes!"
+            if (state.nextRunTime == "Unknown") log.info "Will run again in $state.currentCheckTime Minutes!"
+            state.nextRunTime = state.currentCheckTime
             closeConnection()
             sendEvent([name: "telnet", value: "Ok"])
            } 
@@ -473,9 +479,10 @@ def parse(String msg) {
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
                                      
-                    if (getloglevel() > 1) log.debug "*********************************"
-                    log.debug "Got UPS Status = $thestatus!"
-                    if (getloglevel() > 1) log.debug "*********************************"
+                    if (getloglevel() > 1) log.info "*********************************"
+                     if (state.upsStatus == "Unknown") log.info "Got UPS Status = $thestatus!"
+                     state.upsStatus = theStatus
+                    if (getloglevel() > 1) log.info "*********************************"
                      
                     sendEvent(name: "UPSStatus", value: thestatus)
                                   
@@ -531,9 +538,10 @@ def parse(String msg) {
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
                      
-                    if (getloglevel() > 1) log.debug "*********************************"
-                    log.debug "Got UPS Status = $thestatus!"
-                    if (getloglevel() > 1) log.debug "*********************************"
+                    if (getloglevel() > 1) log.info "*********************************"
+                     if (state.upsStatus == "Unknown") log.info "Got UPS Status = $thestatus!"
+                     state.upsStatus = theStatus
+                    if (getloglevel() > 1) log.info "*********************************"
                      
                     sendEvent(name: "UPSStatus", value: thestatus)
                      
@@ -584,9 +592,10 @@ def parse(String msg) {
                     def p4dec = p4.toDouble() / 100.0
                     int p4int = p4dec * 100
                     
-                    if (getloglevel() > 1) log.debug "********************************"
-                    log.debug "UPS Battery Percentage: $p4!"
-                    if (getloglevel() > 1) log.debug "*********************************"
+                    if (getloglevel() > 1) log.info "********************************"
+                    if (state.upsBattery == "Unknown") log.info "UPS Battery Percentage: $p4!"
+                      state.upsBattery = p4  
+                    if (getloglevel() > 1) log.info "*********************************"
                    
                     sendEvent(name: "batteryPercentage", value: p4int)
                     sendEvent(name: "battery", value: p4int, unit: "%")
@@ -594,13 +603,13 @@ def parse(String msg) {
              
              if (((p0 == "Internal") || (p0 == "Battery")) && (p1 == "Temperature:"))    
                  {   
-                   if (getloglevel() > 1) log.debug "********************************"
+                   if (getloglevel() > 1) log.info "********************************"
                    if (getloglevel() > 0) 
                      {
                          log.debug "Got C Temp = $p2!"
                          log.debug "Got F Temp = $p4!"
                      }
-                    if (getloglevel() > 1) log.debug "********************************"
+                    if (getloglevel() > 1) log.info "********************************"
       
                     sendEvent(name: "CTemp", value: p2)
                     sendEvent(name: "FTemp", value: p4)
@@ -629,9 +638,9 @@ def parse(String msg) {
      // Runtime Remaining: 2 hr 19 min 0 sec
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p3 == "hr"))
                  {    
-                    if (getloglevel() > 1) log.debug "********************************"
-                    log.debug "Got $p2 hours Remaining!"
-                    if (getloglevel() > 1) log.debug "********************************"
+                    if (getloglevel() > 1) log.info "********************************"
+                    if (state.runtime == "Unknown") log.info "Got $p2 hours Remaining!"
+                    if (getloglevel() > 1) log.info "********************************"
                      
                     sendEvent(name: "hoursRemaining", value: p2.toInteger())
                     state.hoursRemaining = p2.toInteger()
@@ -639,9 +648,10 @@ def parse(String msg) {
            
              if ((p0 == "Runtime") && (p1 == "Remaining:") && (p5 == "min"))
                  {   
-                   if (getloglevel() > 1) log.debug "********************************"
-                   log.debug "Got $p4 minutes Remaining!"
-                   if (getloglevel() > 1) log.debug "********************************"
+                   if (getloglevel() > 1) log.info "********************************"
+                   if (state.runtime == "Unknown") log.info "Got $p4 minutes Remaining!"
+                    state.runtime = p4
+                   if (getloglevel() > 1) log.info "********************************"
                      
                     sendEvent(name: "minutesRemaining", value: p4.toInteger())
                     state.minutesRemaining = p4.toInteger()
