@@ -42,6 +42,10 @@
 * v 3.8 was turning off debugging even if set to minimal only turn off specifically if set to maximum.
 * v 3.9 in order to get all output some were repeatedly coming out more than once, there was no way around this so added variabled to not put out more than once.
 * also change messages that cannot be turned off to info instead of debug.
+
+* v 4.0 add minute offset for runtime, so with multiple device say you schedule every 15 minutes with offset 2, it will run at 2 past the hour then 17 past the hour etc
+* in this way you can have multiple ups's and have them run every x minutes but stagger them so they dont all run at the same time.
+
 */
 
 capability "Battery"
@@ -87,6 +91,7 @@ preferences {
     input("Username", "text", title: "Username for Login?", required: true, defaultValue: "")
     input("Password", "password", title: "Password for Login?", required: true, defaultValue: "")
     input("runTime", "number", title: "How often to check UPS Status  (in Minutes 1-59)?", required: true, defaultValue: 30, range: "1..59")  
+    input("runOffset", "number", title: "Offset to run how many minutes past the hour, (used with multiple UPS's so they all don't run at once (0-59)?", required: true, defalutValue: 0, range: "0..59")
     input("runTimeOnBattery", "number", title: "How often to check UPS Status when on Battery (in Minutes 1-59)?", required: true, defaultValue: 10,range: "1..59")
     input("logLevel", "enum", title: "Logging Level (off,minimial,maximum) ?", options: ["off","minimal", "maximum"], required: true, defaultValue: "off")
     input("disable", "bool", title: "Disable?", required: false, defaultValue: false)
@@ -104,7 +109,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "3.9"
+	state.version = "4.0"
 }
 
 def installed() {
@@ -170,13 +175,16 @@ def initialize() {
       }
         
         
-      // make sure inputs are integers note cannot do this directly inline in the update statements as they come out as 2.0 instead.
+      // make sure inputs are integers note cannot do this directly inline in the update staements as they come out as 2.0 instead.
        
        def runTimeInt = runTime.toDouble().trunc().toInteger()
        def runTimeOnBatteryInt = runTimeOnBattery.toDouble().trunc().toInteger() 
-          
+       def runOffsetInt = runOffset.toDouble().trunc().toInteger()
+           
        device.updateSetting("runTime", [value: runTimeInt , type:"number"])
        device.updateSetting("runTimeOnBattery", [value: runTimeOnBatteryInt , type:"number"])
+       device.updateSetting("runOffset", [value: runOffsetInt, type: "number"])
+        
         
      if (!disable)
         {
@@ -192,13 +200,16 @@ def initialize() {
             
             // only reset name if was not disabled
             if (state.disabled != true) state.origAppName =  device.getLabel()  
-            state.disabled = false 
-            log.debug "Scheduling to run Every ${runTimeInt.toString()} Minutes!"
+            state.disabled = false
+            log.debug "here"
+            log.debug "Scheduling to run Every ${runTimeInt.toString()} Minutes, at ${runOffsetInt.toString()} past the hour."
             state.currentCheckTime = runTimeInt
             sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
-             
-            scheduleString = "0 */" + runTimeInt.toString() + " * ? * * *"
-            if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
+            scheduleString = "0 " + runOffsetInt.toString() + "/" + runTimeInt.toString() + " * ? * * *" 
+           
+           // scheduleString = "0 */" + runTimeInt.toString() + " * ? * * *"
+            state.CronString = scheduleString
+            if (getloglevel() > 0) log.debug "Schedule string = $scheduleString"
             
            schedule(scheduleString, refresh)
            sendEvent(name: "lastCommand", value: "Scheduled")     
@@ -490,7 +501,10 @@ def parse(String msg) {
                      {
                          log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
                          unschedule()
-                         scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
+                         
+                         scheduleString = "0 " + runOffset.toString() + "/" + runTimeOnBattery.toString() + " * ? * * *" 
+           
+                         //scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
                          if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                          state.currentCheckTime = runTimeOnBattery
                          sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
@@ -500,7 +514,9 @@ def parse(String msg) {
                      {
                        log.debug "UPS Back Online, so Resetting Check time to $runTime Minutes!"
                        unschedule()
-                       scheduleString = "0 */" + runTime.toString() + " * ? * * *"
+                       scheduleString = "0 " + runOffset.toString() + "/" + runTime.toString() + " * ? * * *" 
+            
+                       //scheduleString = "0 */" + runTime.toString() + " * ? * * *"
                        if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                        state.currentCheckTime = runTime
                        sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
@@ -549,7 +565,9 @@ def parse(String msg) {
                      {
                          log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
                          unschedule()
-                         scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
+                         scheduleString = "0 " + runOffset.toString() + "/" + runTimeOnBattery.toString() + " * ? * * *" 
+           
+                         //scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
                         if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                          state.currentCheckTime = runTimeOnBattery
                          sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
@@ -559,7 +577,9 @@ def parse(String msg) {
                      {
                        log.debug "UPS Back Online, so Resetting Check time to $runTime Minutes!"
                        unschedule()
-                       scheduleString = "0 */" + runTime.toString() + " * ? * * *"
+                       scheduleString = "0 " + runOffset.toString() + "/" + runTime.toString() + " * ? * * *" 
+              
+                       //scheduleString = "0 */" + runTime.toString() + " * ? * * *"
                        if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
                        state.currentCheckTime = runTime
                        sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
