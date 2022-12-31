@@ -201,7 +201,6 @@ def initialize() {
             // only reset name if was not disabled
             if (state.disabled != true) state.origAppName =  device.getLabel()  
             state.disabled = false
-            log.debug "here"
             log.debug "Scheduling to run Every ${runTimeInt.toString()} Minutes, at ${runOffsetInt.toString()} past the hour."
             state.currentCheckTime = runTimeInt
             sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
