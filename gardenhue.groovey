@@ -69,6 +69,9 @@
 *
 *    My default colors took that into consideration and only have colors that work well with a level of close to 100%
 *
+* 4.6 change debug to log level, rewrite all logging, change many to info which didnt exist when this is written. levels are off, minimal, maximum, minimal corresponds to what
+* loging off previously was, maximum corresponds to what debugging on previously was.
+*
 
 */
 
@@ -171,14 +174,9 @@ preferences {
 
      section( "Notification options?" ) {
          
-         
-     //   input("recipients", "contact", title: "Send notifications to") {
-            //input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required: false
             input "sendPushMessage", "capability.notification", title: "Notification Devices: Hubitat PhoneApp or Pushover", multiple: true, required: false
-            input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-         
-           // input "phone1", "phone", title: "Send a Text Message?", required: false
-    //}
+            input("logLevel", "enum", title: "Logging Level (off,minimial,maximum) ?", options: ["off","minimal", "maximum"], required: true, defaultValue: "minimal")
+  
   }
 }
 	
@@ -312,7 +310,7 @@ def updated() {
         def onHues = currSwitches.findAll { switchVal -> switchVal == "on" ? true : false }
         def numberon = onHues.size();
         def onstr = numberon.toString() 
-        log.debug "in updated on = $onstr"  
+        if (getloglevel() > 1) log.debug "in updated on = $onstr"  
     }
     
     
@@ -320,10 +318,10 @@ def updated() {
 
 def EnableSwitchHandler(evt)
 {
-    log.debug "In Switch Handler: Switch changed state to: ${evt.value}"
+    if (getloglevel() > 0) log.info "In Switch Handler: Switch changed state to: ${evt.value}"
     if (evt.value == "on")
      {
-       log.debug "Enabling App!"
+       if (getloglevel() > 0) log.info "Enabling App!"
        settings.enabled = true
        updated()
        // updated turns off so need to turn back on when switch tripped.. but also need to renable scheduling.
@@ -331,20 +329,20 @@ def EnableSwitchHandler(evt)
       }
     else
      {
-       log.debug "Disabling App!"
+       if (getloglevel() > o)  "Disabling App!"
        settings.enabled = false
        updated()
      }
 }
 
 private def initialize() {
-     state.version = "4.3"  
-     log.debug(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
+     state.version = "4.6"  
+     if (getloglevel() > 0) log.info(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
     if ((settings.holidayMode == true) && (settings.randomMode == false))
     {
-        log.debug "Overriding and turning on random mode so holiday mode works correctly!"
+        if (getloglevel() > 0) log.info "Overriding and turning on random mode so holiday mode works correctly!"
         app.updateSetting("randomMode", [value:true, type:"bool"])
     }
     
@@ -357,7 +355,7 @@ private def initialize() {
     
     // uses the run every instead of direct schedule to take load off of fixed times on hub        
     def ct = getCycleTimeinSeconds()
-    log.debug "Cycle Time is ${settings.cycleTime}, ($ct)"
+    if (getloglevel() > 1) log.info "Cycle Time is ${settings.cycleTime}, ($ct)"
       
     switch (ct)
     {      
@@ -366,67 +364,67 @@ private def initialize() {
      break;
         
       case "15":
-      log.debug "Switching color every 15 seconds." 
+        if (getloglevel() > 0) log.info "Switching color every 15 seconds." 
       schedule("0/15 * * * * ? *", "changeHandler")  
       break;
         
       case "20":
-      log.debug "Switching color every 20 seconds."
+      if (getloglevel() > 0) log.info "Switching color every 20 seconds."
       schedule("0/20 * * * * ? *", "changeHandler") 
       break;
         
       case "30":
-       log.debug "Switching color every 3 seconds."
+       if (getloglevel() > 0) log.info "Switching color every 3 seconds."
        schedule("0/30 * * * * ? *", "changeHandler") 
       break;
         
      case "45":
-      log.debug "Switching color every 45 seconds."
+      if (getloglevel() > 0) log.info "Switching color every 45 seconds."
       schedule("0/45 * * * * ? *", "changeHandler")  
      break;
        
      case "60":
-     log.debug "Switching color every minute."
+     if (getloglevel() > 0) log.info "Switching color every minute."
      schedule("0 */1 * * * ? *","changeHandler")
      break;
      
       case "120":
-      log.debug "Switching color every 2 minutes."
+      if (getloglevel() > 0) log.info "Switching color every 2 minutes."
       schedule("0 */2 * * * ? *","changeHandler")
       break;
         
      case "300":
-     log.debug "Switching color every 5 minutes."
+     if (getloglevel() > 0) log.info "Switching color every 5 minutes."
      runEvery5Minutes("changeHandler")
      break;
       
      case "600":
-     log.debug "Switching color every 10 minutes."
+     if (getloglevel() > 0) log.info "Switching color every 10 minutes."
      runEvery10Minutes("changeHandler")
      break;
     
      case "900":
-     log.debug "Switching color every 15 minutes."
+     if (getloglevel() > 0) log.info "Switching color every 15 minutes."
      runEvery15Minutes("changeHandler")
      break;
     
      case "1800":
-     log.debug "Switching color every 30 minutes."
+     if (getloglevel() > 0) log.info "Switching color every 30 minutes."
      runEvery30Minutes("changeHandler")
      break;
     
      case "3600":
-     log.debug "Switching color every hour."
+     if (getloglevel() > 0) log.info "Switching color every hour."
      runEvery1Hour("changeHandler")
      break;
     
      case  "10800":
-     log.debug "Switching color every 3 hours"
+     if (getloglevel() > 0) log.info "Switching color every 3 hours"
      runEvery3Hours("changeHandler")
      break;
       
      default:
-     log.debug "Switching color every 30 minutes."
+      if (getloglevel() > 0) log.info "Switching color every 30 minutes."
      runEvery30Minutes("changeHandler")
      break;
      
@@ -437,10 +435,13 @@ private def initialize() {
        def colorList3 =  hubitat.helper.ColorUtils.rgbToHSV(hubitat.helper.ColorUtils.hexToRGB(customColor3))
        def colorList4 =  hubitat.helper.ColorUtils.rgbToHSV(hubitat.helper.ColorUtils.hexToRGB(customColor4))
              
-          log.debug "Custom Color 1 - ${colorList1}"  
-          log.debug "Custom Color 2 - ${colorList2}" 
-          log.debug "Custom Color 3 - ${colorList3}" 
-          log.debug "Custom Colot 4 - ${colorList4}" 
+       if (getloglevel() > 0) 
+        {
+          log.info "Custom Color 1 - ${colorList1}"  
+          log.info "Custom Color 2 - ${colorList2}" 
+          log.info "Custom Color 3 - ${colorList3}" 
+          log.info "Custom Colot 4 - ${colorList4}" 
+        }
         
         state.custom1Hue = colorList1.get(0)
         state.custom1Saturation = colorList1.get(1)
@@ -491,7 +492,7 @@ def TurnOffAgain()
 
 def TurnOff()
 {
-    if (debug) log.debug "In turn off"
+    if (getloglevel() > 0) log.info "In turn off"
    if (settings.enabled == true)
     {
         def appLabel = app.getLabel()
@@ -514,7 +515,7 @@ def TurnOffAlways()
 
 def TurnOn()
 {
-   if (debug) log.debug "In turn on"
+   if (getloglevel() > 0) log.info "In turn on"
     if (settings.enabled == true)
     {
      def appLabel = app.getLabel()
@@ -525,18 +526,21 @@ def TurnOn()
 
 def scheduleNextSunrise(evt) {
 
-   log.debug "In schedule next sunrise"
+   if (getloglevel() > 1) log.debug "In schedule next sunrise"
 
     def int sunriseoffset = settings.offset.toInteger()
-    log.debug "got sunrise offset = $sunriseoffset"
+    if (getloglevel() > 1) log.debug "got sunrise offset = $sunriseoffset"
 
     // get sunrise and sunset times
     def sunRiseSet = getSunriseAndSunset()
     def sunriseTime = sunRiseSet.sunrise
     def sunsetTime = sunRiseSet.sunset
-        
-    log.debug "sunrise time ${sunriseTime}"
-    log.debug "sunset time ${sunsetTime}"
+    
+    if (getloglevel() > 0)
+    {
+      log.info "sunrise time ${sunriseTime}"
+      log.info "sunset time ${sunsetTime}"
+    }
     
     //get the Date value for the string
     //def sunriseTime = Date.parse("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", sunriseTime)
@@ -549,22 +553,21 @@ def scheduleNextSunrise(evt) {
     // which case we have and if we need to add 24 hours or not
     
      def currentTime = new Date(now())
-     //log.debug "current time = $currentTime, sunrisetime = $sunriseTime, sunsettime = $sunsetTime"
      
      // if current time is greater than sunsirse we are today no tomorrow so add 24 hours.
      if(currentTime.time > sunriseTime.time) {
-        log.debug "Adding a day as sunrise time is still today!"
+     if (getloglevel() > 1) log.info "Adding a day as sunrise time is still today!"
         sunriseTime = new Date(sunriseTime.time + (24 * 60 * 60 * 1000))
     }
    
     //calculate the offset
     def timeBeforeSunrise = new Date(sunriseTime.time + (sunriseoffset * 60 * 60 * 1000))
-    log.debug "Scheduling for: $timeBeforeSunrise (sunrise is $sunriseTime)"
+    if (getloglevel() > 0) log.info "Scheduling for: $timeBeforeSunrise (sunrise is $sunriseTime)"
 
     //schedule this to run one time
     if (state.nextOffTime != timeBeforeSunrise)
     {
-      log.debug "Scheduling it!"
+      if (getloglevel() > 1) log.debug "Scheduling it!"
       runOnce(timeBeforeSunrise, TurnOff)
       state.nextOffTime = timeBeforeSunrise
     }
@@ -581,9 +584,12 @@ def changeHandler(evt) {
          def numberon = onHues.size();
          def onstr = numberon.toString() 
          
-       if ((debug) && (settings.enabled == true)) log.debug "found $onstr that were on!"
-      // log.debug "holiday mode = $settings.holidayMode"
-       // log.debug "Random mode = $settings.randomMode"
+      if ((getloglevel() > 1) && (settings.enabled == true)) log.debug "found $onstr that were on!"
+      if (getloglevel() > 1) 
+        {
+            log.debug "holiday mode = $settings.holidayMode"
+            log.debug "Random mode = $settings.randomMode"
+        }
     
     if ((numberon > 0) && (settings.enabled == true))
     {
@@ -594,7 +600,7 @@ def changeHandler(evt) {
        // lgk define alternate color array if holiday mode enabled
        if (settings.holidayMode == true)
          {
-            if (debug) log.debug "Holiday Mode = On, getting count of colors Enabled."
+           if (getloglevel() > 1)  log.debug "Holiday Mode = On, getting count of colors Enabled."
             
          // now define new array
          def enabledColorArray = []
@@ -641,8 +647,11 @@ def changeHandler(evt) {
                enabledColorArray << "Custom4"
             
            def int colorsEnabled = enabledColorArray.size
-           if (debug) log.debug "Enabled Color Count = $colorsEnabled"
-           if (debug) log.debug "Enabled Color Array = $enabledColorArray"
+            if (getloglevel() > 1) 
+             {
+                log.debug "Enabled Color Count = $colorsEnabled"
+                log.debug "Enabled Color Array = $enabledColorArray"
+             }
 
            if ((numberon > 1) && (settings.individualControl == true))
              {
@@ -652,7 +661,7 @@ def changeHandler(evt) {
                  if (settings.fadeOffTime != "Off")
                    {                  
                        def fOffTime = settings.fadeOffTime.toInteger() 
-                       if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+                       if (getloglevel() > 1) log.debug "Fading off in $fOffTime seconds before changing color."
                        hues*.setLevel(1,fOffTime)
                        pauseExecution(fOffTime*1000) 
                    }
@@ -660,10 +669,10 @@ def changeHandler(evt) {
                  for (def i=0; i<numberon; i++) 
                       {
                             def int nextValue = new Random().nextInt(colorsEnabled)
-                            if (debug) log.debug "Colors Enabled: $colorsEnabled, Hue: $i, Random Number = $nextValue"
+                            if (getloglevel() > 1) log.debug "Colors Enabled: $colorsEnabled, Hue: $i, Random Number = $nextValue"
                             newColor = enabledColorArray[nextValue]
 
-                            log.debug("$app.label: Hue:$i - Setting Color to $newColor.")                         
+                            if (getloglevel() > 0) log.info("$app.label: Hue:$i - Setting Color to $newColor.")                         
                             sendcolor(newColor,i)
                      }
              } // do each individually
@@ -672,10 +681,10 @@ def changeHandler(evt) {
                {
 
                 def int nextValue = new Random().nextInt(colorsEnabled)
-                if (debug) log.debug "Colors Enabled: $colorsEnabled, Random Number = $nextValue"
+                if (getloglevel() > 1) log.debug "Colors Enabled: $colorsEnabled, Random Number = $nextValue"
                 newColor = enabledColorArray[nextValue]
 
-                log.debug("$app.label: Setting Color to $newColor.")
+                if (getloglevel() > 0) log.info("$app.label: Setting Color to $newColor.")
                 //hues.on()
                 sendcolor(newColor)
 
@@ -689,13 +698,13 @@ def changeHandler(evt) {
               
           if ((numberon > 1) && (settings.individualControl == true))
              {
-                 if (debug) log.debug "Non Holiday, Random, Separated case"
+                 if (getloglevel() > 1) log.debug "Non Holiday, Random, Separated case"
                  // this needs to be done here outside the loop and not in the individual fixture loop becuase of the pauseExecution otherwise fixtures
                  // will be out of sync.
                  if (settings.fadeOffTime != "Off")
                    {                  
                        def fOffTime = settings.fadeOffTime.toInteger() 
-                       if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+                       if (getloglevel() > 1) log.debug "Fading off in $fOffTime seconds before changing color."
                        hues*.setLevel(1,fOffTime)
                        pauseExecution(fOffTime*1000) 
                    }
@@ -709,35 +718,35 @@ def changeHandler(evt) {
                             {
                               ++maxColors
                               colorArray[maxColors-1] = "Custom1"
-                              if(debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
                             }
                               
                           if (custom2Enabled == true)
                             {
                               ++maxColors
                               colorArray[maxColors-1] = "Custom2"
-                              if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
                             }
                           
                          if (custom3Enabled == true)
                            {
                               ++maxColors
                               colorArray[maxColors-1] = "Custom3"
-                              if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
                            }
                           
                          if (custom4Enabled == true)
                            {
                               ++maxColors
                               colorArray[maxColors-1] = "Custom4"
-                              if (debug) log.debug "color arrary = $colorArray, maxColors = $maxColors"
+                              if (getloglevel() > 1) log.debug "color arrary = $colorArray, maxColors = $maxColors"
                            }
                           
                      
                            def int nextValue = new Random().nextInt(maxColors)
-                           if (debug) log.debug "Hue: $i, Random Number = $nextValue"
+                            if (getloglevel() > 1) log.debug "Hue: $i, Random Number = $nextValue"
                             newColor = colorArray[nextValue]
-                            log.debug("$app.label: Hue:$i - Setting Color to $newColor.")                         
+                            if (getloglevel() > 0) log.info("$app.label: Hue:$i - Setting Color to $newColor.")                         
                             sendcolor(newColor,i)
                      }
              } // do each individually
@@ -751,37 +760,37 @@ def changeHandler(evt) {
              {
                ++maxColors
                colorArray[maxColors-1] = "Custom1"
-               if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
              }
                               
            if (custom2Enabled == true)
               {
                 ++maxColors
                 colorArray[maxColors-1] = "Custom2"
-                if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
               }
                           
             if (custom3Enabled == true)
               {
                 ++maxColors
                 colorArray[maxColors-1] = "Custom3"
-                if (debug) log.debug "color array = $colorArray, maxColors = $maxColors"
+                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
               }
                           
             if (custom4Enabled == true)
               {
                ++maxColors
                colorArray[maxColors-1] = "Custom4"
-               if (debug) log.debug "color arrary = $colorArray, maxColors = $maxColors"
+               if (getloglevel() > 1) log.debug "color arrary = $colorArray, maxColors = $maxColors"
               }            
               
-           if (debug) log.debug "Holiday mode is not on."
+           if (getloglevel() > 1) log.debug "Holiday mode is not on."
            def int nextValue = new Random().nextInt(maxColors)
          
-           if (debug) log.debug "Random Number = $nextValue"
+           if (getloglevel() > 1) log.debug "Random Number = $nextValue"
            newColor = colorArray[nextValue]    
 
-            log.debug("$app.label: Setting Color to $newColor.")
+           if (getloglevel() > 0) log.info("$app.label: Setting Color to $newColor.")
             //hues.on()
              sendcolor(newColor)
   
@@ -795,7 +804,7 @@ def changeHandler(evt) {
       { // not random
         // note custom colors not used in raindbow ie not random mode.2
        def currentColor = state.currentColor
-       if (debug) log.debug " in changeHandler non-random case, got current color = $currentColor"
+       if (getloglevel() > 1) log.debug " in changeHandler non-random case, got current color = $currentColor"
 
        switch(currentColor) {
     
@@ -848,12 +857,12 @@ def changeHandler(evt) {
 			newColor = "Red"
 			break;  
          default:
-        	log.debug "in default"
+        	if (getloglevel() > 1) log.debug "in default"
             newColor = "Red"
 			break;
 	}
 
-      log.debug "After Check new color = $newColor"
+      if (getloglevel() > 1) log.debug "After Check new color = $newColor"
       //hues.on()
       sendcolor(newColor)
 
@@ -981,7 +990,7 @@ def sendcolor(color) {
         {
            // case with only fade off.. 
            def fOffTime = settings.fadeOffTime.toInteger() 
-           if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+           if (getloglevel() > 1) log.debug "Fading off in $fOffTime seconds before changing color."
            hues*.setLevel(1,fOffTime)
            pauseExecution(fOffTime*1000) 
         }
@@ -990,7 +999,7 @@ def sendcolor(color) {
 	     hues*.setColor(newValue)
          state.currentColor = color
          mysend("$app.label: Setting Color = $color")
-         if (debug) log.debug "$app.label: Setting Color = $color"
+         if (getloglevel() > 1) log.debug "$app.label: Setting Color = $color"
     }
     else
     {
@@ -999,7 +1008,7 @@ def sendcolor(color) {
          
             // fade out first before changing color if enabled
             def fOffTime = settings.fadeOffTime.toInteger() 
-            if (debug) log.debug "Fading off in $fOffTime seconds before changing color."
+            if (getloglevel() > 1) log.debug "Fading off in $fOffTime seconds before changing color."
             hues*.setLevel(1,fOffTime)
             pauseExecution(fOffTime*1000)
         }
@@ -1010,8 +1019,11 @@ def sendcolor(color) {
         
         // now turn on at level 1 and fade up
         def fOnTime = settings.fadeOnTime.toInteger()
-        if (debug) log.debug "Turning on at level 1, then fading up to $blevel in $fOnTime seconds."
-        if (debug) log.debug "new hue: $hueColor, new staturation: $saturation, new Level: $blevel"
+        if (getloglevel() > 1)
+        {
+         log.debug "Turning on at level 1, then fading up to $blevel in $fOnTime seconds."
+         log.debug "new hue: $hueColor, new staturation: $saturation, new Level: $blevel"
+        }
         def newValue = [hue: hueColor, saturation: saturation, level: 1] 
         
         state.currentColor = color
@@ -1023,7 +1035,7 @@ def sendcolor(color) {
 
 def sendcolor(color,which)
 {
-     if (debug) log.debug "In send color for hue $which"
+     if (getloglevel() > 1) log.debug "In send color for hue $which"
 	//Initialize the hue and saturation
 	def hueColor = 0
 	def saturation = 100
@@ -1140,7 +1152,7 @@ def sendcolor(color,which)
 	hues[which].setColor(newValue)
     state.currentColor = color
     mysend("$app.label: hue: $which, Setting Color = $color")
-    log.debug "$app.label: hue: $which Setting Color = $color"
+    if (getloglevel() > 1) log.info "$app.label: hue: $which Setting Color = $color"
     }
     
     else
@@ -1152,8 +1164,11 @@ def sendcolor(color,which)
        // if (settings.fadeOnTime != "Off") hues[which].setLevel(1,0)   
         // now turn on at level 1 and fade up
         def fOnTime = settings.fadeOnTime.toInteger()
-        if (debug) log.debug "Turning fixture $which on at level 1, then fading up to $blevel in $fOnTime seconds."
-        if (debug) log.debug "new hue: $hueColor, new staturation: $saturation, new Level: $blevel"
+        if (getloglevel() > 1)
+        {
+            log.debug "Turning fixture $which on at level 1, then fading up to $blevel in $fOnTime seconds."
+            log.debug "new hue: $hueColor, new staturation: $saturation, new Level: $blevel"
+        }
         def newValue = [hue: hueColor, saturation: saturation, level: 1]  
 	    hues[which].setColor(newValue)
         hues[which].setLevel(blevel,fOnTime)
@@ -1165,11 +1180,11 @@ private mysend(msg) {
     
      // check that contact book is enabled and recipients selected
     if (location.contactBookEnabled && recipients) {
-        if (debug) log.debug("sending notifications to: ${recipients?.size()}")
+        if (getloglevel() > 1) log.info("sending notifications to: ${recipients?.size()}")
         sendNotificationToContacts(msg, recipients)
     } else {
         if (sendPushMessage) {
-            if (debug) log.debug("Sending Push Notification...")
+            if (getloglevel() > 1) log.info("Sending Push Notification...")
          
             sendPushMessage.deviceNotification(msg)
         } 
@@ -1177,3 +1192,12 @@ private mysend(msg) {
     }
 }
 
+
+def getloglevel()
+{
+    if (logLevel == "off")
+    return(0)
+    else if (logLevel == "minimal")
+     return(1)
+    else return(2)
+}
