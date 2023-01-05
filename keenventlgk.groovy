@@ -85,7 +85,7 @@ def parse(String description)
 private Map parseCatchAllMessage(String description) {
    if (debug)  log.debug "parseCatchAllMessage"
 
-    def cluster = zigbee.parse(description)
+  def cluster = zigbee.parse(description)
   if (debug)  log.debug "cluster: ${cluster}"
     if (shouldProcessMessage(cluster)) {
        
@@ -179,12 +179,12 @@ private Map parseReportAttributeMessage(String description) {
 private Map parseCustomMessage(String description) {
     Map resultMap = [:]
     if (description?.startsWith('temperature: ')) {
-         log.debug "${description}"
+         if (debug) log.debug "${description}"
          def oldvalue = zigbee.parseHATemperatureValue(description, "temperature: ", getTemperatureScale())
           
-        log.debug "split: " + description.split(": ")
+        if (debug) log.debug "split: " + description.split(": ")
         def value = Double.parseDouble(description.split(": ")[1])
-       log.debug "${value}" 
+       if (debug) log.debug "${value}" 
         resultMap = makeTemperatureResult(convertTemperature(value))
     }
     return resultMap
@@ -218,7 +218,7 @@ private Map makeLevelResult(rawValue) {
 
     // catch obstruction level
     if (value == 255) {
-        log.debug "${linkText} is obstructed"
+        log.error "${linkText} is obstructed"
          sendEvent(name: 'ventStatus', value: "obstructed")
         // Just return here. Once the vent is power cycled
         // it will go back to the previous level before obstruction.
@@ -343,7 +343,7 @@ private def makeSerialResult(serial) {
 private def makeLevelCommand(level) {
     def rangeMax = 254
     def scaledLevel = Math.round(level * rangeMax / 100)
-    log.debug "scaled level for ${level}%: ${scaledLevel}"
+    if (debug) log.debug "scaled level for ${level}%: ${scaledLevel}"
 
     // convert to hex string and pad to two digits
     def hexLevel = new BigInteger(scaledLevel.toString()).toString(16).padLeft(2, '0')
@@ -354,7 +354,7 @@ private def makeLevelCommand(level) {
 /**** COMMAND METHODS ****/
 def on() {
     def linkText = getLinkText(device)
-    log.debug "open ${linkText}"
+    if (debug) log.debug "open ${linkText}"
 
     // only change the state if the vent is not obstructed
     if (device.currentValue("switch") == "obstructed") {
@@ -372,13 +372,11 @@ def on() {
     sendEvent(makeOnOffResult(1))
     "st cmd 0x${device.deviceNetworkId} 1 6 1 {}"
     setLevel(100)
-    
-  
 }
 
 def off() {
     def linkText = getLinkText(device)
-    log.debug "close ${linkText}"
+    if (debug) log.debug "close ${linkText}"
 
     // only change the state if the vent is not obstructed
     if (device.currentValue("switch") == "obstructed") {
@@ -402,7 +400,7 @@ def off() {
 
 def clearObstruction() {
     def linkText = getLinkText(device)
-    log.debug "attempting to clear ${linkText} obstruction"
+    log.error "attempting to clear ${linkText} obstruction"
     sendEvent(name: 'ventStatus', value: "clearing")
     
     sendEvent([
@@ -421,7 +419,7 @@ def clearObstruction() {
 }
 
 def setLevel(value) {
-    log.debug "setting level: ${value}"
+    if (debug) log.debug "setting level: ${value}"
     def linkText = getLinkText(device)
 
     // only change the level if the vent is not obstructed
@@ -451,7 +449,7 @@ def setLevel(value) {
 }
 
 def getOnOff() {
-    log.debug "getOnOff()"
+    if (debug) log.debug "getOnOff()"
 
     // disallow on/off updates while vent is obstructed
     if (device.currentValue("switch") == "obstructed") {
@@ -478,7 +476,7 @@ def close()
 
 
 def getPressure() {
-    log.debug "getPressure()"
+    if (debug) log.debug "getPressure()"
 
     // using a Keen Home specific attribute in the pressure measurement cluster
     [
@@ -489,7 +487,7 @@ def getPressure() {
 }
 
 def getLevel() {
-    log.debug "getLevel()"
+    if (debug) log.debug "getLevel()"
 
     // disallow level updates while vent is obstructed
     if (device.currentValue("switch") == "obstructed") {
@@ -501,19 +499,19 @@ def getLevel() {
 }
 
 def getTemperature() {
-    log.debug "getTemperature()"
+    if (debug) log.debug "getTemperature()"
 
     ["st rattr 0x${device.deviceNetworkId} 1 0x0402 0"]
 }
 
 def getBattery() {
-    log.debug "getBattery()"
+    if (debug) log.debug "getBattery()"
 
     ["st rattr 0x${device.deviceNetworkId} 1 0x0001 0x0021"]
 }
 
 def setZigBeeIdTile() {
-    log.debug "setZigBeeIdTile() - ${device.zigbeeId}"
+    if (debug) log.debug "setZigBeeIdTile() - ${device.zigbeeId}"
 
     def linkText = getLinkText(device)
 
@@ -536,7 +534,7 @@ def refresh() {
 }
 
 def configure() {
-    log.debug "CONFIGURE"
+    if (debug) log.debug "CONFIGURE"
 
     // get ZigBee ID by hidden tile because that's the only way we can do it
     setZigBeeIdTile()
