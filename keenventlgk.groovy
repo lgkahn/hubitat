@@ -14,6 +14,8 @@ metadata {
        // zigbee.parseDescriptionAsMap(description) 
         // lgk 12/22 add ventStatus custom attribute open,closed, obstructed, clearing
         // also add pressure attribute
+	    
+	 // logging changes
         
 		capability "Door Control"
         capability "Contact Sensor"
@@ -40,17 +42,6 @@ preferences {
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
  
 }
-
-    // simulator metadata
-    simulator {
-        // status messages
-        status "on": "on/off: 1"
-        status "off": "on/off: 0"
-
-        // reply messages
-        reply "zcl on-off on": "on/off: 1"
-        reply "zcl on-off off": "on/off: 0"
-    }
 
 }
 
@@ -354,7 +345,7 @@ private def makeLevelCommand(level) {
 /**** COMMAND METHODS ****/
 def on() {
     def linkText = getLinkText(device)
-    if (debug) log.debug "open ${linkText}"
+    log.debug "open ${linkText}"
 
     // only change the state if the vent is not obstructed
     if (device.currentValue("switch") == "obstructed") {
@@ -376,7 +367,7 @@ def on() {
 
 def off() {
     def linkText = getLinkText(device)
-    if (debug) log.debug "close ${linkText}"
+    log.debug "close ${linkText}"
 
     // only change the state if the vent is not obstructed
     if (device.currentValue("switch") == "obstructed") {
