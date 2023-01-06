@@ -354,9 +354,12 @@ def parse(String msg) {
             def String idP2 = java.util.UUID.randomUUID().toString().replaceAll('-', '')
             def String msgId = '<' + idP2 + "." + idP1 + "@2LGKSendmailV3>"
            
-               def String Subject = parent.getSubject()
-               def String From = parent.getFrom()
-               def String To = parent.getTo()
+            def String Subject = parent.getSubject()
+            def String From = parent.getFrom()
+            def String To = parent.getTo()
+            def toReplaced = false 
+            def cc = ""
+            def ccFound = false
             
                
           if(msgData.substring(0,1) == "{") {
@@ -370,7 +373,57 @@ def parse(String msg) {
 	        	emlSubject = (Subject != null ? "${Subject}" : "")
 	        } 
         
-         
+          // note order is important here from, to, subject,cc  
+          if (state.debug) log.debug "before check for header replacment, subject = $emlSubject, body = $emlBody, from = $From, To = $To"
+          
+          if (emlBody.startsWith("rh-From:") && emlBody.indexOf(",") > -1)
+               {
+                   def io = emlBody.indexOf(",")
+                   def len = emlBody.length()                             
+                   if (state.debug) log.debug "found replace header for From! index = $io, len = $len" 
+                   def newFrom = emlBody.substring(0,io)
+                   def messageSplit = emlBody.substring(io+1,len)           
+                   From = newFrom.replace("rh-From: ", "").replace("rh-From:", "")
+                   emlBody = messageSplit.trim()
+                }  
+               
+             if (emlBody.startsWith("rh-To:") && emlBody.indexOf(",") > -1)
+               {
+                   def io = emlBody.indexOf(",")
+                   def len = emlBody.length()                                   
+                   if (state.debug) log.debug "found replace header for To! index = $io, len = $len" 
+                   def newTo = emlBody.substring(0,io)
+                   def messageSplit = emlBody.substring(io+1,len)
+                   To = newTo.replace("rh-To: ", "").replace("rh-To:", "")
+                   emlBody = messageSplit.trim()
+                   toReplaced = true
+                } 
+               
+           if (emlBody.startsWith("rh-Subject:") && emlBody.indexOf(",") > -1)
+               {
+                   def io = emlBody.indexOf(",")
+                   def len = emlBody.length()                  
+                   if (state.debug) log.debug "found replace header for Subject!"                  
+                   def newSubject = emlBody.substring(0,io)
+                   def messageSplit = emlBody.substring(io+1,len)
+                   emlSubject = newSubject.replace("rh-Subject: ", "").replace("rh-Subject:", "")
+                   emlBody = messageSplit.trim()
+                }    
+             
+            if (emlBody.startsWith("rh-CC:") && emlBody.indexOf(",") > -1)
+               {
+                   def io = emlBody.indexOf(",")
+                   def len = emlBody.length() 
+                   if (state.debug) log.debug "found replace header for CC!" 
+                   def newCC = emlBody.substring(0,io)
+                   def messageSplit = emlBody.substring(io+1,len)
+                   cc = newCC.replace("rh-CC: ", "")replace("rh-CC:", "")
+                   emlBody = messageSplit.trim()
+                   ccFound = true 
+                }    
+                             
+               if (state.debug) log.debug "After check new subject = *${emlSubject}*, new body = $emlBody, newTo = *${To}*, new From = *${From}*, CC = *${cc}"
+               
             def toList = To.split(",")
             def toListSize = toList.size()
                              
@@ -394,6 +447,31 @@ def parse(String msg) {
                         sndMsg = sndMsg + [ "RCPT TO: <${To}>" ]
                        }
                
+               if (ccFound)
+               {
+                 sndMsg = sndMsg + [ "RCPT TO: <${cc}>" ]   
+                   
+               sndMsg = sndMsg +
+                    [ "DATA"
+                    , "From: ${From}"
+                    , "To: ${To}" 
+                    , "CC: ${cc}"
+                    , "Date: ${emlDateTime}"
+                    , "Message-ID: ${msgId}"
+                    , "Subject: ${emlSubject}"  
+                    , "MIME-Version: 1.0"
+                    , 'Content-Type: text/plain; charset="utf-8"'
+                    , "Content-Transfer-Encoding: quoted-printable\r\n"
+                    , ""
+	        		, "${emlBody}"
+                    , ""
+	        		, "."
+		        	, "quit"                 
+               ]
+                   
+               }
+               else
+               {
                    sndMsg = sndMsg +
                     [ "DATA"
                     , "From: ${From}"
@@ -410,6 +488,8 @@ def parse(String msg) {
 	        		, "."
 		        	, "quit"
 	           ]
+                   
+               }
                
                  def res1 = seqSend(sndMsg,500) 
                  state.messageSent = true  
