@@ -399,7 +399,7 @@ def parse(String msg) {
                    toReplaced = true
                 } 
                
-           if (emlBody.startsWith("rh-Subject:") && emlBody.indexOf(",") > -1)
+            if (emlBody.startsWith("rh-Subject:") && emlBody.indexOf(",") > -1)
                {
                    def io = emlBody.indexOf(",")
                    def len = emlBody.length()                  
@@ -408,8 +408,19 @@ def parse(String msg) {
                    def messageSplit = emlBody.substring(io+1,len)
                    emlSubject = newSubject.replace("rh-Subject: ", "").replace("rh-Subject:", "")
                    emlBody = messageSplit.trim()
-                }    
-             
+                }   
+               
+              if (emlBody.startsWith("Subject:") && emlBody.indexOf(",") > -1)
+               {
+                   def io = emlBody.indexOf(",")
+                   def len = emlBody.length()                  
+                   if (state.debug) log.debug "found replace header for Subject!"                  
+                   def newSubject = emlBody.substring(0,io)
+                   def messageSplit = emlBody.substring(io+1,len)
+                   emlSubject = newSubject.replace("Subject: ", "").replace("Subject:", "")
+                   emlBody = messageSplit.trim()
+                } 
+               
             if (emlBody.startsWith("rh-CC:") && emlBody.indexOf(",") > -1)
                {
                    def io = emlBody.indexOf(",")
