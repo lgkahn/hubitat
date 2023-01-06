@@ -362,16 +362,17 @@ def parse(String msg) {
             def ccFound = false
             
                
-          if(msgData.substring(0,1) == "{") {
+       /*    if(msgData.substring(0,1) == "{") {
 	             	
 		        def slurper = new groovy.json.JsonSlurper()
 		        def result = slurper.parseText(msgData)	      
                 emlBody = result.Body
 		        emlSubject = (result.Subject != null ? result.Subject : "")
 	        } else {
+*/
 	           	emlBody = msgData
 	        	emlSubject = (Subject != null ? "${Subject}" : "")
-	        } 
+	      //  } 
         
           // note order is important here from, to, subject,cc  
           if (state.debug) log.debug "before check for header replacment, subject = $emlSubject, body = $emlBody, from = $From, To = $To"
@@ -434,7 +435,99 @@ def parse(String msg) {
                 }    
                              
                if (state.debug) log.debug "After check new subject = *${emlSubject}*, new body = $emlBody, newTo = *${To}*, new From = *${From}*, CC = *${cc}"
-               
+                          
+            // handle bracket case for ehader replacement
+              if (emlBody.startsWith("{")) 
+               {
+                   
+                   def newFrom = ""
+                   def newTo = ""
+                   def newCC = ""
+                   def newSubject = ""
+                   def newMessage = ""
+                   def headers = ""
+                   def body = ""
+                   
+                   if (state.debug) log.debug "found header directive start {."     
+                   // now find end and separate
+                   def sMsg = emlBody.split("}")
+	               emlBody = emlBody.replace("{", "")
+                   if (state.debug) log.debug "size = ${sMsg.size()}"
+                   
+                   if (sMsg.size() == 2)
+                   {
+                       // now strip out comma on message
+                       def cMsg = sMsg[1].split(",")
+                       headers = sMsg[0]
+                       body = cMsg[1]
+                       if (state.debug) log.debug "left side (headers) = $headers, right side (msg} = ${cMsg[1]}, body = $body"
+                   }
+                   else 
+                   {
+                       // message must be inside
+                       headers = sMsg[0]
+                       if (state.debug) log.debug "left side (headers) = $headers, right side blank (message must be in options)!"                     
+                   }                     
+                       //emlBody = cMSg[1]
+                       headers = headers.replace("}", "")
+                       headers = headers.replace("{", "")
+	                   def headerSplit = headers.split(",")
+	
+                       if (state.debug) log.debug "header split = ${headerSplit} size = ${headerSplit.size()}"
+                       for (int i = 0; i < headerSplit.size(); i++) 
+                       {                          
+		                  def headerPart = headerSplit[i]
+		                  def headerPartSplit = headerPart.split(":")
+                           
+                           if (state.debug) log.debug "part = ${headerPart}"
+                        
+                        if (headerPart.contains("To")) 
+                         {
+                             def dh = headerPart.split(":")
+                             if (dh.size() == 2) newTo = dh[1].trim() 
+                         }
+                            
+                        if (headerPart.contains("Subject")) 
+                         {
+                             def dh = headerPart.split(":")
+                             if (dh.size() == 2) newSubject = dh[1].trim()
+                         }
+                         
+                        if (headerPart.contains("From")) 
+                         {
+                           def dh = headerPart.split(":")
+                           if (dh.size() == 2) newFrom = dh[1].trim()
+                         } 
+                           
+                         if (headerPart.contains("CC")) 
+                         {
+                           def dh = headerPart.split(":")
+                           if (dh.size() == 2) newCC = dh[1].trim()
+                         } 
+                           
+                         if (headerPart.contains("Message")) 
+                         {
+                           def dh = headerPart.split(":")
+                           if (dh.size() == 2) newMessage = dh[1].trim()
+                         }     
+                       } // loop
+                       
+                        if (state.debug) log.debug "newFrom = *${newFrom}*, newTo = *${newTo}*, newSubject = *${newSubject}* newCC = *${newCC}* newMessage = *${newMessage}*"
+                       // now handle using the new fields if there
+                       if (newFrom != "") From = newFrom
+                       if (newTo != "") To = newTo
+                       if (newSubject != "") emlSubject = newSubject
+                       if (newMessage != "") emlBody = newMessage
+                         else emlBody = body
+                       if (newCC != "") 
+                         {
+                           cc = newCC
+                           ccFound = true
+                         }
+                         
+               } // starts with }
+                     
+             
             def toList = To.split(",")
             def toListSize = toList.size()
                              
