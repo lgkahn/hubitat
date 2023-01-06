@@ -116,6 +116,25 @@
 * 4.91 added option for the subject header to be rh-Subject: or just Subject: to be consistent with ritchierich code base so you have
 * have one notification send through both implementations.
 
+* v 4.92
+the original header replacement above still works
+* but added an alternative message based on ritchierich pseudo xml at the start of the message
+ie 
+{header: value, header: value}, this is the message
+or
+{header: value, header: value. Message: this is the message}
+
+both work.
+
+Legal header values for replacement are: Subject: From: To: CC: Message:
+ order is not important.
+
+example:
+{Subject: new subject, CC:kahn-zzspam@lgk.com, Message:newmessage here,To: kahn-saved@lgk.com, From:  kahn@lgk.com}, this is a test
+or 
+{Subject: new subject, CC:kahn-zzspam@lgk.com, Message:newmessage here,To: kahn-saved@lgk.com, From:  kahn@lgk.com}
+
+
 
 */
 
@@ -177,7 +196,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.91"
+    return "4.92"
 }
 
 def logsOff()
