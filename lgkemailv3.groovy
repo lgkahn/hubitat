@@ -98,6 +98,22 @@
 *
 * v 4.81 changes screwed up the subject and was mismatch between to and recpt to so total rewrite of new features.
 
+* v 4.9 1/2023
+* new changes to be able to modify/replace the From, to , subject or add a cc header
+* the syntax is rh-Header: value, 
+* for instance to replace the subject form the hardcoded subject in your configurtion would be: rh-Subject: New Subject, Remainder of the message
+* There must be a comma after each replacment header directive.
+*
+* same for to rh-To:, From is rh-From, 
+* to add a CC header, it is rh-CC: email@email.com etc.
+*
+* Notes: if you had a list of multiple to address in the configure only one can be in the new replacment header so that would override the entire list.
+* other notes, order is important if you want to replace all headers (hence the rh-headername) you need to put them in this order:
+* rh-From, rh-T0, rh-Subject, rh-CC .
+* You dont need them all, but if any are there the must be in that order as that is the order they are processed.
+* Otherwise the will be left in as part of your actual message.
+*
+
 
 */
 
@@ -159,7 +175,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.81"
+    return "4.9"
 }
 
 def logsOff()
