@@ -113,6 +113,8 @@
 * You dont need them all, but if any are there the must be in that order as that is the order they are processed.
 * Otherwise the will be left in as part of your actual message.
 *
+* 4.91 added option for the subject header to be rh-Subject: or just Subject: to be consistent with ritchierich code base so you have
+* have one notification send through both implementations.
 
 
 */
@@ -175,7 +177,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.9"
+    return "4.91"
 }
 
 def logsOff()
