@@ -40,6 +40,7 @@ metadata {
 preferences {
     input("TempOffset", "number", title: "Temperature Offset/Adjustment -10 to +10 in Degrees?",range: "-10..10", description: "If your temperature is innacurate this will offset/adjust it by this many degrees.", defaultValue: 0, required: false)
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+    input("info", "bool", title: "Enable Informational (ie open/close) logging?", required: true, defaultValue: true)
  
 }
 
@@ -345,7 +346,7 @@ private def makeLevelCommand(level) {
 /**** COMMAND METHODS ****/
 def on() {
     def linkText = getLinkText(device)
-    log.debug "open ${linkText}"
+    if ((info) || (debug)) log.info "open ${linkText}"
 
     // only change the state if the vent is not obstructed
     if (device.currentValue("switch") == "obstructed") {
@@ -367,7 +368,7 @@ def on() {
 
 def off() {
     def linkText = getLinkText(device)
-    log.debug "close ${linkText}"
+    if ((info) || (debug)) log.debug "close ${linkText}"
 
     // only change the state if the vent is not obstructed
     if (device.currentValue("switch") == "obstructed") {
@@ -382,8 +383,7 @@ def off() {
     sendEvent(name: "level", value: 0)
     sendEvent(name: 'ventStatus', value: "closed")
     
-
-	sendEvent(makeOnOffResult(0))
+    sendEvent(makeOnOffResult(0))
     "st cmd 0x${device.deviceNetworkId} 1 6 0 {}"
     setLevel(0)
   
@@ -391,7 +391,7 @@ def off() {
 
 def clearObstruction() {
     def linkText = getLinkText(device)
-    log.error "attempting to clear ${linkText} obstruction"
+    log.warn "attempting to clear ${linkText} obstruction"
     sendEvent(name: 'ventStatus', value: "clearing")
     
     sendEvent([
@@ -410,7 +410,7 @@ def clearObstruction() {
 }
 
 def setLevel(value) {
-    if (debug) log.debug "setting level: ${value}"
+    if  ((info) || (debug)) log.info "setting level: ${value}"
     def linkText = getLinkText(device)
 
     // only change the level if the vent is not obstructed
