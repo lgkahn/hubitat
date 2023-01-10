@@ -39,8 +39,8 @@ metadata {
 
 preferences {
     input("TempOffset", "number", title: "Temperature Offset/Adjustment -10 to +10 in Degrees?",range: "-10..10", description: "If your temperature is innacurate this will offset/adjust it by this many degrees.", defaultValue: 0, required: false)
-    input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-    input("info", "bool", title: "Enable Informational (ie open/close) logging?", required: true, defaultValue: true)
+    input("debug", "bool", title: "Enable Debbugging messages??", required: true, defaultValue: false)
+    input("info", "bool", title: "Enable Informational (ie open/close) messages?", required: true, defaultValue: true)
  
 }
 
