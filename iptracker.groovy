@@ -8,29 +8,29 @@ but can through a rule, so add an attribute that iphas changed, and monitor that
 
     /* lgk add missing attributes so can be queried by dashboard */ 
 
-	   attribute "country", "string"
-       attribute "country_iso", "string"
-       attribute "country_eu", "string"
-       attribute "region_name", "string"
-       attribute "region_code", "string"
-       attribute "metro_code", "string"
-       attribute "zip_code", "string"
-       attribute "city", "string"
-       attribute "latitude", "string"
-       attribute "longitude", "string"
-       attribute "time_zone", "string"
-       attribute "asn", "strring"
-       attribute "asn_org", "string"
-       attribute "hostname", "string"
-       attribute "lastIP", "string"
-       attribute "lastUpdate", "string"
-       attribute "ip", "string"
-       attribute "IPChanged", "boolean"
+	attribute "country", "string"
+       	attribute "country_iso", "string"
+       	attribute "country_eu", "string"
+       	attribute "region_name", "string"
+       	attribute "region_code", "string"
+       	attribute "metro_code", "string"
+       	attribute "zip_code", "string"
+       	attribute "city", "string"
+       	attribute "latitude", "string"
+       	attribute "longitude", "string"
+       	attribute "time_zone", "string"
+       	attribute "asn", "strring"
+       	attribute "asn_org", "string"
+       	attribute "hostname", "string"
+       	attribute "lastIP", "string"
+       	attribute "lastUpdate", "string"
+       	attribute "ip", "string"
+       	attribute "IPChanged", "boolean"
 
 	preferences {
-        input "timedelay", "number", title:"Number of seconds before rechecking", description: "", required: true, displayDuringSetup: true, defaultValue: "3600"
-        input ("logdebugs", "bool", title: "Log debugging messages", defaultValue: false, displayDuringSetup: false)
-        input name: "autoUpdate", type: "bool", title: "Enable Auto updating", defaultValue: true
+        input ("timedelay", "number", title:"Number of seconds before rechecking", description: "", required: true, displayDuringSetup: true, defaultValue: "3600")
+        input ("logEnable", "bool", title: "Enable debug logging", required: true, defaultValue: false, displayDuringSetup: false)
+        input (name: "autoUpdate", type: "bool", title: "Enable Auto updating", defaultValue: true)
 	}
 
 
@@ -42,14 +42,14 @@ metadata {
 
 void debugOff() {
    log.warn("Disabling debug logging")
-   device.updateSetting("logdebugs", [value:"false", type:"bool"])
+   device.updateSetting("logEnable", [value:"false", type:"bool"])
 }
 
 void initialize(){
     
     if (autoUpdate) runIn(timedelay.toInteger(), Update)
 	
-    if (logdebugs) log.debug "Debug logging will be disabled in 300 seconds"
+    if (logEnable) log.debug "Debug logging will be disabled in 300 seconds"
         
 	runIn(300, debugOff)
     sendEvent(name: "IPChanged", value: false)
@@ -98,7 +98,7 @@ def Update() {
         sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
     
         
-        if(logdebugs) log.info ipdata
+        if(logEnable) log.info ipdata
 
         state.ip = ipdata.ip
     
