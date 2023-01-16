@@ -29,7 +29,7 @@ but can through a rule, so add an attribute that iphas changed, and monitor that
 
 	preferences {
         input ("timedelay", "number", title:"Number of seconds before rechecking", description: "", required: true, displayDuringSetup: true, defaultValue: "3600")
-        input ("logEnable", "bool", title: "Enable debug logging", required: true, defaultValue: false, displayDuringSetup: false)
+        input ("logEnable", "bool", title: "Enable debug logging", defaultValue: false)
         input (name: "autoUpdate", type: "bool", title: "Enable Auto updating", defaultValue: true)
 	}
 
