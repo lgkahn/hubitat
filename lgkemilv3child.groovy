@@ -239,9 +239,9 @@ def parse(String msg) {
     }
     
     def first4 = msg.substring(0,4)
-    if (first4 == "250-")
+    if ((first4 == "250-") || (first4 == "220-"))
     {
-        if (state.debug) log.debug "Skipping informational command: $msg after ehlo!"
+        if (state.debug) log.debug "Skipping informational command: $msg."
     }
     else
     {
