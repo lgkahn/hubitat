@@ -134,6 +134,8 @@ example:
 or 
 {Subject: new subject, CC:kahn-zzspam@lgk.com, Message:newmessage here,To: kahn-saved@lgk.com, From:  kahn@lgk.com}
 
+* 2/8/23  v 4.93 skip initial 220- as well as 250- which was already in place.
+
 
 
 */
@@ -196,7 +198,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.92"
+    return "4.93"
 }
 
 def logsOff()
