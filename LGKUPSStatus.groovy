@@ -110,7 +110,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "4.0"
+	state.version = "4.1"
 }
 
 def installed() {
