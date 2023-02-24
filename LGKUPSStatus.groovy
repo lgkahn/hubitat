@@ -45,6 +45,7 @@
 
 * v 4.0 add minute offset for runtime, so with multiple device say you schedule every 15 minutes with offset 2, it will run at 2 past the hour then 17 past the hour etc
 * in this way you can have multiple ups's and have them run every x minutes but stagger them so they dont all run at the same time.
+* v 4.1 only put out password if  max debug level set.. otherwise less info
 
 */
 
@@ -159,8 +160,12 @@ def initialize() {
  
     if ((tempUnits == null) || (tempUnits == ""))
       device.tempUnits = "F"
-
-    log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
+    
+    if (getloglevel() > 1) 
+        log.debug "ip = $UPSIP, Port = $UPSPort, Username = $Username, Password = $Password"
+    else
+        log.info "ip = $UPSIP, Port = $UPSPort" 
+        
     if ((UPSIP) && (UPSPort) && (Username) && (Password))
     {
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
