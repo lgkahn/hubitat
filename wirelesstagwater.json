@@ -10,8 +10,10 @@
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
- *  for the specific language governing permissions and limitations under the License.
- * lgk remove smartthings crap and add  capability water sensor and set wet if greater than 75% and dry otherwise.
+ *  for the specific language governing permissions and limitations under the License.,
+ * lgk remove smartthings crap and add  capability water sensor and set wet if greater than user specified level and dry otherwise.
+ * also add last update and signal dbm attr and set tagtype
+ * also add debug and text logging and remove unused capilities.
  */
 metadata {
 	definition (name: "Wireless Tag Water", namespace: "bhazer", author: "swanny") {
@@ -19,27 +21,31 @@ metadata {
        // capability "Presence Sensor"
 		capability "Relative Humidity Measurement"
 		capability "Temperature Measurement"
-		capability "Signal Strength"
+		capability "Sensor"
 		capability "Battery"
         capability "Refresh"
         capability "Polling"
         
         command "generateEvent"
         command "initialSetup"
-        
-        attribute "tagType","string"
+               
+        attribute 'tagType', 'string'
+        attribute "lastUpdate", "string"
+        attribute "signaldBm", "number"
 	}
 
-	simulator {
-		// TODO: define status and reply messages here
-	}
+	preferences {
+       input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+       input("triggerLevel", "number", title: "Humidity level at which to trigger wet, and dry below?", required: true, defaultValue: 75)
+    } 
 
 	
 }
 
+
 // parse events into attributes
 def parse(String description) {
-	log.debug "Parsing '${description}'"
+	if (debug) log.debug "Parsing '${description}'"
 }
 
 void poll() {
@@ -58,11 +64,13 @@ def initialSetup() {
 
 def updated() {
 	log.trace "updated"
+     def tl = triggerLevel
+     log.debug "TrigerLevel = $tl"
 }
 
 void generateEvent(Map results)
 {
-	log.debug "parsing data $results"
+	if (debug) log.debug "parsing data $results"
     
    	if(results)
 	{
@@ -77,13 +85,26 @@ void generateEvent(Map results)
                 
                 if (name =="humidity")
                    {
-                       if (value >= 75)
+                       def tl = triggerLevel
+                       if (debug) log.debug "TrigerLevel = $tl"
+                       if (value >= tl)
+                       {
                         sendEvent(name: "water", value: "wet")
-                       else sendEvent(name: "water", value: "dry")
+                        log.debug "Alert Device $name is WET, humidity < $triggerLevel!"
+                       }
+                       else {
+                           sendEvent(name: "water", value: "dry")
+                           log.debug "Device $name is now dry!"
+                       }
                    }
              	sendEvent(name: name, value: value)       
             }
 		}
+        
+       def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+       sendEvent(name: "lastUpdate", value: now)
+       sendEvent(name: name, value: tempValue, unit: measure, isStateChange: isChange, displayed: isChange)   
+        
 	}
 }
 
