@@ -66,6 +66,7 @@ def updated() {
 	log.trace "updated"
      def tl = triggerLevel
      log.debug "TrigerLevel = $tl"
+     sendEvent(name: "tagType", value: "water")
 }
 
 void generateEvent(Map results)
