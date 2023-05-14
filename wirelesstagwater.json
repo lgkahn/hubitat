@@ -1,0 +1,97 @@
+/**
+ *  Wireless Tag Water
+ *
+ *  Copyright 2014 Dave Swanson (swanny)
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ * lgk remove smartthings crap and add  capability water sensor and set wet if greater than 75% and dry otherwise.
+ */
+metadata {
+	definition (name: "Wireless Tag Water", namespace: "bhazer", author: "swanny") {
+		capability "Water Sensor"
+       // capability "Presence Sensor"
+		capability "Relative Humidity Measurement"
+		capability "Temperature Measurement"
+		capability "Signal Strength"
+		capability "Battery"
+        capability "Refresh"
+        capability "Polling"
+        
+        command "generateEvent"
+        command "initialSetup"
+        
+        attribute "tagType","string"
+	}
+
+	simulator {
+		// TODO: define status and reply messages here
+	}
+
+	
+}
+
+// parse events into attributes
+def parse(String description) {
+	log.debug "Parsing '${description}'"
+}
+
+void poll() {
+	log.debug "poll"	
+    parent.pollChild(this)
+}
+
+def refresh() {
+	log.debug "refresh"
+    parent.refreshChild(this)
+}
+
+def initialSetup() {
+
+}
+
+def updated() {
+	log.trace "updated"
+}
+
+void generateEvent(Map results)
+{
+	log.debug "parsing data $results"
+    
+   	if(results)
+	{
+		results.each { name, value ->
+            
+            if (name=="temperature") {
+            	def tempValue = getTemperature(value)
+				sendEvent(name: name, value: tempValue, unit: getTemperatureScale())                                  									 
+            }
+            else {
+              //  log.debug "name = $name , value = $value"
+                
+                if (name =="humidity")
+                   {
+                       if (value >= 75)
+                        sendEvent(name: "water", value: "wet")
+                       else sendEvent(name: "water", value: "dry")
+                   }
+             	sendEvent(name: name, value: value)       
+            }
+		}
+	}
+}
+
+def getTemperature(value) {
+	def celsius = value
+	if(getTemperatureScale() == "C"){
+		return celsius
+	} else {
+		return celsiusToFahrenheit(celsius).toDouble().round(1)
+	}
+}
