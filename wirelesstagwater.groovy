@@ -105,6 +105,7 @@ void generateEvent(Map results)
        def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
        sendEvent(name: "lastUpdate", value: now)
        sendEvent(name: name, value: tempValue, unit: measure, isStateChange: isChange, displayed: isChange)   
+       sendEvent(name: "tagType", value: "water") 
         
 	}
 }
