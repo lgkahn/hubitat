@@ -49,6 +49,9 @@
  * change the default to 10 secs as 2 seems not to work any longer.
  * also add child to the xx function so i can retry commands on an error 408 vehicle unavailable up to 3 times with an exponential backup of the pause time between commands.
  * lgk 10/22 v3.1 add code to handle having a vehicle with no name just the "Tesla xxxx" driver name.
+ * 
+ * lgk 7/23 v3.2 add charge state data and attributes and also add command to set amperage.
+ * also add new debug field whether to show token refresh in notifications or only errors.
  */
 
 import groovy.transform.Field
@@ -89,6 +92,7 @@ def loginToTesla() {
             input "notificationDevice", "capability.notification", title: "Notification device to receive info on Tesla Token Updates?", multiple: false, required: false
 	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
             input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
+            input "tokenDebug", "bool", title: "Show token refresh success notifications (true), or not (false)?", required: true, defaultValue: true
             input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issuing the requested command.", required: true, defaultValue: "10", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
             input "wakeOnInitialTry", "bool", title: "Should I issue a wake and pause on the inital try?", required: true, defaultValue: true                                                                                                                                      
         }
@@ -502,12 +506,13 @@ def refresh(child) {
             data.motion = data.speed > 0 ? "active" : "inactive"            
             data.thermostatMode = climateState.is_climate_on ? "auto" : "off"
             
-           
+           //log.debug "charging state = $chargeState"
             data["chargeState"] = [
                 battery: chargeState.battery_level,
                 batteryRange: chargeState.battery_range,
                 chargingState: chargeState.charging_state,
                 chargeLimit: chargeState.charge_limit_soc,
+                chargeAmps: chargeState.charge_current_request,
                 minutes_to_full_charge: chargeState.minutes_to_full_charge    
             ]
             
@@ -715,7 +720,7 @@ def closeWindows(child) {
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "window_control", body: [command: "close"])
+	return executeApiCommand(child, "window_control", body: [command: "close"]) 
 }
 
 def setChargeLimit(child,limit) {
@@ -726,6 +731,16 @@ def setChargeLimit(child,limit) {
       pause((pauseTime.toInteger() * 1000))
     }
     return executeApiCommand(child,"set_charge_limit", body: [percent: limitPercent])
+}
+
+def setChargeAmps(child,amps) {
+    def ampsInt = amps.toInteger()
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+    return executeApiCommand(child,"set_charging_amps", body: [charging_amps: ampsInt])
 }
 
 def valetModeOn(child) {
@@ -833,7 +848,7 @@ void scheduleRefreshAccessToken() {
         }
         def refreshDate = new Date(refreshDateEpoch)
         if (descLog) log.info "Scheduling token refresh for ${refreshDate}."
-         notifyIfEnabled("Tesla App - Succesfully scheduled next refresh for ${refreshDate}")
+         if (tokenDebug) notifyIfEnabled("Tesla App - Succesfully scheduled next refresh for ${refreshDate}")
         setNextTokenUpdateTimeForVehicles(refreshDate)
         
         runOnce(refreshDate, refreshAccessToken) 
@@ -880,7 +895,7 @@ void refreshAccessToken(){
                     ssoAccessToken = resp.data["access_token"]
                     expiresIn = resp.data.expires_in.toLong()
                     if (descLog) log.info "Successfully updated refresh/bearer token for access token!"
-                       notifyIfEnabled("Tesla App - Succesfully refreshed refresh/bearer token for access token!")
+                    if (tokenDebug) notifyIfEnabled("Tesla App - Succesfully refreshed refresh/bearer token for access token!")
                     setLastTokenUpdateTimeForVehicles()
  
                 } 
