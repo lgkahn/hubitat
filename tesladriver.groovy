@@ -49,6 +49,8 @@
  * lgk v 3.05 change to only the tesla driver to add variable logging level. Setting to Info will be exactly the same as previous. Setting Full is the same as previously
  * turning on debuging, Setting to None turns all of except during initialize or an error.
  * Note: this is only for the driver, no effect on debugging in the related application.
+ *
+ * lgk v 3.2 set charge state attributes ie amperage and ccommand to set charge level range and also amps. 
  */
 
 metadata {
@@ -83,6 +85,7 @@ metadata {
         attribute "rear_drivers_window" , "string"
         attribute "rear_pass_window" , "string"
         attribute "current_charge_limit", "number"
+        attribute "current_charge_amps", "number"
         attribute "longitude", "number"
         attribute "latitude", "number"
         attribute "speed", "number"
@@ -117,6 +120,7 @@ metadata {
         command "ventWindows"
         command "closeWindows"
         command "setChargeLimit", ["number"] /* integer percent */
+        command "setChargeAmps", ["number"] /* integer amperage */
         command "scheduleTokenRefresh"
         command "transitionAccessToken"
 
@@ -255,6 +259,7 @@ private processData(data) {
             sendEvent(name: "chargingState", value: data.chargeState.chargingState)
             sendEvent(name: "minutes_to_full_charge", value: data.chargeState.minutes_to_full_charge)
             sendEvent(name: "current_charge_limit", value: data.chargeState.chargeLimit)
+            sendEvent(name: "current_charge_amps", value: data.chargeState.chargeAmps)
 
         }
         
@@ -475,7 +480,14 @@ def setChargeLimit(Number Limit)
 	def result = parent.setChargeLimit(this, Limit)
         if (result) { refresh() }
 }  
-    
+ 
+def setChargeAmps(Number Amps)
+{
+    if (debugLevel != "None") log.debug "Executing 'setChargeAmpe with Amps = $Amps "
+	def result = parent.setChargeAmps(this, Amps)
+        if (result) { refresh() }
+}    
+
 def updated()
 {
    
