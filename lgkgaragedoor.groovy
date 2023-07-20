@@ -52,6 +52,14 @@ preferences {
         input "sendPushMessage", "capability.notification", title: "Send Push Notifications? - Notification Devices: Hubitat PhoneApp or Other?", multiple: true, required: false
 
            }
+
+  section("Audio alerts - set either an alarm or a tone device") {
+    input "alarm", "capability.alarm", title: "Alarm?", required: false
+    input "alarmDuration", "number", title: "Number of seconds to sound alarm (default: 10, range: 1..60)?", required: false, defaultValue: 10, range: '1..60'
+    input "alarmSound", "bool", title: "Sound alarm?", required: false, defaultValue: true
+    input "alarmStrobe", "bool", title: "Flash alarm strobe?", required: false, defaultValue: true
+    input "tone", "capability.tone", title: "Tone device?", required: false
+  }
          
        section("Logging" ) {
           input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
@@ -187,6 +195,7 @@ def realgdstate = sensor.currentContact
       {
         if (descLog) log.info "closing real gd to correspond with button press."
         mysend("$virtualgd.displayName Closed. Syncing with Actual Device!")   
+        playAudioAlert()  
         opener.on()
         if(debug) log.debug "Schedulng checkIfActuallyClosed via runIn for $checkTimeout seconds."
         runIn(checkTimeout, checkIfActuallyClosed)
@@ -194,6 +203,25 @@ def realgdstate = sensor.currentContact
    }
 }
 
+private playAudioAlert() {
+  if (null != alarm) {
+    if (debug) log.debug("Activating alarm device")
+    if (alarmSound && alarmStrobe) {
+      alarm.both()
+    } else if (alarmSound) {
+      alarm.siren()
+    } else if (alarmStrobe) {
+      alarm.strobe()
+    }
+    pauseExecution(alarmDuration * 1000)
+    if (debug) log.debug("Stopping alarm device")
+    alarm.off()
+  }
+  if (null != tone) {
+    if (debug) log.debug("Playing alert tone")
+    tone.beep()
+  }
+}
 
 private mysend(msg) {
     
