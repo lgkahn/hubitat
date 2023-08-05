@@ -51,6 +51,8 @@
  * Note: this is only for the driver, no effect on debugging in the related application.
  *
  * lgk v 3.2 set charge state attributes ie amperage and ccommand to set charge level range and also amps. 
+ *
+ * lgk v 3.3 implement alternate presence detection base on user input of home longitude and latitude and distance to be considered present. This is for people that don't have Homelink .
  */
 
 metadata {
@@ -104,6 +106,7 @@ metadata {
         attribute "lastTokenUpdate", "string"
         attribute "lastTokenUpdateInt", "number"
         attribute "nextTokenUpdate", "string"
+        attribute "altPresent", "string"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -141,6 +144,11 @@ metadata {
        input "tempScale", "enum", title: "Display temperature in F or C ?", options: ["F", "C"], required: true, defaultValue: "F" 
        input "mileageScale", "enum", title: "Display mileage/speed in Miles or Kilometers ?", options: ["M", "K"], required: true, defaultValue: "M"  
        input "debugLevel", "enum", title: "Set Debug/Logging Level (Full will automatically change to Info after an hour)?", options: ["Full","Info","None"], required:true,defaultValue: "Info"
+       input "useAltPresence", "bool", title: "Use alternate presence method based on distance from home longitude and latitude?", required: true, defaultValue: false    
+       input "homeLongitude", "Double", title: "Home longitude value?", required: false
+       input "homeLatitude", "Double", title: "Home latitude value?", required: false
+       input "boundryCircleDistance", "Number", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
+        
     }
 }
 
@@ -271,6 +279,46 @@ private processData(data) {
             sendEvent(name: "lastUpdateTime", value: data.driveState.lastUpdateTime)
             sendEvent(name: "longitude", value: data.driveState.longitude)
             sendEvent(name: "latitude", value: data.driveState.latitude)
+                    
+            if (useAltPresence == true)
+              {
+                  
+               if (homeLongitude == null || homeLatitude == null)
+                  {
+                      log.debug "Error: Home longitude or latitude is null and Alternate Presence method selected!"
+                  }
+                else
+                {
+               if (debugLevel == "Full") log.debug "Using Alternate presence detection, requested distance: $boundryCircleDistance"
+                  
+               def Double vehlog = data.driveState.longitude.toDouble()
+               def Double vehlat = data.driveState.latitude.toDouble()   
+               def Double homelog =  homeLongitude.toDouble() //-71.5996 
+               def Double homelat = homeLatitude.toDouble() // 42.908368 
+                  
+               if (debugLevel == "Full")    
+                {
+                 log.debug "current vehicle longitude,latitude = [ $vehlog, $vehlat ]"                 
+                 log.debug "User set home longitude,latitude =   [ $homelog, $homelat ]"
+                }
+                  
+                def Double dist = calculateDistanceBetweenTwoLatLongsInKm(vehlog, vehlat, homelog, homelat)
+                if (debugLevel == "Full") log.debug "Calculated distance from home: $dist"
+                  
+                if (dist <= boundryCircleDistance.toDouble())
+                { 
+                    if (debugLevel == "Full") log.debug "Vehicle in range... setting presence to true"
+                    sendEvent(name: "altPresent", value: "true")
+                    sendEvent(name: "presence", value: "present")
+                }
+                else 
+                {
+                    if (debugLevel == "Full") log.debug "Vehicle outside range... setting presence to false"
+                    sendEvent(name: "altPresent", value: "false")
+                    sendEvent(name: "presence", value: "not present")
+                }
+            }
+              }
             //sendEvent(name: "speed", value: data.driveState.speed)
         }
         
@@ -278,7 +326,7 @@ private processData(data) {
            if (debugLevel == "Full") log.debug "vehicle state = $data.vehicleState"
             def toPSI  = 14.503773773
             
-        	sendEvent(name: "presence", value: data.vehicleState.presence)
+        	if (useAltPresence != true) sendEvent(name: "presence", value: data.vehicleState.presence)
             sendEvent(name: "lock", value: data.vehicleState.lock)
            
             if (mileageScale == "M")
@@ -567,3 +615,15 @@ def setNextTokenUpdateTime(nextTime)
     }
 }
         
+
+Double calculateDistanceBetweenTwoLatLongsInKm(
+    Double lat1, Double lon1, Double lat2, Double lon2) {
+    
+     if (debugLevel == "Full") log.debug "in calc distance lat1 = $lat1, $lon1, lat2 = $lat2, $lon2"
+    
+  def Double p = 0.017453292519943295;
+  def Double a = 0.5 -
+      Math.cos((lat2 - lat1) * p) / 2 +
+      Math.cos(lat1 * p) * Math.cos(lat2 * p) * (1 - Math.cos((lon2 - lon1) * p)) / 2;
+  return 12742 * Math.asin(Math.sqrt(a));
+}
