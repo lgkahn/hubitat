@@ -53,6 +53,7 @@
  * lgk v 3.2 set charge state attributes ie amperage and ccommand to set charge level range and also amps. 
  *
  * lgk v 3.3 implement alternate presence detection base on user input of home longitude and latitude and distance to be considered present. This is for people that don't have Homelink .
+ * v 3.31 change boundrycircle distance input to double so accepts smaller numbers.
  */
 
 metadata {
@@ -147,7 +148,7 @@ metadata {
        input "useAltPresence", "bool", title: "Use alternate presence method based on distance from home longitude and latitude?", required: true, defaultValue: false    
        input "homeLongitude", "Double", title: "Home longitude value?", required: false
        input "homeLatitude", "Double", title: "Home latitude value?", required: false
-       input "boundryCircleDistance", "Number", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
+       input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
         
     }
 }
