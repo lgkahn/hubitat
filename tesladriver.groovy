@@ -54,6 +54,7 @@
  *
  * lgk v 3.3 implement alternate presence detection base on user input of home longitude and latitude and distance to be considered present. This is for people that don't have Homelink .
  * v 3.31 change boundrycircle distance input to double so accepts smaller numbers.
+ * v 3.4 added outer diameter ring and reduction in refresh time when hit with timout after x minutes, also added door and frunk trunk status.
  */
 
 metadata {
@@ -108,6 +109,13 @@ metadata {
         attribute "lastTokenUpdateInt", "number"
         attribute "nextTokenUpdate", "string"
         attribute "altPresent", "string"
+        attribute "front_drivers_door", "string"
+        attribute "front_pass_door", "string"
+        attribute "rear_drivers_door", "string"
+        attribute "rear_pass_door", "string"
+        attribute "frunk" , "string"
+        attribute "trunk", "string"
+        attribute "user_present", "string"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -149,7 +157,9 @@ metadata {
        input "homeLongitude", "Double", title: "Home longitude value?", required: false
        input "homeLatitude", "Double", title: "Home latitude value?", required: false
        input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
-        
+       input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
+       input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
+       input "refreshOverrideTime", "enum", title: "How long to allow reduced refresh before giving up and go back to default (Also resets when you arrive)?",options: ["30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: false, defaultValue: "5-Minutes"     
     }
 }
 
@@ -165,11 +175,13 @@ def initialize() {
     
     sendEvent(name: "supportedThermostatModes", value: ["auto", "off"])
     log.debug "Refresh time currently set to: $refreshTime"
-    unschedule()  
-   
+    unschedule()
+  
     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
     sendEvent(name: "refreshTime", value: refreshTime)
     
+    state.reducedRefresh = false
+    state.reducedRefreshDisabled = false
     if (refreshTime == "1-Hour")
       runEvery1Hour(refresh)
       else if (refreshTime == "30-Minutes")
@@ -286,7 +298,7 @@ private processData(data) {
                   
                if (homeLongitude == null || homeLatitude == null)
                   {
-                      log.debug "Error: Home longitude or latitude is null and Alternate Presence method selected!"
+                      log.error "Error: Home longitude or latitude is null and Alternate Presence method selected, Boundry Checking disabled!"
                   }
                 else
                 {
@@ -309,25 +321,90 @@ private processData(data) {
                 if (dist <= boundryCircleDistance.toDouble())
                 { 
                     if (debugLevel == "Full") log.debug "Vehicle in range... setting presence to true"
-                    sendEvent(name: "altPresent", value: "true")
+                    sendEvent(name: "altPresent", value: "present")
                     sendEvent(name: "presence", value: "present")
+                    state.reducedRefresh = false
+                    state.reduceedRefreshDisabled = false
+                    unschedule(reducedRefreshKill)
+                    unschedule(reducedRefresh)
                 }
                 else 
                 {
                     if (debugLevel == "Full") log.debug "Vehicle outside range... setting presence to false"
-                    sendEvent(name: "altPresent", value: "false")
+                    sendEvent(name: "altPresent", value: "not present")
                     sendEvent(name: "presence", value: "not present")
-                }
-            }
-              }
+                    
+                    // dont reenable or check outter boundry and change times if already did it and currently disabled.
+                    
+                    if (state.reducedRefreshDisabled != true)
+                    {
+                        
+                    // not in range so try outter boundry
+                    if (debugLevel == "Full") log.debug "Checking outer boundry range..."
+                    if (debugLevel == "Full") log.debug "outer refresh time: $outerRefreshTime , outer boundry distance: $outerBoundryCircleDistance, refresh override time:  $refreshOverrideTime, boundry circle dist $boundryCircleDistance"
+                    
+                   if ((outerBoundryCircleDistance == null) || (outerRefreshTime == null) || (refreshOverrideTime == null) || (outerBoundryCircleDistance.toDouble() < boundryCircleDistance.toDouble()))
+                     {
+                      log.error "Error: OuterRefreshTime, OuterBoundryDistance, refreshOverrideTime are blank, or OuterBoundryDistance is less than inner. Outer bounder check disabled!"
+                     }
+                    else
+                    {
+                        if (debugLevel == "Full") log.debug "Using Alternate presence detection, requested outer distance: $outerBoundryCircleDistance"
+                        if (dist <= outerBoundryCircleDistance.toDouble())
+                        {
+                           if (debugLevel == "Full") log.debug "We are inside outer boundry range..."
+                           // now just schedule reduced refresh time,, leave other time in place so no unschedule necessary as one extra fresh will not hurt
+                                                      
+                            runIn(outerRefreshTime, reducedRefresh)
+                            if (debugLevel == "Full") log.debug "Temporary reduced refresh time set to $outerRefreshTime seconds!"
+                            
+                            // only schedule reduced refresh kill first time
+                            if (state.reducedRefresh == false)
+                              {  
+                                  if (debugLevel == "Full") log.debug "Scheduling reduced refresh override/kill to run in $refreshOverrideTime!"
+                                  
+                                  if (refreshOverrideTime == "30-Minutes")
+                                    runIn(30*60,reducedRefreshKill)
+                                  else if (refreshOverrideTime == "15-Minutes")
+                                    runIn(15*60,reducedRefreshKill)
+                                  else if (refreshOverrideTime == "10-Minutes")
+                                   runIn(10*60,reducedRefreshKill)
+                                  else if (refreshOverrideTime == "5-Minutes")  
+                                   runIn(5*60,reducedRefreshKill)    
+                              }
+                            
+                            state.reducedRefresh = true
+                          
+                        } // in outter boundry
+                    } // outer boundry check                                 
+                } // not in inner boundry
+               
+                } // inner boundry check
+                } // not already done and disabled
+              } // do alt presence check
+            
             //sendEvent(name: "speed", value: data.driveState.speed)
-        }
+            
+        } // driver state processing
         
         if (data.vehicleState) {
            if (debugLevel == "Full") log.debug "vehicle state = $data.vehicleState"
             def toPSI  = 14.503773773
             
-        	if (useAltPresence != true) sendEvent(name: "presence", value: data.vehicleState.presence)
+        	if (useAltPresence != true)
+            {
+                sendEvent(name: "presence", value: data.vehicleState.presence)
+                sendEvent(name: "altPresent", value: data.vehicleState.presence)
+                
+                state.reducedRefresh = false
+            }
+            
+            if (data.vehicleState.presence == present)
+            {
+                  unschedule(reducedRefreshKill)
+                  unschedule(reducedRefresh)
+            }
+            
             sendEvent(name: "lock", value: data.vehicleState.lock)
            
             if (mileageScale == "M")
@@ -346,6 +423,14 @@ private processData(data) {
             sendEvent(name: "rear_drivers_window" , value: data.vehicleState.rear_drivers_window)
             sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
             sendEvent(name: "valet_mode", value: data.vehicleState.valet_mode)
+            
+            sendEvent(name: "front_drivers_door", value: data.vehicleState.front_drivers_door)
+            sendEvent(name: "front_pass_door", value: data.vehicleState.front_pass_door)
+            sendEvent(name: "rear_drivers_door", value: data.vehicleState.rear_drivers_door)
+            sendEvent(name: "rear_pass_door", value: data.vehicleState.rear_pass_door)
+            sendEvent(name: "frunk", value: data.vehicleState.frunk)
+            sendEvent(name: "trunk", value: data.vehicleState.trunk)
+            sendEvent(name: "user_present", value: data.vehicleState.user_present)
             
             if ((data.vehicleState.tire_pressure_front_left != null) && (data.vehicleState.tire_pressure_front_left != 0 ))
               { 
@@ -417,6 +502,18 @@ def refresh() {
    
     def data = parent.refresh(this)
 	processData(data)
+ 
+}
+
+
+def reducedRefresh() {
+	if (debugLevel != "None") log.debug "Executing 'reducedRefresh'"
+     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+   
+    def data = parent.refresh(this)
+	processData(data)
+ 
 }
 
 def wake() {
@@ -616,8 +713,35 @@ def setNextTokenUpdateTime(nextTime)
     }
 }
         
+/**
+ * Calculate distance between two points in latitude and longitude taking
+ * into account height difference. If you are not interested in height
+ * difference pass 0.0. Uses Haversine method as its base.
+ * 
+ * lat1, lon1 Start point lat2, lon2 End point el1 Start altitude in meters
+ * el2 End altitude in meters
+ * @returns Distance in Meters
+ 
+def double calculateDistanceBetweenTwoLatLongsInKm(double lat1, double lon1, double lat2,
+        double lon2) {
 
-Double calculateDistanceBetweenTwoLatLongsInKm(
+    final int R = 6371; // Radius of the earth
+
+    double latDistance = Math.toRadians(lat2 - lat1);
+    double lonDistance = Math.toRadians(lon2 - lon1);
+    double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
+            Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+            Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+   // double distance =
+        return R * c
+    // 1000; // convert to meters
+
+   // double height = el1 - el2;
+}
+*/
+
+ def Double calculateDistanceBetweenTwoLatLongsInKm(
     Double lat1, Double lon1, Double lat2, Double lon2) {
     
      if (debugLevel == "Full") log.debug "in calc distance lat1 = $lat1, $lon1, lat2 = $lat2, $lon2"
@@ -628,3 +752,22 @@ Double calculateDistanceBetweenTwoLatLongsInKm(
       Math.cos(lat1 * p) * Math.cos(lat2 * p) * (1 - Math.cos((lon2 - lon1) * p)) / 2;
   return 12742 * Math.asin(Math.sqrt(a));
 }
+
+def reducedRefreshKill()
+{
+ if (state.reducedRefresh == true)
+    {
+        isPresent = device.currentValue("presence")
+         if (debugLevel == "Full") log.debug "Presence = $isPresent"
+        // only set override if not still present
+        if (isPresent != "present")
+        {
+             state.reducedRefreshDisabled = true
+        }
+        if (debugLevel == "Full") log.debug "Disabling reduced refresh time."
+        unschedule(reducedRefresh)
+        state.reducedRefresh = false 
+       
+    }
+}
+
