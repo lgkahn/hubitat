@@ -52,6 +52,7 @@
  * 
  * lgk 7/23 v3.2 add charge state data and attributes and also add command to set amperage.
  * also add new debug field whether to show token refresh in notifications or only errors.
+ * v 3.4 added alternate presence fxs with inner and outer diameter boundries and new door and frunk trunk open/closed status.
  */
 
 import groovy.transform.Field
@@ -501,6 +502,8 @@ def refresh(child) {
             def chargeState = resp.data.response.charge_state
             def vehicleState = resp.data.response.vehicle_state
             def climateState = resp.data.response.climate_state
+               
+            //log.debug "veh state = $vehicleState"
             
             data.speed = driveState.speed ? driveState.speed : 0
             data.motion = data.speed > 0 ? "active" : "inactive"            
@@ -537,7 +540,14 @@ def refresh(child) {
                 tire_pressure_front_left: vehicleState.tpms_pressure_fl,
                 tire_pressure_front_right: vehicleState.tpms_pressure_fr,
                 tire_pressure_rear_left: vehicleState.tpms_pressure_rl,
-                tire_pressure_rear_right: vehicleState.tpms_pressure_rr
+                tire_pressure_rear_right: vehicleState.tpms_pressure_rr,
+                front_drivers_door: vehicleState.df ? "Open" : "Closed",
+                rear_drivers_door: vehicleState.dr ? "Open" : "Closed",
+                front_pass_door: vehicleState.pf ? "Open" : "Closed",
+                rear_pass_door: vehicleState.pr ? "Open" : "Closed",
+                frunk :  vehicleState.ft ? "Open" : "Closed",
+                trunk :  vehicleState.rt ? "Open" : "Closed",
+                user_present: vehicleState.is_user_present,
                 ]
              
             data["climateState"] = [
