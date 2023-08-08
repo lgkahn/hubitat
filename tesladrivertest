@@ -108,6 +108,13 @@ metadata {
         attribute "lastTokenUpdateInt", "number"
         attribute "nextTokenUpdate", "string"
         attribute "altPresent", "string"
+        attribute "front_drivers_door", "string"
+        attribute "front_pass_door", "string"
+        attribute "rear_drivers_door", "string"
+        attribute "rear_pass_door", "string"
+        attribute "frunk" , "string"
+        attribute "trunk", "string"
+        attribute "user_present", "string"
 
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
@@ -416,6 +423,14 @@ private processData(data) {
             sendEvent(name: "rear_pass_window" , value: data.vehicleState.rear_pass_window)
             sendEvent(name: "valet_mode", value: data.vehicleState.valet_mode)
             
+            sendEvent(name: "front_drivers_door", value: data.vehicleState.front_drivers_door)
+            sendEvent(name: "front_pass_door", value: data.vehicleState.front_pass_door)
+            sendEvent(name: "rear_drivers_door", value: data.vehicleState.rear_drivers_door)
+            sendEvent(name: "rear_pass_door", value: data.vehicleState.rear_pass_door)
+            sendEvent(name: "frunk", value: data.vehicleState.frunk)
+            sendEvent(name: "trunk", value: data.vehicleState.trunk)
+            sendEvent(name: "user_present", value: data.vehicleState.user_present)
+            
             if ((data.vehicleState.tire_pressure_front_left != null) && (data.vehicleState.tire_pressure_front_left != 0 ))
               { 
                 def thePressure = ((float)data.vehicleState.tire_pressure_front_left * toPSI).round(1)
@@ -697,8 +712,34 @@ def setNextTokenUpdateTime(nextTime)
     }
 }
         
+/**
+ * Calculate distance between two points in latitude and longitude taking
+ * into account height difference. If you are not interested in height
+ * difference pass 0.0. Uses Haversine method as its base.
+ * 
+ * lat1, lon1 Start point lat2, lon2 End point el1 Start altitude in meters
+ * el2 End altitude in meters
+ * @returns Distance in Meters
+ */
+def double calculateDistanceBetweenTwoLatLongsInKm(double lat1, double lon1, double lat2,
+        double lon2) {
 
-def Double calculateDistanceBetweenTwoLatLongsInKm(
+    final int R = 6371; // Radius of the earth
+
+    double latDistance = Math.toRadians(lat2 - lat1);
+    double lonDistance = Math.toRadians(lon2 - lon1);
+    double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
+            Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+            Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+   // double distance =
+        return R * c
+    // 1000; // convert to meters
+
+   // double height = el1 - el2;
+}
+
+/* def Double calculateDistanceBetweenTwoLatLongsInKm(
     Double lat1, Double lon1, Double lat2, Double lon2) {
     
      if (debugLevel == "Full") log.debug "in calc distance lat1 = $lat1, $lon1, lat2 = $lat2, $lon2"
@@ -709,7 +750,7 @@ def Double calculateDistanceBetweenTwoLatLongsInKm(
       Math.cos(lat1 * p) * Math.cos(lat2 * p) * (1 - Math.cos((lon2 - lon1) * p)) / 2;
   return 12742 * Math.asin(Math.sqrt(a));
 }
-
+*/
 def reducedRefreshKill()
 {
  if (state.reducedRefresh == true)
@@ -727,3 +768,4 @@ def reducedRefreshKill()
        
     }
 }
+
