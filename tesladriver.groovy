@@ -55,6 +55,7 @@
  * lgk v 3.3 implement alternate presence detection base on user input of home longitude and latitude and distance to be considered present. This is for people that don't have Homelink .
  * v 3.31 change boundrycircle distance input to double so accepts smaller numbers.
  * v 3.4 added outer diameter ring and reduction in refresh time when hit with timout after x minutes, also added door and frunk trunk status.
+ * v 3.5 add iframe and option to enable to show location in google maps
  */
 
 metadata {
@@ -116,7 +117,11 @@ metadata {
         attribute "frunk" , "string"
         attribute "trunk", "string"
         attribute "user_present", "string"
-
+        attribute "lastUpdateTime", "string"
+        attribute "method", "string"
+        
+        attribute "zzziFrame", "text"
+       
 		command "wake"
         command "setThermostatSetpoint", ["Number"]
         command "startCharge"
@@ -172,7 +177,8 @@ def logsOff()
 def initialize() {
 	log.debug "Executing 'initialize'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-    
+     sendEvent(name: "zzziFrame", value: "")
+ 
     sendEvent(name: "supportedThermostatModes", value: ["auto", "off"])
     log.debug "Refresh time currently set to: $refreshTime"
     unschedule()
@@ -292,7 +298,10 @@ private processData(data) {
             sendEvent(name: "lastUpdateTime", value: data.driveState.lastUpdateTime)
             sendEvent(name: "longitude", value: data.driveState.longitude)
             sendEvent(name: "latitude", value: data.driveState.latitude)
-                    
+             
+            
+            updateIFrame()
+            
             if (useAltPresence == true)
               {
                   
@@ -302,6 +311,7 @@ private processData(data) {
                   }
                 else
                 {
+
                if (debugLevel == "Full") log.debug "Using Alternate presence detection, requested distance: $boundryCircleDistance"
                   
                def Double vehlog = data.driveState.longitude.toDouble()
@@ -771,3 +781,15 @@ def reducedRefreshKill()
     }
 }
 
+ def updateIFrame() {
+     
+        def lon = device.currentValue('longitude')
+        def lat = device.currentValue('latitude')
+        
+        if (lon == null) lon = 0.0
+        if (lat == null) lat = 0.0
+        
+
+   sendEvent(name: "zzziFrame", value: "<div style='height: 100%; width: 100%'><iframe src='https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=19&t=k&output=embed&' style='height: 100%; width:100%; frameborder:0 marginheight:0 marginwidth:0 border: none;'></iframe><div>")
+       
+    }   
