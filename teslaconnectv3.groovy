@@ -53,6 +53,7 @@
  * lgk 7/23 v3.2 add charge state data and attributes and also add command to set amperage.
  * also add new debug field whether to show token refresh in notifications or only errors.
  * v 3.4 added alternate presence fxs with inner and outer diameter boundries and new door and frunk trunk open/closed status.
+ * v 3.5 and 3.51 add iframe to show location in google maps, and manual setrefreshtime function and add 1-Minute to allowable refresh time
  */
 
 import groovy.transform.Field
