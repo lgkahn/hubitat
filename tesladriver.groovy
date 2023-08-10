@@ -56,6 +56,9 @@
  * v 3.31 change boundrycircle distance input to double so accepts smaller numbers.
  * v 3.4 added outer diameter ring and reduction in refresh time when hit with timout after x minutes, also added door and frunk trunk status.
  * v 3.5 add iframe and option to enable to show location in google maps
+ * v 3.51 add user fx to set refresh time.. note this will also clear any temporary refresh times if it has been reduced dure to radii .
+ *   the values passed in are a string and need to be exact ie 1-Hour, 30-Minutes, 15-Minutes, ... 1-Minute, Disabled. etc.
+ * also add 1-Minute to allowable refresh times.
  */
 
 metadata {
@@ -140,6 +143,7 @@ metadata {
         command "setChargeAmps", ["number"] /* integer amperage */
         command "scheduleTokenRefresh"
         command "transitionAccessToken"
+        command "setRefreshTime", ["string"]
 
 	}
 
@@ -151,7 +155,7 @@ metadata {
 
     preferences
     {
-       input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: true, defaultValue: "15-Minutes"
+       input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes","1-Minute"],  required: true, defaultValue: "15-Minutes"
        input "AllowSleep", "bool", title: "Schedule a time to disable/reenable to allow the car to sleep?", required: true, defaultValue: false
        input "fromTime", "time", title: "From", required:false, width: 6, submitOnChange:true
        input "toTime", "time", title: "To", required:false, width: 6 
@@ -198,13 +202,15 @@ def initialize() {
        runEvery10Minutes(refresh)
      else if (refreshTime == "5-Minutes")
        runEvery5Minutes(refresh)
+     else if (refreshTime == "1-Minute")
+       runEvery1Minute(refresh)
     else if (refreshTime == "Disabled")
     {
         log.debug "Disabling..."
     }
       else 
       { 
-          log.debug "Unknown refresh time specified.. defaulting to 15 Minutes"
+          log.error "Unknown refresh time specified.. defaulting to 15 Minutes"
           runEvery15Minutes(refresh)
       }
     // now handle scheduling to turn on and off to allow sleep
@@ -789,7 +795,58 @@ def reducedRefreshKill()
         if (lon == null) lon = 0.0
         if (lat == null) lat = 0.0
         
+       sendEvent(name: "zzziFrame", value: "<div style='height: 100%; width: 100%'><iframe src='https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=19&t=k&output=embed&' style='height: 100%; width:100%; frameborder:0 marginheight:0 marginwidth:0 border: none;'></iframe><div>")       
+ 
+ }   
 
-   sendEvent(name: "zzziFrame", value: "<div style='height: 100%; width: 100%'><iframe src='https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=19&t=k&output=embed&' style='height: 100%; width:100%; frameborder:0 marginheight:0 marginwidth:0 border: none;'></iframe><div>")
-       
-    }   
+
+def setRefreshTime(String newRefreshTime)
+{  
+    log.debug "Refresh time currently set to: $refreshTime, overriding manually with $newRefreshTime"
+    unschedule(refresh)
+ 
+    sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+    sendEvent(name: "refreshTime", value: newrefreshTime)
+    
+    if (newRefreshTime == "1-Hour")
+    {
+      runEvery1Hour(refresh)
+      device.updateSetting("refreshTime",[value:"1-Hour",type:"enum"])
+    }
+      else if (newRefreshTime == "30-Minutes")
+      {
+       runEvery30Minutes(refresh)
+       device.updateSetting("refreshTime",[value:"30-Minutes",type:"enum"]) 
+      }
+     else if (newRefreshTime == "15-Minutes")        
+     {
+       runEvery15Minutes(refresh)
+       device.updateSetting("refreshTime",[value:"15-Minutes",type:"enum"])
+     }
+     else if (newRefreshTime == "10-Minutes")
+     {
+       runEvery10Minutes(refresh)
+       device.updateSetting("refreshTime",[value:"10-Minutes",type:"enum"]) 
+     }
+     else if (newRefreshTime == "5-Minutes")
+     {
+       runEvery5Minutes(refresh)
+       device.updateSetting("refreshTime",[value:"5-Minutes",type:"enum"])
+     }
+     else if (newRefreshTime == "1-Minute")
+     {
+       runEvery1Minute(refresh)
+       device.updateSetting("refreshTime",[value:"1-Minute",type:"enum"])
+     }
+    else if (newRefreshTime == "Disabled")
+    {
+        log.debug "Disabling..."
+        device.updateSetting("refreshTime",[value:"Disabled",type:"enum"])
+    }
+      else 
+      { 
+          log.error "Unknown refresh time specified.. defaulting to 15 Minutes"
+          runEvery15Minutes(refresh)
+          device.updateSetting("refreshTime",[value:"15-Minutes",type:"enum"])
+      }
+}
