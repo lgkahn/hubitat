@@ -58,7 +58,10 @@
  * v 3.5 add iframe and option to enable to show location in google maps
  * v 3.51 add user fx to set refresh time.. note this will also clear any temporary refresh times if it has been reduced dure to radii .
  *   the values passed in are a string and need to be exact ie 1-Hour, 30-Minutes, 15-Minutes, ... 1-Minute, Disabled. etc.
- * also add 1-Minute to allowable refresh times.
+ *   also add 1-Minute to allowable refresh times.
+ * v 3.52 add temp refresh times of 30-Seconds, 20-Seconds, 10-Seconds (must be exactly input like this)
+   this will add a wake call and then temporarily add an extra refresh every xx seconds for 3 minutes then shut off.
+   Does not change normally schedule refresh (that is left in place). This is just extra calls.
  */
 
 metadata {
@@ -191,7 +194,10 @@ def initialize() {
     sendEvent(name: "refreshTime", value: refreshTime)
     
     state.reducedRefresh = false
-    state.reducedRefreshDisabled = false
+    state.reducedRefreshDisabled = false    
+    state.tempReducedRefresh = false
+    state.tempReducedRefreshTime = 0
+    
     if (refreshTime == "1-Hour")
       runEvery1Hour(refresh)
       else if (refreshTime == "30-Minutes")
@@ -521,15 +527,34 @@ def refresh() {
  
 }
 
-
 def reducedRefresh() {
-	if (debugLevel != "None") log.debug "Executing 'reducedRefresh'"
+	 if (debugLevel != "None") log.debug "Executing 'reducedRefresh'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
     def data = parent.refresh(this)
 	processData(data)
  
+}
+
+def tempReducedRefresh()
+{
+     // this is called when we use the method to change the refresh temporarily to 30 20 or 10 seconds
+     // it reschedules the temp refresh until cancelled.
+    
+     if (debugLevel != "None") log.debug "Executing 'tempReducedRefresh'"
+     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+   
+    def data = parent.refresh(this)
+	processData(data)
+    
+    // reschedule if still true
+
+    if (state.tempReducedRefresh)
+    {
+       if (state.tempReducedRefreshTime > 0) runIn(state.tempReducedRefreshTime,tempReducedRefresh)
+    }    
 }
 
 def wake() {
@@ -769,6 +794,14 @@ def double calculateDistanceBetweenTwoLatLongsInKm(double lat1, double lon1, dou
   return 12742 * Math.asin(Math.sqrt(a));
 }
 
+def tempReducedRefreshKill()
+{
+    log.debug "Disabled Temp reduced refresh!"
+    state.tempReducedRefresh = false
+    state.tempReducedRefreshTime = 0
+    unschedule(tempReducedRefresh)
+}
+
 def reducedRefreshKill()
 {
  if (state.reducedRefresh == true)
@@ -803,47 +836,92 @@ def reducedRefreshKill()
 def setRefreshTime(String newRefreshTime)
 {  
     log.debug "Refresh time currently set to: $refreshTime, overriding manually with $newRefreshTime"
-    unschedule(refresh)
  
     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
     sendEvent(name: "refreshTime", value: newrefreshTime)
     
     if (newRefreshTime == "1-Hour")
     {
+      unschedule(refresh)
       runEvery1Hour(refresh)
       device.updateSetting("refreshTime",[value:"1-Hour",type:"enum"])
     }
       else if (newRefreshTime == "30-Minutes")
       {
+       unschedule(refresh)
        runEvery30Minutes(refresh)
        device.updateSetting("refreshTime",[value:"30-Minutes",type:"enum"]) 
       }
      else if (newRefreshTime == "15-Minutes")        
      {
+       unschedule(refresh)
        runEvery15Minutes(refresh)
        device.updateSetting("refreshTime",[value:"15-Minutes",type:"enum"])
      }
      else if (newRefreshTime == "10-Minutes")
      {
+       unschedule(refresh)
        runEvery10Minutes(refresh)
        device.updateSetting("refreshTime",[value:"10-Minutes",type:"enum"]) 
      }
      else if (newRefreshTime == "5-Minutes")
      {
+       unschedule(refresh)         
        runEvery5Minutes(refresh)
        device.updateSetting("refreshTime",[value:"5-Minutes",type:"enum"])
      }
      else if (newRefreshTime == "1-Minute")
      {
+       unschedule(refresh)
        runEvery1Minute(refresh)
        device.updateSetting("refreshTime",[value:"1-Minute",type:"enum"])
      }
     else if (newRefreshTime == "Disabled")
     {
         log.debug "Disabling..."
+        unschedule(refresh)
         device.updateSetting("refreshTime",[value:"Disabled",type:"enum"])
     }
-      else 
+    
+    // can set less than one minute but will revert in 3 minutes back to normal automatically
+    // existing refresh is left in place.. just extra ones 30 20 or 10 secs
+    // also add wake or this doesnt really do anything if car asleep
+    
+    else if (newRefreshTime == "30-Seconds")
+    {
+        log.debug "Setting temp refresh to 30 seconds for 3 minutes!"
+        unschedule(tempReducedRefresh)
+        unschedule(tempReducedRefreshKill)
+        state.tempReducedRefresh = true
+        state.tempReducedRefreshTime = 30
+        wake()
+        runIn(180,tempReducedRefreshKill)
+        runIn(30,tempReducedRefresh)
+    }
+    else if (newRefreshTime == "20-Seconds")
+    {
+        log.debug "Setting temp refresh to 20 seconds for 3 minutes!"
+        unschedule(tempReducedRefresh)
+        unschedule(tempReducedRefreshKill)
+        state.tempReducedRefresh = true
+        state.tempReducedRefreshTime = 20
+        wake()
+        runIn(180,tempReducedRefreshKill)
+        runIn(20,tempReducedRefresh)
+    }
+    else if (newRefreshTime == "10-Seconds")
+    {
+        log.debug "Setting temp refresh to 10 seconds for 3 minutes!"
+        unschedule(tempReducedRefresh)
+        unschedule(tempReducedRefreshKill)
+        state.tempReducedRefresh = true
+        state.tempReducedRefreshTime = 10
+        wake()
+        runIn(180,tempReducedRefreshKill)
+        runIn(10,tempReducedRefresh)
+    }
+   
+    else 
       { 
           log.error "Unknown refresh time specified.. defaulting to 15 Minutes"
           runEvery15Minutes(refresh)
