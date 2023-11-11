@@ -54,6 +54,8 @@
  * also add new debug field whether to show token refresh in notifications or only errors.
  * v 3.4 added alternate presence fxs with inner and outer diameter boundries and new door and frunk trunk open/closed status.
  * v 3.5 and 3.51 add iframe to show location in google maps, and manual setrefreshtime function and add 1-Minute to allowable refresh time
+ * v 3.52 fix to add extra parameter to vehicle_data request for changes in tesla's api. Necessry for version 2023.38.x onward.
+ * thanks to Alan for doing so of the initial legwork.
  */
 
 import groovy.transform.Field
@@ -255,9 +257,13 @@ private authorizedHttpRequestWithChild(child, Integer attempts, Map options = [:
  
     if (descLog) log.info "authorizedHttpRequest2 ${child} ${method} ${path} attempt ${attempts}"
     try {
+        
+        def query = ['endpoints':'charge_state;climate_state;closures_state;drive_state;gui_settings;location_data;vehicle_config;vehicle_state;vehicle_data_combo']
+       
     	def requestParameters = [
             uri: serverUrl,
             path: path,
+            query: query,
             headers: [
                 'User-Agent': userAgent,
                 Authorization: "Bearer ${state.teslaAccessToken}"
@@ -498,19 +504,20 @@ def refresh(child) {
     })
     
     if (data.state == "online") {
+       
     	authorizedHttpRequestWithChild(child,1,"/api/1/vehicles/${id}/vehicle_data", "GET", { resp ->
             def driveState = resp.data.response.drive_state
             def chargeState = resp.data.response.charge_state
             def vehicleState = resp.data.response.vehicle_state
             def climateState = resp.data.response.climate_state
                
-            //log.debug "veh state = $vehicleState"
+            
             
             data.speed = driveState.speed ? driveState.speed : 0
             data.motion = data.speed > 0 ? "active" : "inactive"            
             data.thermostatMode = climateState.is_climate_on ? "auto" : "off"
             
-           //log.debug "charging state = $chargeState"
+           if (debug) log.debug "charging state = $chargeState"
             data["chargeState"] = [
                 battery: chargeState.battery_level,
                 batteryRange: chargeState.battery_range,
@@ -520,6 +527,7 @@ def refresh(child) {
                 minutes_to_full_charge: chargeState.minutes_to_full_charge    
             ]
             
+            if (debug) log.debug "drive state = $driveState"
             data["driveState"] = [
             	latitude: driveState.latitude,
                 longitude: driveState.longitude,
@@ -528,6 +536,7 @@ def refresh(child) {
                 lastUpdateTime: convertEpochSecondsToDate(driveState.gps_as_of)
             ]
             
+            if (debug) log.debug "vehicle state = $vehicleState"
             data["vehicleState"] = [
             	presence: vehicleState.homelink_nearby ? "present" : "not present",
                 lock: vehicleState.locked ? "locked" : "unlocked",
@@ -551,6 +560,7 @@ def refresh(child) {
                 user_present: vehicleState.is_user_present,
                 ]
              
+            if (debug) log.debug "climate state = $climateState"
             data["climateState"] = [
             	temperature: celciusToFarenhiet(climateState.inside_temp),
                 outside_temperature: celciusToFarenhiet(climateState.outside_temp),
