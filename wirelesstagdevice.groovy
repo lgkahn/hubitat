@@ -31,6 +31,7 @@ metadata {
         attribute "temperatureChange", "number"
         attribute "signaldBm", "number"
         attribute "motionArmed", "string"
+        attribute "signaldBm" , "number"
     }
     
     
