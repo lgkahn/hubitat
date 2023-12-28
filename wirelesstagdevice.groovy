@@ -30,11 +30,13 @@ metadata {
         attribute "lastTemperature", "number"
         attribute "temperatureChange", "number"
         attribute "signaldBm", "number"
+        attribute "motionArmed", "string"
     }
     
     
     preferences {
        input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+       input("descText", "bool", title: "Enable descriptionText logging?", required: true, defaultValue: false) 
     }  
 }
 
@@ -103,6 +105,8 @@ private Boolean attributeUpdateNumber(BigDecimal val, String attribute, String m
 }
 
 void generateEvent(Map results) {
+     if (debug) log.debug "parsing data $results"
+
     def devName = device.getLabel()
     
     if (debug) log.debug "parsing data $results"
@@ -158,7 +162,7 @@ void generateEvent(Map results) {
                 Boolean hasChanged = (attributeUpdateNumber(degrees, "temperature", measure, 1))
                 
                 if (debug) log.debug "In update temp val = $tempValue, measure = $measure lastTemp = $lastTemp, change = $change, hasChanged = $hasChanged"
-                log.info "Tag ($devName) Update: $tempValue, change: $change"
+                if (descText) log.info "Tag ($devName) Update: $tempValue, change: $change"
                 if (hasChanged == true)
                   {
                    sendEvent(name: "temperatureChange", value: change)
