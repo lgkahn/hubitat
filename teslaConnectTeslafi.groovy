@@ -366,7 +366,7 @@ String getWindowStatus(position)
 def refreshTeslaFi(child) {
    if (descLog) log.info "refresh TeslaFi child"
     def data = [:]
-    def dataom = [:]
+    def datain = [:]
 	def id = child.device.deviceNetworkId
     authorizedTeslaFiHttpRequest( "?command=lastGood&wake=30", "GET", { resp ->
          datain = transformVehicleResponseTeslaFi(resp)
