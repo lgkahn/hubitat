@@ -292,7 +292,7 @@ void updateAllDevices() {
 }
 
 void pollSingle(def child) {
-    log.trace 'pollSingle()'
+    if (debug) log.trace 'pollSingle()'
     getTagStatusFromServer()
 
     def device = atomicState.tags.find { it.uuid == child.device.deviceNetworkId }
@@ -306,19 +306,63 @@ void updateDeviceStatus(def device, def d) {
      if (debug) log.debug "device info: ${device}"
 
     // parsing data here
-    
-   def int batLevel = (device.batteryRemaining * 100) as int   
+      def Boolean motionArmed = false
+      def motion = 'inactive'
+      def data  = [:]
+        
+    def int batLevel = (device.batteryRemaining * 100) as int   
     if (batLevel > 100) batLevel = 100
    
-    Map data = [
+    if (debug)
+    log.debug " **** got eventState = ${device.eventState}"
+  
+    // lgk from my perussing eventstate 1 = armed
+    // 0= unarmed
+    // 2 = motion active
+    
+    if (device.eventState != null)
+    {  
+        if (device.eventState == 1)
+           motionArmed = true
+        if (device.eventState == 2)
+        {
+            motionArmed = true
+            motion = 'active'
+        }
+    }
+    
+    if (motionArmed == true)
+    {
+    data = [
         tagType: convertTagTypeToString(device),
         temperature: device.temperature.toDouble().round(1),
         battery: batLevel,
         humidity: (device.cap).toDouble().round(),
         illuminance: (device.lux)?.toDouble().round(),
         signaldBm: (device.signaldBm) as int,
+        motionArmed : motionArmed,
+        motion : motion
+      
         // water : (device.shorted == true) ? 'wet' : 'dry',
     ]
+        
+    }
+    
+    else
+    {
+        data = [
+        tagType: convertTagTypeToString(device),
+        temperature: device.temperature.toDouble().round(1),
+        battery: batLevel,
+        humidity: (device.cap).toDouble().round(),
+        illuminance: (device.lux)?.toDouble().round(),
+        signaldBm: (device.signaldBm) as int,
+        motionArmed : motionArmed
+        // water : (device.shorted == true) ? 'wet' : 'dry',
+    ]
+        
+    }
+    
     d.generateEvent(data)
 }
 
@@ -377,6 +421,7 @@ def postMessage(String path, Object query) {
         httpPost(message) { resp ->
             if (resp.status == 200) {
                 if (resp.data) {
+                    if (debug) log.debug "**** got resp. ${resp.data}"
                     jsonMap = resp.data
                 } else {
                     log.trace 'error = ' + resp
@@ -395,7 +440,7 @@ def postMessage(String path, Object query) {
         //atomicState.authToken = null
         log.trace 'error = ' + ex
     }
-
+    
     return jsonMap
 }
 
@@ -428,7 +473,7 @@ String getTagVersion(Map tag) {
             return ''
     }
 }
-
+f
 String convertTagTypeToString(Map tag) {
     String tagString = 'Unknown'
 
