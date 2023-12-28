@@ -44,6 +44,7 @@ metadata {
         attribute "motionMode", "string"
         attribute "motion", "string"
         attribute "motionArmed", "string"
+        attribute "signaldBm" , "number"
     }
 
     simulator {
