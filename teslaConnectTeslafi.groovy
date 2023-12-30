@@ -25,7 +25,7 @@ import groovy.transform.Field
 definition(
     name: "TeslaFi Connect 1.0",
     namespace: "larrykahn",
-    author: "Trent Foley, Larry Kahn",
+    author: "Larry Kahn",
     description: "Integrate your Tesla car with TeslaFi.",
     category: "Convenience",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Partner/tesla-app%402x.png",
@@ -51,7 +51,7 @@ preferences {
 
 def logsOff()
 {
-    log.debug "Turning off Logging!"
+    log.info "Turning off Logging!"
     device.updateSetting("debug",[value:"false",type:"bool"])
 }
    
@@ -65,8 +65,45 @@ private convertEpochSecondsToDate(epoch) {
 	return new Date((long)epoch * 1000);
 }
 
-private authorizedTeslaFiHttpRequest(Map options = [:], String path, String method, Closure closure) {
+
+
+private authorizedTeslaFiHttpRequestNoJson(Map options = [:], String path, String method, Closure closure) {
+    
    if (debug) log.debug "in authorize teslaFi http req2"
+    def attempt = options.attempt ?: 0
+  
+    if (descLog) log.info "authorizedTeslaFiHttpRequest ${method} ${path} attempt ${attempt}"
+    
+    try {
+        
+    def params = [
+        uri: "https://www.teslafi.com/feed.php" + "${path}",
+        headers: [
+            'Accept': 'application/json, text/javascript, */*; q=0.01', // */ comment
+            'DNT': '1',
+            'Accept-Encoding': 'gzip,deflate,sdch',
+            'Cache-Control': 'max-age=0',
+            'Accept-Language': 'en-US,en,q=0.8',
+            'Connection': 'keep-alive',
+            'Host': 'www.teslafi.com',
+            'X-Requested-With': 'XMLHttpRequest',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36',
+             Authorization: "Bearer ${teslaFiToken}"
+            ]
+    ]
+
+     
+    if (debug) log.debug "command = $params"
+    def result = httpPost(params) { resp -> closure(resp) } 
+    
+          } catch (groovyx.net.http.HttpResponseException e) {
+        	log.error "Request failed for path: ${path}.  ${e.response?.data}"  
+        }
+}       
+ 
+private authorizedTeslaFiHttpRequest(Map options = [:], String path, String method, Closure closure) {
+    
+   if (debug) log.debug "in authorize teslaFi http req"
     def attempt = options.attempt ?: 0
   
     if (descLog) log.info "authorizedTeslaFiHttpRequest ${method} ${path} attempt ${attempt}"
@@ -158,8 +195,9 @@ private authorizedHttpRequest(Map options = [:], String path, String method, Clo
 */
 
 private checkOrCreateAccountVehicle() {
+    
    if (debug) 
-    log.debug "in checkOrCreateAccountVehicles. current token = $state.teslaAccessToken"
+    log.debug "in checkOrCreateAccountVehicles"
    
 	if (descLog) 
     log.info "refreshAccountVehicle"
@@ -167,7 +205,7 @@ private checkOrCreateAccountVehicle() {
     // check for child car device
     
     def child = getChildDevice("TeslaVehicle1")
-   if (descLog) log.debug "child = $child"
+   if (descLog) log.info "child = $child"
     
     if (child == null)
     {
@@ -220,15 +258,19 @@ private transformVehicleResponseTeslaFiForCommand(resp) {
     
     def status = false
     
-   // if (debug)
-  //  {
+    if (debug)
+    {
         log.debug "in transform teslafi for command"
         log.debug "data = ${resp.data}"
         log.debug "response = ${resp.data.response}"
         log.debug "error = ${resp.data.error}"
-  //  }   
+        log.debug "result = ${resp.data.response.result}"
+        log.debug "reason = ${resp.data.response.reason}"
+    }   
   
-      
+    // not weird results for commands it returns  status = false but resp.result = true when means it did work
+    //[status:false, resp:[response:[reason:, result:true]], error:none, apiUsed:teslaFi]
+
     def errorString = "none"
     
   if (resp.data.response != null)
@@ -240,9 +282,31 @@ private transformVehicleResponseTeslaFiForCommand(resp) {
         errorString = resp.data.response.result
         status=false
     }
-    }
+    
+   else if (resp.data.response.result != null)
+            {
+                if (resp.data.response.result == true)
+                {
+                    status = true
+                }
+                else
+                {
+                    // status = false if we have it indicates error
+                    status = false
+                    errorString = resp.data.response.reason
+                       return [
+                       status : status,
+                       resp: resp.data,
+                       error : errorString,
+                       apiUsed: "teslaFi"
+                           ]
+                }
+            
+            }
    
-    else if (resp.data.response == null)
+    }
+            
+   if (resp.data.response == null)
     {
       status = false
       errorString = resp.data.error
@@ -302,10 +366,31 @@ private transformVehicleResponseTeslaFiForWake(resp) {
 
 }
 
-private transformVehicleResponseTeslaFi(resp) {
+private transformVehicleResponseTeslaFiForWakeInternal(resp) {
+    
     if (debug)
     {
-        
+    log.debug "in transform teslafi for internal wake (start logging)" 
+    log.debug "resp.data = ${resp.data}"
+    }
+    
+    def status = true
+    def errorString = "none"
+    
+ if (resp.data.response != null)
+    {
+   
+    return [
+        status: true,
+        apiUsed: "teslaFi"
+    ]
+
+}
+}
+
+private transformVehicleResponseTeslaFi(resp) {
+    if (debug)
+    {    
     log.debug "in transform teslafi"
     log.debug "resp = ${resp}"
     log.debug "data = ${resp.data}"
@@ -363,11 +448,11 @@ String getWindowStatus(position)
       }
 }
 
-def refreshTeslaFi(child) {
-   if (descLog) log.info "refresh TeslaFi child"
+def refreshTeslaFi() {
+   if (descLog) log.info "refresh TeslaFi"
     def data = [:]
     def datain = [:]
-	def id = child.device.deviceNetworkId
+	//def id = child.device.deviceNetworkId
     authorizedTeslaFiHttpRequest( "?command=lastGood&wake=30", "GET", { resp ->
          datain = transformVehicleResponseTeslaFi(resp)
     })
@@ -461,8 +546,7 @@ def refreshTeslaFi(child) {
             ]
 
         }
-    
-    
+       
     return data
 }
 
@@ -476,13 +560,25 @@ private farenhietToCelcius(dF) {
 	return (dF - 32) * 5/9
 }
 
-
-
-def wakeTeslaFi(child) {
+def internalTeslaFiwake() {
       
     def data = [:] 
     
-    if (descLog) log.debug "TeslaFi wake"
+    if (descLog) log.info "TeslaFi internal wake aka start logging"
+    
+        authorizedTeslaFiHttpRequestNoJson("?command=wake","POST", { resp ->
+            data = transformVehicleResponseTeslaFiForWakeInternal(resp)         
+          
+        })
+    
+    return data
+}
+
+def wakeTeslaFi() {
+      
+    def data = [:] 
+    
+    if (descLog) log.info "TeslaFi wake"
     
         authorizedTeslaFiHttpRequest("?command=wake_up","POST", { resp ->
             data = transformVehicleResponseTeslaFiForWake(resp)         
@@ -492,17 +588,16 @@ def wakeTeslaFi(child) {
     return data
 }
 
-
-private executeApiCommand(Map options = [:], child, String command) {
+private executeApiCommand(Map options = [:], String command) {
    
     def data = [:] 
     
     if (descLog) "In executeAPICommand command= $command"
     
-    authorizedTeslaFiHttpRequest("?command=${command}","POST", { resp ->
-          data = transformVehicleResponseTeslaFiForCommand(resp)       })
-    
-    if (descLog) log.debug "result = ${data}"
+          authorizedTeslaFiHttpRequest("?command=${command}","POST", { resp ->
+          data = transformVehicleResponseTeslaFiForCommand(resp)       })  
+        
+    if (descLog) log.info "result = ${data}"
     
     if (data.status == false)
     {
@@ -513,200 +608,212 @@ private executeApiCommand(Map options = [:], child, String command) {
     
 }
 
-def lock(child) {
+// starts teslafi logging/polling aka their wake command
+// not to be confused with the actual car wake command.
+// this is called automatically on morning wake if you have that feature enabled.
+def startTeslaFiLogging()
+{
+  return internalTeslaFiwake()
+}
+
+def lock() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "door_lock")
+	return executeApiCommand("door_lock")
 }
 
-def unlock(child) {
+def unlock() {
   if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "door_unlock")
+	return executeApiCommand("door_unlock")
 }
 
-def unlockandOpenChargePort(child) {
+def unlockandOpenChargePort() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-   return executeApiCommand(child, "charge_port_door_open")
+   return executeApiCommand("charge_port_door_open")
 }
 
-def climateAuto(child) {
+def climateAuto() {
   if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "auto_conditioning_start")
+	return executeApiCommand("auto_conditioning_start")
 }
 
-def climateOff(child) {
+def climateOff() {
     if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
   
-    return executeApiCommand(child, "auto_conditioning_stop")
+    return executeApiCommand("auto_conditioning_stop")
 }
 
-def setThermostatSetpointC(child, Number setpoint) {
+def setThermostatSetpointC(Number setpoint) {
 	def Double setpointCelcius = setpoint.toDouble()
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-    return executeApiCommand(child, "set_temps&temp=$setpoint") //, body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
+    return executeApiCommand("set_temps&temp=$setpoint") //, body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
-def setThermostatSetpointF(child, Number setpoint) {
+def setThermostatSetpointF(Number setpoint) {
 	def Double setpointCelcius = farenhietToCelcius(setpoint).toDouble()
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
     if (debug) log.debug "setting tesla temp to $setpointCelcius input = $setpoint"
-    return executeApiCommand(child, "set_temps&temp=$setpoint")//, body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
+    return executeApiCommand("set_temps&temp=$setpoint")//, body: [driver_temp: setpointCelcius, passenger_temp: setpointCelcius])
 }
 
-def startCharge(child) {
+def startCharge() {
     if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "charge_start")
+	return executeApiCommand("charge_start")
 }
 
-def stopCharge(child) {
+def stopCharge() {
   if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-   return executeApiCommand(child, "charge_stop")
+   return executeApiCommand("charge_stop")
 }
 
-def openTrunk(child, whichTrunk) {
+// not on teslafi
+def openTrunk(whichTrunk) {
   if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "actuate_trunk", body: [which_trunk: whichTrunk])
+	return executeApiCommand("actuate_trunk", body: [which_trunk: whichTrunk])
 }
 
-def setSeatHeaters(child, seat,level) {
+def setSeatHeaters(seat,level) {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "seat_heater&heater=$seat&level=$level")
+	return executeApiCommand("seat_heater&heater=$seat&level=$level")
 }
 
-def sentryModeOn(child) {
+def sentryModeOn() {
     if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "set_sentry_mode&sentryMode=true")
+	return executeApiCommand("set_sentry_mode&sentryMode=true")
 }
 
-def sentryModeOff(child) {
+def sentryModeOff() {
     if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "set_sentry_mode&sentryMode=false")
+	return executeApiCommand("set_sentry_mode&sentryMode=false")
 }
 
-def ventWindows(child) {
+// not on teslafi
+def ventWindows() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "window_control", body: [command: "vent"])
+	return executeApiCommand("window_control", body: [command: "vent"])
 }
 
-def closeWindows(child) {
+// not on teslafi
+def closeWindows() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "window_control", body: [command: "close"]) 
+	return executeApiCommand("window_control", body: [command: "close"]) 
 }
 
-def setChargeLimit(child,limit) {
+def setChargeLimit(limit) {
     def limitPercent = limit.toInteger()
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-    return executeApiCommand(child,"set_charge_limit&charge_line_soc=$limitPercent")
+    return executeApiCommand("set_charge_limit&charge_limit_soc=$limitPercent")
 }
 
-def setChargeAmps(child,amps) {
+def setChargeAmps(amps) {
     def ampsInt = amps.toInteger()
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }  
-    return executeApiCommand(child,"set_charging_amps&charging_amps=$ampsInt")
+    return executeApiCommand("set_charging_amps&charging_amps=$ampsInt")
 }
 
-def valetModeOn(child) {
+// not on teslafi
+def valetModeOn() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "set_valet_mode&on=true")
+	return executeApiCommand("set_valet_mode&on=true")
 }
 
-def valetModeOff(child) {
+// not on teslafi
+def valetModeOff() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "set_valet_mode&on=false")
+	return executeApiCommand("set_valet_mode&on=false")
 }
 
-
-def steeringWheelHeaterOn(child) {
+def steeringWheelHeaterOn() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "steering_wheel_heater&statement=true")
+	return executeApiCommand("steering_wheel_heater&statement=true")
 }
 
-def steeringWheelHeaterOff(child) {
+def steeringWheelHeaterOff() {
    if (wakeOnInitialTry)
     { 
-      wakeTeslaFi(child)
+      wakeTeslaFi()
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "steering_wheel_heater&statement=false")
+	return executeApiCommand("steering_wheel_heater&statement=false")
 }
 
 def notifyIfEnabled(message) {
