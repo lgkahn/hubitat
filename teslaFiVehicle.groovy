@@ -84,6 +84,7 @@ metadata {
         attribute "zzziFrame", "text"
        
 		command "wake"
+        command "startTeslaFiLogging"
         command "refresh"
         command "setThermostatSetpoint", ["Number"]
         command "startCharge"
@@ -210,6 +211,8 @@ def reenable()
     // pause for 3 secs so when we reschedule it wont run again immediately
     pauseExecution(3000)
     initialize() 
+    startTeslaFiLogging()
+    pauseExecution(5000)
     wake()
 }
 
@@ -489,7 +492,7 @@ def refresh() {
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
-    def data = parent.refreshTeslaFi(this)
+    def data = parent.refreshTeslaFi()
 	processData(data)
  
 }
@@ -500,7 +503,7 @@ def reducedRefresh() {
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
-    def data = parent.refresh(this)
+    def data = parent.refresh()
 	processData(data)
  
 }
@@ -514,7 +517,7 @@ def tempReducedRefresh()
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
-    def data = parent.refresh(this)
+    def data = parent.refresh()
 	processData(data)
     
     // reschedule if still true
@@ -527,32 +530,32 @@ def tempReducedRefresh()
 
 def wake() {
     log.debug "Executing 'wake'"
-	def data = parent.wakeTeslaFi(this)
+	def data = parent.wakeTeslaFi()
     processData(data)
     runIn(30, refresh) 
 }
 
 def lock() {
 	if (debugLevel != "None") log.debug "Executing 'lock'"
-	def result = parent.lock(this)
+	def result = parent.lock()
     if (result) { refresh() }
 }
 
 def unlock() {
 	if (debugLevel != "None") log.debug "Executing 'unlock'"
-	def result = parent.unlock(this)
+	def result = parent.unlock()
     if (result) { refresh() }
 }
 
 def auto() {
 	if (debugLevel != "None") log.debug "Executing 'auto'"
-	def result = parent.climateAuto(this)
+	def result = parent.climateAuto()
     if (result) { refresh() }
 }
 
 def off() {
 	if (debugLevel != "None") log.debug "Executing 'off'"
-	def result = parent.climateOff(this)
+	def result = parent.climateOff()
     if (result) { refresh() }
 }
 
@@ -589,57 +592,57 @@ def setThermostatSetpoint(Number setpoint) {
 	if (debugLevel != "None") log.debug "Executing 'setThermostatSetpoint with temp scale $tempScale'"
     if (tempScale == "F")
       {
-	    def result = parent.setThermostatSetpointF(this, setpoint)
+	    def result = parent.setThermostatSetpointF(setpoint)
         if (result) { refresh() }
       }
     else
     {
-        def result = parent.setThermostatSetpointC(this, setpoint)
+        def result = parent.setThermostatSetpointC(setpoint)
         if (result) { refresh() }
     }
 }
 
 def startCharge() {
 	if (debugLevel != "None") log.debug "Executing 'startCharge'"
-    def result = parent.startCharge(this)
+    def result = parent.startCharge()
     if (result) { refresh() }
 }
 
 def stopCharge() {
 	if (debugLevel != "None") log.debug "Executing 'stopCharge'"
-    def result = parent.stopCharge(this)
+    def result = parent.stopCharge()
     if (result) { refresh() }
 }
 
 def openFrontTrunk() {
 	if (debugLevel != "None") log.debug "Executing 'openFrontTrunk'"
-    def result = parent.openTrunk(this, "front")
+    def result = parent.openTrunk("front")
     // if (result) { refresh() }
 }
 
 def openRearTrunk() {
 	if (debugLevel != "None") log.debug "Executing 'openRearTrunk'"
-    def result = parent.openTrunk(this, "rear")
+    def result = parent.openTrunk("rear")
     // if (result) { refresh() }
 }
 
 def unlockAndOpenChargePort() {
 	if (debugLevel != "None") log.debug "Executing 'unock and open charge port'"
-    def result = parent.unlockandOpenChargePort(this)
+    def result = parent.unlockandOpenChargePort()
     // if (result) { refresh() }   
 }  
 
 def setChargeLimit(Number Limit)
 {
     if (debugLevel != "None") log.debug "Executing 'setChargeLimit with limit of $Limit %"
-	def result = parent.setChargeLimit(this, Limit)
+	def result = parent.setChargeLimit(Limit)
         if (result) { refresh() }
 }  
  
 def setChargeAmps(Number Amps)
 {
     if (debugLevel != "None") log.debug "Executing 'setChargeAmpe with Amps = $Amps "
-	def result = parent.setChargeAmps(this, Amps)
+	def result = parent.setChargeAmps(Amps)
         if (result) { refresh() }
 }    
 
@@ -650,57 +653,64 @@ def updated()
     
 }
 
+
+def startTeslaFiLogging() {
+	if (debugLevel != "None") log.debug "Executing 'startTeslaFiLogging AKA wake'"
+	def result = parent.startTeslaFiLogging()
+    if (result) { refresh() }
+}
+
 def setSeatHeaters(seat,level) {
 	if (debugLevel != "None") log.debug "Executing 'setSeatheater'"
-	def result = parent.setSeatHeaters(this, seat,level)
+	def result = parent.setSeatHeaters(seat,level)
     if (result) { refresh() }
 }
 
 def sentryModeOn() {
 	if (debugLevel != "None") log.debug "Executing 'Turn Sentry Mode On'"
-	def result = parent.sentryModeOn(this)
+	def result = parent.sentryModeOn()
     if (result) { refresh() }
 }
 
 def sentryModeOff() {
 	if (debugLevel != "None") log.debug "Executing 'Turn Sentry Mode Off'"
-	def result = parent.sentryModeOff(this)
+	def result = parent.sentryModeOff()
     if (result) { refresh() }
 }
 
 def valetModeOn() {
 	if (debugLevel != "None") log.debug "Executing 'Turn Valet Mode On'"
-	def result = parent.valetModeOn(this)
+	def result = parent.valetModeOn()
     if (result) { refresh() }
 }
 
 def valetModeOff() {
 	if (debugLevel != "None") log.debug "Executing 'Turn Valet Mode Off'"
-	def result = parent.valetModeOff(this)
+	def result = parent.valetModeOff()
     if (result) { refresh() }
 }
 
 def ventWindows() {
 	if (debugLevel != "None") log.debug "Executing 'Venting Windows'"
-	def result = parent.ventWindows(this)
+	def result = parent.ventWindows()
     if (result) { refresh() }
 }
 
 def closeWindows() {
 	if (debugLevel != "None") log.debug "Executing 'Close Windows'"
-	def result = parent.closeWindows(this)
+	def result = parent.closeWindows()
     if (result) { refresh() }
 }
 
 def steeringWheelHeaterOn() {
 	if (debugLevel != "None") log.debug "Executing 'Steering Wheel Heater On'"
-	def result = parent.steeringWheelHeaterOn(this)
+	def result = parent.steeringWheelHeaterOn()
     if (result) { refresh() }
 }
 
 def steeringWheelHeaterOff() {
 	if (debugLevel != "None") log.debug "Executing 'Steering Wheel Heater Off'"
-	def result = parent.steeringWheelHeaterOff(this)
+	def result = parent.steeringWheelHeaterOff()
     if (result) { refresh() }
 }
 
@@ -711,12 +721,12 @@ private farenhietToCelcius(dF) {
 
 def scheduleTokenRefresh() {
 	if (debugLevel != "None") log.debug "Executing 'sheduleTokenRefresh'"
-    def result = parent.scheduleTokenRefresh(this)
+    def result = parent.scheduleTokenRefresh()
 }
 
 def transitionAccessToken() {
 	if (debugLevel != "None") log.debug "Executing 'transitioning accessToken to prepare for new teslaAccessToken'"
-    def result = parent.transitionAccessToken(this)
+    def result = parent.transitionAccessToken()
 }
 
 def setLastokenUpdateTime()
@@ -812,7 +822,6 @@ def reducedRefreshKill()
        sendEvent(name: "zzziFrame", value: "<div style='height: 100%; width: 100%'><iframe src='https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=19&t=k&output=embed&' style='height: 100%; width:100%; frameborder:0 marginheight:0 marginwidth:0 border: none;'></iframe><div>")       
  
  }   
-
 
 def setRefreshTime(String newRefreshTime)
 {  
