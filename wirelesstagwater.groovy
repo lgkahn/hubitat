@@ -65,14 +65,14 @@ def initialSetup() {
 def updated() {
 	log.trace "updated"
      def tl = triggerLevel
-     log.debug "TrigerLevel = $tl"
+     log.debug "TriggerLevel = $tl"
      sendEvent(name: "tagType", value: "water")
 }
 
 void generateEvent(Map results)
 {
 	if (debug) log.debug "parsing data $results"
-    
+    def tl = triggerLevel
    	if(results)
 	{
 		results.each { name, value ->
@@ -86,16 +86,21 @@ void generateEvent(Map results)
                 
                 if (name =="humidity")
                    {
-                       def tl = triggerLevel
-                       if (debug) log.debug "TrigerLevel = $tl"
+                       if (debug)
+                       {
+                           log.debug "TrigerLevel = $tl"
+                           log.debug "humidity value = $value"
+                       }
+                       
                        if (value >= tl)
                        {
                         sendEvent(name: "water", value: "wet")
-                        log.debug "Alert Device $name is WET, humidity < $triggerLevel!"
+                        log.debug "Alert Device $name is WET, humidity >= $triggerLevel!"
                        }
                        else {
                            sendEvent(name: "water", value: "dry")
                            log.debug "Device $name is now dry!"
+                              
                        }
                    }
              	sendEvent(name: name, value: value)       
