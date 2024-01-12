@@ -14,8 +14,8 @@
  */
 definition(
     name: 'Wireless Tags (Connect)',
-    namespace: 'swanny',
-    author: 'swanny',
+    namespace: 'lgkahn',
+    author: 'lgkahn',
     description: 'Wireless Tags connection',
     category: 'Convenience',
     iconUrl: 'https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png',
@@ -420,9 +420,8 @@ void updateDeviceStatus(def device, def d) {
       
         // water : (device.shorted == true) ? 'wet' : 'dry',
     ]
-        
+    if (debug) log.debug "event1 = $data"   
     }
-    
     else
     {
         data = [
@@ -435,7 +434,7 @@ void updateDeviceStatus(def device, def d) {
         motionArmed : motionArmed
         // water : (device.shorted == true) ? 'wet' : 'dry',
     ]
-        
+       if (debug) log.debug"event2 = $data"
     }
     
     d.generateEvent(data)
@@ -581,8 +580,11 @@ String convertTagTypeToString(Map tag) {
             break
         case 32:
         case 33:
+        case 34:
             tagString = 'Moisture'
             break
+        default:
+            log.warn "unknown tagtype = ${tag.tagType}"
     }
 
     return tagString + getTagVersion(tag)
@@ -989,8 +991,11 @@ def convertTagTypeToString(def tag) {
             break; 
         case 32:
         case 33:
+        case 34:
         	tagString = "Moisture"
-            break;     
+            break; 
+        default:
+            log.warn "unknown tagtype = ${tag.tagType}"
 	}
 
 	return tagString + getTagVersion(tag)
