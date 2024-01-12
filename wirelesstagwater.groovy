@@ -66,7 +66,7 @@ def updated() {
 	log.trace "updated"
      def tl = triggerLevel
      log.debug "TriggerLevel = $tl"
-     sendEvent(name: "tagType", value: "water")
+     sendEvent(name: "tagType", value: "Water")
 }
 
 void generateEvent(Map results)
@@ -110,7 +110,7 @@ void generateEvent(Map results)
        def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
        sendEvent(name: "lastUpdate", value: now)
        sendEvent(name: name, value: tempValue, unit: measure, isStateChange: isChange, displayed: isChange)   
-       sendEvent(name: "tagType", value: "water") 
+       sendEvent(name: "tagType", value: "Water") 
         
 	}
 }
