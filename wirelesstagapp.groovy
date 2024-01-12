@@ -581,7 +581,7 @@ String convertTagTypeToString(Map tag) {
         case 32:
         case 33:
         case 34:
-            tagString = 'Moisture'
+            tagString = 'Water'
             break
         default:
             log.warn "unknown tagtype = ${tag.tagType}"
@@ -943,7 +943,7 @@ def getTagTypeInfo(def tag) {
 	Map tagInfo = [:]
 
 	tagInfo.isMsTag = (tag.tagType == 12 || tag.tagType == 13);
-	tagInfo.isMoistureTag = (tag.tagType == 32 || tag.tagType == 33);
+	tagInfo.isMoistureTag = (tag.tagType == 32 || tag.tagType == 33 || tag.tagType == 34);
 	tagInfo.hasBeeper = (tag.tagType == 13 || tag.tagType == 12);
 	tagInfo.isReed = (tag.tagType == 52 || tag.tagType == 53);
 	tagInfo.isPIR = (tag.tagType == 72);
@@ -992,10 +992,10 @@ def convertTagTypeToString(def tag) {
         case 32:
         case 33:
         case 34:
-        	tagString = "Moisture"
+        	tagString = "Water"
             break; 
         default:
-            log.warn "unknown tagtype = ${tag.tagType}"
+            log.warn "Unknown tagtype = ${tag.tagType}"
 	}
 
 	return tagString + getTagVersion(tag)
