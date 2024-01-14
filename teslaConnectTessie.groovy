@@ -13,8 +13,20 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
 
- * v 1.0 Beta
-
+ * initial release 1/13/24 v 1.0 Beta
+ *
+ * v 1.1 1/14/24 Added:
+ * all to seat heater option, and change name of close Trunk to open or close Trunk to be clearer as it is actually a toggle,
+ * also added following commands:
+ * set Seat Cooling
+ * start Defrost
+ * stop Defrost
+ * remote Start
+ * Close Sunroof
+ * and list Drivers
+ *
+ * Obviously not all commands work with all vehicles, for instance many have no 3rd row seats, or steering wheel heater, or cooling seats or auto close trunk etc.
+ *
  */
 
 import groovy.transform.Field
@@ -152,7 +164,6 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
     }
 }
 
- 
 private authorizedHttpRequest(String child, String path, String method, Closure closure) {
    if (debug) log.debug "in authorize http req"
    
@@ -408,7 +419,6 @@ def refresh(child) {
     return data
 }
 
-
 String getWindowStatus(position)
 {
     
@@ -426,7 +436,6 @@ String getWindowStatus(position)
               break
       }
 }
-
 
 private celciusToFarenhiet(dC) {
     def fvalue  = dC * 9/5 +32
@@ -454,12 +463,23 @@ def wake(child) {
     return data
 }
 
+private executeApiCommandMulti(Map options = [:], child, String command) {
+    def result = false
+   if (descLog) log.debug "in execute api command Multi"
+    authorizedHttpRequest(child,"/${child}/${command}", "GET", { resp ->
+        if (debug) log.debug "resp data = ${resp.data}"
+       result = resp.data.results       
+    })
+    return result
+}
+
 
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
    if (descLog) log.debug "in execute api command"
     authorizedHttpRequest(child,"/${child}/${command}", "GET", { resp ->
-       result = resp.data.result
+        if (debug) log.debug "resp data = ${resp.data}"
+       result = resp.data.result       
     })
     return result
 }
@@ -576,6 +596,15 @@ def setSeatHeaters(child, seat,level) {
     return executeApiCommand(child, "command/set_seat_heat?seat=${seat}&level=${level}")
 }
 
+def setSeatCooling(child, seat,level) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+    return executeApiCommand(child, "command/set_seat_cool?seat=${seat}&level=${level}")
+}
+
 def sentryModeOn(child) {
     if (wakeOnInitialTry)
     { 
@@ -667,7 +696,60 @@ def steeringWheelHeatOff(child) {
     }
 	return executeApiCommand(child, "command/stop_steering_wheel_heater")
 }
+   
+def startDefrost(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "command/start_max_defrost")
+}
 
+def stopDefrost(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "command/stop_max_defrost")
+}
+
+def remoteStart(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "command/remote_start")
+}
+
+def ventSunroof(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "command/vent_sunroof")
+}
+
+def closeSunroof(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "command/close_sunroof")
+}
+
+def listDrivers(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommandMulti(child, "drivers")
+}
 
 def notifyIfEnabled(message) {
     if (notificationDevice) {
