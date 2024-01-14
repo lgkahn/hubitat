@@ -116,29 +116,25 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
               
     	def requestParameters = [
             uri: serverUrl + path,
-           // path: "/" + path,
             headers: [
                 'User-Agent': userAgent,
                 Authorization: "Bearer ${state.tessieAccessToken}"
             ]
         ]
     
-        log.debug "request parms = ${requestParameters}"
+         if (debug)log.debug "request parms = ${requestParameters}"
         
      
     	if (method == "GET") {
             httpGet(requestParameters) { resp -> closure(resp) }
         } else if (method == "POST") {
-        	//if (options.body) {
-            	//requestParameters["body"] = options.body
-              //  if (descLog) log.info "authorizedHttpRequest body: ${options}"
-            //    httpPostJson(requestParameters) { resp -> closure(resp) }
-         //   } else {
+        
+           if (debug)
+            {
                 log.debug "in put case"
                 log.debug "parms = $requestParameters"
-                
-                 httpPostJson(requestParameters) { resp -> closure(resp) }
-        		
+            }   
+            httpPostJson(requestParameters) { resp -> closure(resp) }
             
         } else {
         	log.error "Invalid method ${method}"
@@ -148,18 +144,9 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
         if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
            {
             log.debug "code - 14 or 401"
-        	/*if (attempt < 3) {
-               // refreshAccessToken()
-                options.attempt = ++attempt
-                authorizedHttpRequestWithChild(child, options, path, method, closure )
-            } else {
-            	log.error "Failed after 3 attempts to perform request: ${path}"
-            } */
         } else {
         	log.error "Request failed for path: ${path}.  ${e.response?.data}"
-            
            
-
         }
 
     }
@@ -168,7 +155,6 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
  
 private authorizedHttpRequest(String child, String path, String method, Closure closure) {
    if (debug) log.debug "in authorize http req"
- //   def attempt = options.attempt ?: 0
    
     if (descLog) log.info "authorizedHttpRequest ${method} ${path}"
     if (debug)
@@ -183,30 +169,26 @@ private authorizedHttpRequest(String child, String path, String method, Closure 
               
     	def requestParameters = [
             uri: serverUrl + path,
-           // path: "/" + path,
             headers: [
                 'User-Agent': userAgent,
                 Authorization: "Bearer ${state.tessieAccessToken}"
             ]
         ]
     
-        log.debug "request parms = ${requestParameters}"
-        
-     
+        if (debug) log.debug "request parms = ${requestParameters}"
+            
     	if (method == "GET") {
             httpGet(requestParameters) { resp -> closure(resp) }
         } else if (method == "POST") {
-        	//if (options.body) {
-            	//requestParameters["body"] = options.body
-              //  if (descLog) log.info "authorizedHttpRequest body: ${options}"
-            //    httpPostJson(requestParameters) { resp -> closure(resp) }
-         //   } else {
+           httpPostJson(requestParameters) { resp -> closure(resp) }
+      
+            if (debug) {
                 log.debug "in put case"
                 log.debug "parms = $requestParameters"
+            }
                 
                  httpPostJson(requestParameters) { resp -> closure(resp) }
-        		
-            
+        		          
         } else {
         	log.error "Invalid method ${method}"
         }
@@ -215,18 +197,10 @@ private authorizedHttpRequest(String child, String path, String method, Closure 
         if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
            {
             log.debug "code - 14 or 401"
-        	/*if (attempt < 3) {
-               // refreshAccessToken()
-                options.attempt = ++attempt
-                authorizedHttpRequestWithChild(child, options, path, method, closure )
-            } else {
-            	log.error "Failed after 3 attempts to perform request: ${path}"
-            } */
+      
         } else {
         	log.error "Request failed for path: ${path}.  ${e.response?.data}"
             
-           
-
         }
 
     }
@@ -342,8 +316,7 @@ private transformWakeResponse(resp)
     log.debug "in transform wake tessie"
     log.debug "resp = ${resp}"
     log.debug "result = ${resp.data}"
-    }
-     
+    }    
 
 	return [
         result: resp.data.result,
@@ -355,13 +328,7 @@ def refresh(child) {
    if (descLog) log.info "in refresh child"
     def data = [:]
 	def id = child
- /*   authorizedHttpRequest(child,"/${id}/state", "GET", { resp ->
-        data = transformVehicleResponse(resp)
-    })
-    
-  
-   */
-     
+
     	authorizedHttpRequest(child,"/${id}/state", "GET", { resp ->
             
          if (debug) log.debug "in tessie refresh data = ${resp.data}"
@@ -437,8 +404,7 @@ def refresh(child) {
             ]
         }
         })
-  
-    
+      
     return data
 }
 
@@ -708,9 +674,6 @@ def notifyIfEnabled(message) {
         notificationDevice.deviceNotification(message)
     }
 }
-
-
-
 
 @Field static final Long oneHourMs = 1000*60*60
 @Field static final Long oneDayMs = 1000*60*60*24
