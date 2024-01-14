@@ -27,6 +27,7 @@
  *
  * Obviously not all commands work with all vehicles, for instance many have no 3rd row seats, or steering wheel heater, or cooling seats or auto close trunk etc.
  *
+ * v 1.2 1/13/24 For some reason only open frunk trunk worked but was getting a timeout error.. not sure why but had to add new functions to pass in a 30 sec timeout.
  */
 
 import groovy.transform.Field
@@ -159,6 +160,62 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
         } else {
         	log.error "Request failed for path: ${path}.  ${e.response?.data}"
            
+        }
+
+    }
+}
+
+private authorizedHttpRequestWithTimeout(String child, String path, String method, Number timeout, Closure closure) {
+   if (debug) log.debug "in authorize http req"
+   
+    if (descLog) log.info "authorizedHttpRequest with timeout ${method} ${path}"
+    if (debug)
+    {
+    log.debug "token = ${state.tessieAccessToken}"
+    log.debug "server url = $serverUrl"
+    log.debug "path = $path"
+    log.debug "method = $method"
+    log.debug "timout = $timeout"
+    }
+   
+    try {
+              
+    	def requestParameters = [
+            uri: serverUrl + path, 
+            timeout: timeout,
+            headers: [
+                'User-Agent': userAgent,
+               
+                Authorization: "Bearer ${state.tessieAccessToken}"
+            ]
+        ]
+    
+        if (debug) log.debug "request parms = ${requestParameters}"
+            
+    	if (method == "GET") {
+            httpGet(requestParameters) { resp -> closure(resp) }
+        } else if (method == "POST") {
+           httpPostJson(requestParameters) { resp -> closure(resp) }
+      
+            if (debug) {
+                log.debug "in put case"
+                log.debug "parms = $requestParameters"
+            }
+                
+                 httpPostJson(requestParameters) { resp -> closure(resp) }
+        		          
+        } else {
+        	log.error "Invalid method ${method}"
+        }
+    } catch (groovyx.net.http.HttpResponseException e) {
+        log.debug "in error handler case resp = $resp e= $e response data = e.response"
+        if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
+           {
+            log.debug "code - 14 or 401"
+      
+        } else {
+        	log.error "Request failed for path: ${path}.  ${e.response?.data}"
+            
         }
 
     }
@@ -484,6 +541,18 @@ private executeApiCommand(Map options = [:], child, String command) {
     return result
 }
 
+
+private executeApiCommandWithTimeout(Map options = [:], child, String command, Number timeout) {
+    def result = false
+   if (descLog) log.debug "in execute api command"
+    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET", timeout, { resp ->
+        if (debug) log.debug "resp data = ${resp.data}"
+       result = resp.data.result       
+    })
+    return result
+}
+
+
 def lock(child) {
    if (wakeOnInitialTry)
     { 
@@ -569,22 +638,22 @@ def stopCharge(child) {
    return executeApiCommand(child, "command/stop_charging")
 }
 
-def openTrunk(child, whichTrunk) {
+def openOrCloseTrunk(child) {
   if (wakeOnInitialTry)
     { 
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "command/actuate_rear_trunk")
+	return executeApiCommandWithTimeout(child, "command/activate_rear_trunk",30)
 }
 
-def openFrunk(child, whichTrunk) {
+def openFrunk(child) {
   if (wakeOnInitialTry)
     { 
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "command/actuate_front_trunk")
+	return executeApiCommandWithTimeout(child, "command/activate_front_trunk", 30) 
 }
 
 def setSeatHeaters(child, seat,level) {
