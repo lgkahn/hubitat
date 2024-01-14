@@ -12,7 +12,20 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIO`NS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- v 1.0 beta
+ * initial release 1.0 beta 1/13/24
+ *
+ * v 1.1 1/14/24 Added:
+ * all to seat heater option, and change name of close Trunk to open or close Trunk to be clearer as it is actually a toggle,
+ * also added following commands:
+ * set Seat Cooling
+ * start Defrost
+ * stop Defrost
+ * remote Start
+ * Close Sunroof
+ * and list Drivers
+ *
+ * Obviously not all commands work with all vehicles, for instance many have no 3rd row seats, or steering wheel heater, or cooling seats or auto close trunk etc.
+ *
  */
 
 metadata {
@@ -84,18 +97,33 @@ metadata {
         command "startCharge"
         command "stopCharge"
         command "openFrontTrunk"
-        command "openRearTrunk"
+        command "openOrCloseRearTrunk"
         command "unlockAndOpenChargePort"
         command ("setSeatHeaters", [
             [
                 "name": "Seat",
-                "description": "Set seat to level 0-3 (0=off)",
+                "description": "Set seat hating to level 0-3 (0=off)",
                 "type": "ENUM",
-                "constraints": ["front_left","front_right","rear_left","rear_center","rear_right","third_row_left", "third_row_right"]
+                "constraints": ["front_left","front_right","rear_left","rear_center","rear_right","third_row_left", "third_row_right","all"]
                 ],
                 [
                  "name": "level",
-                 "description": "Heat Leve (0-3, 0=Off)",
+                 "description": "Heat Level (0-3, 0=Off)",
+                 "type": "ENUM",
+                 "constraints": ["0","1","2","3"]
+                ]
+                ]  )
+        
+         command ("setSeatCooling", [
+            [
+                "name": "Seat",
+                "description": "Set seat cooling to level 0-3 (0=off)",
+                "type": "ENUM",
+                "constraints": ["front_left","front_right","rear_left","rear_center","rear_right","third_row_left", "third_row_right","all"]
+                ],
+                [
+                 "name": "level",
+                 "description": "Cooling Level (0-3, 0=Off)",
                  "type": "ENUM",
                  "constraints": ["0","1","2","3"]
                 ]
@@ -112,6 +140,12 @@ metadata {
         command "setChargeLimit", ["number"] /* integer percent */
         command "setChargeAmps", ["number"] /* integer amperage */
         command "setRefreshTime", ["string"]
+        command "startDefrost"
+        command "stopDefrost"
+        command "remoteStart"
+        command "ventSunroof"
+        command "closeSunroof"
+        command "listDrivers"
       
 	}
 
@@ -199,7 +233,6 @@ def initialize() {
     } 
    
 }
-
 
 def disable()
 {
@@ -619,9 +652,9 @@ def openFrontTrunk() {
     // if (result) { refresh() }
 }
 
-def openRearTrunk() {
+def openOrCloseRearTrunk() {
 	if (debugLevel != "None") log.debug "Executing 'openRearTrunk'"
-    def result = parent.openTrunk(device.currentValue('vin'))
+    def result = parent.openOrCloseTrunk(device.currentValue('vin'))
     // if (result) { refresh() }
 }
 
@@ -646,15 +679,20 @@ def setChargeAmps(Number Amps)
 }    
 
 def updated()
-{
-   
-   initialize()
-    
+{  
+   initialize()   
 }
 
 def setSeatHeaters(seat,level) {
-	if (debugLevel != "None") log.debug "Executing 'setSeatheater'"
+	if (debugLevel != "None") log.debug "Executing 'setSeatHeater'"
 	def result = parent.setSeatHeaters(device.currentValue('vin'), seat,level)
+    if (result) { refresh() }
+}
+
+
+def setSeatCooling(seat,level) {
+	if (debugLevel != "None") log.debug "Executing 'setSeatCooling'"
+	def result = parent.setSeatCooling(device.currentValue('vin'), seat,level)
     if (result) { refresh() }
 }
 
@@ -705,6 +743,50 @@ def steeringWheelHeatOff() {
 	def result = parent.steeringWheelHeatOff(device.currentValue('vin'))
     if (result) { refresh() }
 }
+
+def startDefrost() {
+	if (debugLevel != "None") log.debug "Executing 'Start Max Defrost'"
+	def result = parent.startDefrost(device.currentValue('vin'))
+    if (result) { refresh() }
+}
+
+def stopDefrost() {
+	if (debugLevel != "None") log.debug "Executing 'Stop Max Defrost'"
+	def result = parent.stopDefrost(device.currentValue('vin'))
+    if (result) { refresh() }
+}
+
+
+def remoteStart() {
+	if (debugLevel != "None") log.debug "Executing 'Remote Start'"
+	def result = parent.remoteStart(device.currentValue('vin'))
+    if (result) { refresh() }
+}
+
+def ventSunroof() {
+	if (debugLevel != "None") log.debug "Executing 'Vent Sunroof'"
+	def result = parent.ventSunroof(device.currentValue('vin'))
+    if (result) { refresh() }
+}
+
+def closeSunroof() {
+	if (debugLevel != "None") log.debug "Executing 'Close Sunroof'"
+	def result = parent.closeSunroof(device.currentValue('vin'))
+    if (result) { refresh() }
+}
+
+
+def listDrivers() {
+	if (debugLevel != "None") log.debug "Executing 'List Drivers'"
+	def result = parent.listDrivers(device.currentValue('vin'))
+    log.debug "data = ${result.data}"
+    if (result) { 
+        log.info ""
+        log.info "Additional Drivers: $result"
+        log.info ""
+        refresh() }
+}
+
 
 private farenhietToCelcius(dF) {
 	return (dF - 32) * 5/9
@@ -793,7 +875,6 @@ def reducedRefreshKill()
         if (lat == null) lat = 0.0
         
        sendEvent(name: "zzziFrame", value: "<div style='height: 100%; width: 100%'><iframe src='https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=19&t=k&output=embed&' style='height: 100%; width:100%; frameborder:0 marginheight:0 marginwidth:0 border: none;'></iframe><div>")       
- 
  }   
 
 
