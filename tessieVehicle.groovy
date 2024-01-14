@@ -649,19 +649,19 @@ def stopCharge() {
 def openFrontTrunk() {
 	if (debugLevel != "None") log.debug "Executing 'openFrontTrunk'"
     def result = parent.openFrunk(device.currentValue('vin'))
-    // if (result) { refresh() }
+     if (result) { refresh() }
 }
 
 def openOrCloseRearTrunk() {
 	if (debugLevel != "None") log.debug "Executing 'openRearTrunk'"
     def result = parent.openOrCloseTrunk(device.currentValue('vin'))
-    // if (result) { refresh() }
+     if (result) { refresh() }
 }
 
 def unlockAndOpenChargePort() {
 	if (debugLevel != "None") log.debug "Executing 'unock and open charge port'"
     def result = parent.unlockandOpenChargePort(device.currentValue('vin'))
-    // if (result) { refresh() }   
+     if (result) { refresh() }   
 }  
 
 def setChargeLimit(Number Limit)
