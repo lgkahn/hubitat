@@ -125,10 +125,13 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
     log.debug "method = $method"
     }
    
+    def timeout = 20
+    
     try {
               
     	def requestParameters = [
             uri: serverUrl + path,
+            timeout: timeout,
             headers: [
                 'User-Agent': userAgent,
                 Authorization: "Bearer ${state.tessieAccessToken}"
@@ -233,10 +236,13 @@ private authorizedHttpRequest(String child, String path, String method, Closure 
     log.debug "method = $method"
     }
    
+    def timeout = 20
+    
     try {
               
     	def requestParameters = [
             uri: serverUrl + path,
+            timeout: timeout,         
             headers: [
                 'User-Agent': userAgent,
                 Authorization: "Bearer ${state.tessieAccessToken}"
