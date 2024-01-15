@@ -28,6 +28,8 @@
  * Obviously not all commands work with all vehicles, for instance many have no 3rd row seats, or steering wheel heater, or cooling seats or auto close trunk etc.
  *
  * v 1.2 1/13/24 For some reason only open frunk trunk worked but was getting a timeout error.. not sure why but had to add new functions to pass in a 30 sec timeout.
+ *
+ * v 1.3 1/14/24 add current address attribute.
  */
 
 import groovy.transform.Field
@@ -542,7 +544,14 @@ private executeApiCommand(Map options = [:], child, String command) {
    if (descLog) log.debug "in execute api command"
     authorizedHttpRequest(child,"/${child}/${command}", "GET", { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
-       result = resp.data.result       
+        if (debug)
+        {
+            if (resp.data.address)
+            log.debug "Current Address = ${resp.data.address}"
+        }
+        if (resp.data.address)
+          result = resp.data.address
+        else result = resp.data.result       
     })
     return result
 }
@@ -824,6 +833,15 @@ def listDrivers(child) {
       pause((pauseTime.toInteger() * 1000))
     }
 	return executeApiCommandMulti(child, "drivers")
+}
+
+def currentAddress(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "location")
 }
 
 def notifyIfEnabled(message) {
