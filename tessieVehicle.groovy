@@ -89,6 +89,7 @@ metadata {
         attribute "user_present", "string"
         attribute "lastUpdateTime", "string"
         attribute "method", "string"
+        attribute "currentAddress", "string"
         
         attribute "zzziFrame", "text"
        
@@ -167,6 +168,7 @@ metadata {
        input "useAltPresence", "bool", title: "Use alternate presence method based on distance from home longitude and latitude?", required: true, defaultValue: false    
        input "homeLongitude", "Double", title: "Home longitude value?", required: false
        input "homeLatitude", "Double", title: "Home latitude value?", required: false
+       input "enableAddress", "bool", title: "Enable an extra query on every refresh to fill in current address?", required:false, defaultValue:false
        input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
        input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
        input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
@@ -523,6 +525,15 @@ def refresh() {
    
     def data = parent.refresh(device.currentValue('vin'))
 	processData(data)
+    
+    if (enableAddress)
+    {
+        if (debug) log.info "Getting current Address"
+        def adata = parent.currentAddress(device.currentValue('vin'))
+        if (debug) log.debug "address data = $adata"
+        if (adata)
+         sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+    }
  
 }
 
@@ -533,6 +544,15 @@ def reducedRefresh() {
    
     def data = parent.refresh(device.currentValue('vin'))
 	processData(data)
+    
+    if (enableAddress)
+    {
+        if (debug) log.info "Getting current Address"
+        def adata = parent.currentAddress(device.currentValue('vin'))
+        if (debug) log.debug "address data = $adata"
+        if (adata)
+         sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+    }
  
 }
 
@@ -547,6 +567,15 @@ def tempReducedRefresh()
    
     def data = parent.refresh(device.currentValue('vin'))
 	processData(data)
+  
+   if (enableAddress)
+    {
+        if (debug) log.info "Getting current Address"
+        def adata = parent.currentAddress(device.currentValue('vin'))
+        if (debug) log.debug "address data = $adata"
+        if (adata)
+         sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+    }
     
     // reschedule if still true
 
