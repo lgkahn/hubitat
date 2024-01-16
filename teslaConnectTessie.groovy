@@ -383,6 +383,7 @@ private ensureDevicesForSelectedVehicles() {
                 {
                   log.info "current vin = $cvin"
                   log.info "Resetting vin for vehicle setting vin to ${state.accountVINs[dni]}" 
+                  d.sendEvent(name:"vin", value: state.accountVINs[dni])
                 }
             }
         }
