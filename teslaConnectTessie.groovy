@@ -30,6 +30,9 @@
  * v 1.2 1/13/24 For some reason only open frunk trunk worked but was getting a timeout error.. not sure why but had to add new functions to pass in a 30 sec timeout.
  *
  * v 1.3 1/14/24 add current address attribute.
+ *
+ * v 1.4 1/16/24 attempt at fixing incorrect vin for multiple vehicles.
+ * openning application and reselecting all the vehicles hopefully will fix the incorrect vin on the child device.
  */
 
 import groovy.transform.Field
@@ -288,6 +291,7 @@ private refreshAccountVehicles() {
 	if (descLog) log.info "refreshAccountVehicles"
 
 	state.accountVehicles = [:]
+    state.accountVINs = [:]
 
 	authorizedHttpVehicleRequest("/vehicles", "GET", { resp ->
       
@@ -323,7 +327,7 @@ private refreshAccountVehicles() {
             }
             if (vin != null)
              if (vin != "")
-               state.currentVIN = vin
+               state.accountVINs[id] = vin
             
            else state.accountVehicles[id] = "Tesla ${id}"
         }
@@ -367,13 +371,19 @@ private ensureDevicesForSelectedVehicles() {
             def d = getChildDevice(dni)
             if(!d) {
                 def vehicleName = state.accountVehicles[dni]
-                def vin = state.currentVIN
+                def vin = state.accountVINs[dni]
                 device = addChildDevice("lgkahn", "tessieVehicle", dni, null, [name:"Tesla ${dni}", label:vehicleName])
                 log.debug "created device ${device.label} with id ${dni} vin = ${vin}"
                 device.initialize()
                 device.sendEvent(name:"vin" , value:vin)
             } else {
-                log.info "device for ${d.label} with id ${dni} already exists"
+                log.info "Device for ${d.label} with id ${dni} already exists"
+                def cvin = d.currentValue('vin')
+                if (cvin != state.accountVINs[dni])  
+                {
+                  log.info "current vin = $cvin"
+                  log.info "Resetting vin for vehicle setting vin to ${state.accountVINs[dni]}" 
+                }
             }
         }
     }
@@ -518,8 +528,6 @@ def wake(child) {
     
     def id = child
     def data = [:] 
-    
-     def children = getChildDevices()
  
     authorizedHttpRequest( child,"/${id}/wake", "GET", { resp ->
         data = transformWakeResponse(resp)
