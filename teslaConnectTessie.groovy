@@ -33,6 +33,8 @@
  *
  * v 1.4 1/16/24 attempt at fixing incorrect vin for multiple vehicles.
  * openning application and reselecting all the vehicles hopefully will fix the incorrect vin on the child device.
+ *
+ * v 1.5 1/16/24 skip over vehicle in account ie on order, without a valid vehicle id or vin
  */
 
 import groovy.transform.Field
@@ -304,15 +306,18 @@ private refreshAccountVehicles() {
         
     	if (descLog) log.info "Found ${resp.data.results.size()} vehicles"
         resp.data.results.each { vehicle ->
-            
-        if (debug)
+           
+         //lgk change vehicles can appear in acct without a valid vehicle id so skip thise
+         if ((vehicle != null) && (vehicle.last_state.vehicle_id != null) && (vehicle.vin != null))
             {
+             if (debug)
+               {
                 log.debug " found the vehicle = $vehicle"
                 log.debug "last_state = ${vehicle.last_state}"
                 log.debug "vehicle id= ${vehicle.last_state.vehicle_id}"
                 log.debug "vehicle name = ${vehicle.last_state.vehicle_state.vehicle_name}"
                 log.debug "vin = ${vehicle.vin}"
-            }
+               }
             
             def id = vehicle.last_state.vehicle_id
             def vname = vehicle.last_state.vehicle_state.vehicle_name
@@ -329,7 +334,9 @@ private refreshAccountVehicles() {
              if (vin != "")
                state.accountVINs[id] = vin
             
-           else state.accountVehicles[id] = "Tesla ${id}"
+              else state.accountVehicles[id] = "Tesla ${id}"
+            }
+            else log.debug "Found an invalid vehicle without a vehicle id... skipping!"
         }
     })
 }
