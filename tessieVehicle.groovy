@@ -186,7 +186,7 @@ def logsOff()
 }
 
 def initialize() {
-	log.debug "Executing 'initialize'"
+    log.debug "Executing 'initialize - Current Version: ${parent.currentVersion()}'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "zzziFrame", value: "")
  
