@@ -308,7 +308,7 @@ private refreshAccountVehicles() {
         resp.data.results.each { vehicle ->
            
          //lgk change vehicles can appear in acct without a valid vehicle id so skip thise
-         if ((vehicle != null) && (vehicle.last_state.vehicle_id != null) && (vehicle.vin != null))
+           if (vehicle?.last_state?.vehicle_id && vehicle.vin)  
             {
              if (debug)
                {
