@@ -25,6 +25,8 @@
  * and list Drivers
  *
  * Obviously not all commands work with all vehicles, for instance many have no 3rd row seats, or steering wheel heater, or cooling seats or auto close trunk etc.
+ * 
+ * update for version 1.5 1/17/24
  *
  */
 
@@ -90,6 +92,7 @@ metadata {
         attribute "lastUpdateTime", "string"
         attribute "method", "string"
         attribute "currentAddress", "string"
+        attribute "usableBattery", "number"
         
         attribute "zzziFrame", "text"
        
@@ -284,15 +287,19 @@ private processData(data) {
             if (debugLevel == "Full") log.debug "chargeState = $data.chargeState"
             
         	sendEvent(name: "battery", value: data.chargeState.battery)
+            sendEvent(name: "usableBattery", value: data.chargeState.usableBattery)
             
             if (mileageScale == "M")
               {
-                sendEvent(name: "batteryRange", value: data.chargeState.batteryRange.toInteger())
+                def theRange = Math.round(data.chargeState.batteryRange)
+                log.debug "rounded range = $theRange"
+                sendEvent(name: "batteryRange", value: theRange)
               }   
             else
               {
-                double kmrange = (data.chargeState.batteryRange) *  1.609344   
-                sendEvent(name: "batteryRange", value: kmrange.toInteger())   
+                double kmrange = (data.chargeState.batteryRange) *  1.609344
+                def theRange = Math.round(kmrange)
+                sendEvent(name: "batteryRange", value: theRange)   
               }
           
             sendEvent(name: "chargingState", value: data.chargeState.chargingState)
