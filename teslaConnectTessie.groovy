@@ -36,7 +36,7 @@
  *
  * v 1.5 1/16/24 skip over vehicle in account ie on order, without a valid vehicle id or vin
  * 
- * 1/17 add attribute usabled_battery_level.. may want to change rules to this as that is what tesla app appears to report for battery
+ * 1/17 Add attribute usableBattery.. may want to change rules to this as that is what tesla app appears to report for battery
  * also round the range as similiarly tesla app does this and when we get range for instance 250.62 tesla app reports 251,
  * we previously showed 250 as it was truncating.
  *
