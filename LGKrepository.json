@@ -336,6 +336,13 @@
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/TeslaV3.json",
       "description": "The new V3 of the smart connect app and driver for the tesla monitoring and control of your autos."
+    },
+    {
+      "id": "a479236d-8b91-4f9d-bb2c-449b47759c35",
+      "name": "Tesla vehicle status and control via Tessie - App and Driver",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/tesla_tessie.json",
+      "description": "Control and query the status of all your tesla vehicles. This is the app and driver both needed."
     }
   ]
 }
