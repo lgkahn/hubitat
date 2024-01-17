@@ -35,6 +35,11 @@
  * openning application and reselecting all the vehicles hopefully will fix the incorrect vin on the child device.
  *
  * v 1.5 1/16/24 skip over vehicle in account ie on order, without a valid vehicle id or vin
+ * 
+ * 1/17 add attribute usabled_battery_level.. may want to change rules to this as that is what tesla app appears to report for battery
+ * also round the range as similiarly tesla app does this and when we get range for instance 250.62 tesla app reports 251,
+ * we previously showed 250 as it was truncating.
+ *
  */
 
 import groovy.transform.Field
@@ -312,7 +317,7 @@ private refreshAccountVehicles() {
             {
              if (debug)
                {
-                log.debug " found the vehicle = $vehicle"
+                log.debug "Found the vehicle = $vehicle"
                 log.debug "last_state = ${vehicle.last_state}"
                 log.debug "vehicle id= ${vehicle.last_state.vehicle_id}"
                 log.debug "vehicle name = ${vehicle.last_state.vehicle_state.vehicle_name}"
@@ -380,7 +385,7 @@ private ensureDevicesForSelectedVehicles() {
                 def vehicleName = state.accountVehicles[dni]
                 def vin = state.accountVINs[dni]
                 device = addChildDevice("lgkahn", "tessieVehicle", dni, null, [name:"Tesla ${dni}", label:vehicleName])
-                log.debug "created device ${device.label} with id ${dni} vin = ${vin}"
+                log.debug "Created device ${device.label} with id ${dni} vin = ${vin}"
                 device.initialize()
                 device.sendEvent(name:"vin" , value:vin)
             } else {
@@ -388,7 +393,7 @@ private ensureDevicesForSelectedVehicles() {
                 def cvin = d.currentValue('vin')
                 if (cvin != state.accountVINs[dni])  
                 {
-                  log.info "current vin = $cvin"
+                  log.info "Current vin = $cvin"
                   log.info "Resetting vin for vehicle setting vin to ${state.accountVINs[dni]}" 
                   d.sendEvent(name:"vin", value: state.accountVINs[dni])
                 }
@@ -425,7 +430,7 @@ def refresh(child) {
 
     	authorizedHttpRequest(child,"/${id}/state", "GET", { resp ->
             
-         if (debug) log.debug "in tessie refresh data = ${resp.data}"
+         if (debug) log.debug "In tessie refresh data = ${resp.data}"
             
              if (resp.data.state == "online") { 
            
@@ -443,6 +448,7 @@ def refresh(child) {
            if (debug) log.debug "charging state = $chargeState"
             data["chargeState"] = [
                 battery: chargeState.battery_level,
+                usableBattery: chargeState.usable_battery_level,
                 batteryRange: chargeState.battery_range,
                 chargingState: chargeState.charging_state,
                 chargeLimit: chargeState.charge_limit_soc,
