@@ -40,6 +40,8 @@
  * also round the range as similiarly tesla app does this and when we get range for instance 250.62 tesla app reports 251,
  * we previously showed 250 as it was truncating.
  *
+ * 1/17 add current verion fx and print in logs in app and device in updated and initialize
+ *
  */
 
 import groovy.transform.Field
@@ -353,7 +355,7 @@ def installed() {
 }
 
 def updated() {
-	log.info "Updated"
+    log.info "Updated current version: ${currentVersion()}"
     
 
 	unsubscribe()
@@ -372,7 +374,7 @@ private removeChildDevices(delete) {
 }
 
 def initialize() {
-    if (descLog) log.info "in initialize"
+    if (descLog) log.info "in initialize current version: ${currentVersion()}"
     ensureDevicesForSelectedVehicles()
     removeNoLongerSelectedChildDevices()
 }
@@ -870,6 +872,11 @@ def notifyIfEnabled(message) {
     if (notificationDevice) {
         notificationDevice.deviceNotification(message)
     }
+}
+
+def currentVersion()
+{
+    return "1.50"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
