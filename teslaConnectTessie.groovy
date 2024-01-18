@@ -43,6 +43,11 @@
  * 1/17 add current verion fx and print in logs in app and device in updated and initialize
  * 1/18 clean up a couple of debug messages.
  *
+ * v 1.7 add some vehicle config attributes: car_type, has_third_row_seats, has_seat_cooling, has_sunroof
+ * and check these when trying commands and print warning when using these commands if car does not have that feature.
+ * unfortunately hubitat groovy does not support dynamic capabilities/commands.
+ * 
+ *
  */
 
 import groovy.transform.Field
@@ -433,7 +438,7 @@ def refresh(child) {
 
     	authorizedHttpRequest(child,"/${id}/state", "GET", { resp ->
             
-         if (debug) log.debug "In tessie refresh data = ${resp.data}"
+         if (debug) log.debug "In refresh data = ${resp.data}"
             
              if (resp.data.state == "online") { 
            
@@ -441,12 +446,21 @@ def refresh(child) {
             def chargeState = resp.data.charge_state
             def vehicleState = resp.data.vehicle_state
             def climateState = resp.data.climate_state
+            def vehicleConfig = resp.data.vehicle_config
             
             data.state = resp.data.state
             data.vin = resp.data.vin
             data.speed = driveState.speed ? driveState.speed : 0
             data.motion = data.speed > 0 ? "active" : "inactive"            
             data.thermostatMode = climateState.is_climate_on ? "auto" : "off"
+                 
+           if (debug) log.debug "Vehicle Config = $vehicleConfig"
+            data["vehicleConfig"] = [
+                has_third_row_seats: vehicleConfig.third_row_seats,
+                has_seat_cooling: vehicleConfig.has_seat_cooling,
+                car_type: vehicleConfig.car_type,
+                sunroof_installed: vehicleConfig.sunroof_intalled 
+                ]
             
            if (debug) log.debug "charging state = $chargeState"
             data["chargeState"] = [
@@ -489,7 +503,7 @@ def refresh(child) {
                 rear_pass_door: vehicleState.pr ? "Open" : "Closed",
                 frunk :  vehicleState.ft ? "Open" : "Closed",
                 trunk :  vehicleState.rt ? "Open" : "Closed",
-                user_present: vehicleState.is_user_present,
+                user_present: vehicleState.is_user_present            
                 ]
              
             if (debug) log.debug "climate state = $climateState"
@@ -877,7 +891,7 @@ def notifyIfEnabled(message) {
 
 def currentVersion()
 {
-    return "1.60"
+    return "1.70"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
