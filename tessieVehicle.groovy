@@ -27,6 +27,7 @@
  * Obviously not all commands work with all vehicles, for instance many have no 3rd row seats, or steering wheel heater, or cooling seats or auto close trunk etc.
  * 
  * update for version 1.5 1/17/24
+ * v 1.6 clean up debugging
  *
  */
 
@@ -181,17 +182,17 @@ metadata {
 
 def logsOff()
 {
-    log.debug "Turning off Logging!"
+    log.info "Turning off Logging!"
     device.updateSetting("debugLevel",[value:"Info",type:"enum"])
 }
 
 def initialize() {
-    log.debug "Executing 'initialize - Current Version: ${parent.currentVersion()}'"
+    log.info "'initialize - Current Version: ${parent.currentVersion()}'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "zzziFrame", value: "")
  
     sendEvent(name: "supportedThermostatModes", value: ["auto", "off"])
-    log.debug "Refresh time currently set to: $refreshTime"
+    log.info "Refresh time currently set to: $refreshTime"
     unschedule()
   
     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
@@ -220,20 +221,20 @@ def initialize() {
     }
       else 
       { 
-          log.error "Unknown refresh time specified.. defaulting to 15 Minutes"
+          log.warn "Unknown refresh time specified.. defaulting to 15 Minutes"
           runEvery15Minutes(refresh)
       }
     // now handle scheduling to turn on and off to allow sleep
     if ((AllowSleep == true) && (fromTime != null) && (toTime != null))
     {
-       log.debug "Scheduling disable and re-enable times to allow sleep!" 
+       log.info "Scheduling disable and re-enable times to allow sleep!" 
        schedule(fromTime, disable)
        schedule(toTime, reenable)       
     }
    
      if (debugLevel == "Full")
     {
-        log.debug "Turning off logging in 1 hour!"
+        log.info "Turning off logging in 1 hour!"
         runIn(3600,logsOff)
     } 
    
@@ -241,7 +242,7 @@ def initialize() {
 
 def disable()
 {
-    if (debugLevel != "None") log.debug "Disabling to allow sleep!"
+    if (debugLevel != "None") log.info "Disabling to allow sleep!"
     unschedule()
     // schedule reenable time
     if (toTime != null)
@@ -250,7 +251,7 @@ def disable()
 
 def reenable()
 {
-    if (debugLevel != "None") log.debug "Waking up app in re-enable!"
+    if (debugLevel != "None") log.info "Waking up app in re-enable!"
     // now schedule the sleep again
     // pause for 3 secs so when we reschedule it wont run again immediately
     pauseExecution(3000)
@@ -265,7 +266,7 @@ def parse(String description) {
     
 private processData(data) {
 	if(data) {
-    	if (debugLevel != "None") log.debug "processData: ${data}"
+    	if (debugLevel != "None") log.infp "processData: ${data}"
         
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
@@ -292,7 +293,7 @@ private processData(data) {
             if (mileageScale == "M")
               {
                 def theRange = Math.round(data.chargeState.batteryRange)
-                log.debug "rounded range = $theRange"
+                if (debugLevel == "full") log.debug "rounded range = $theRange"
                 sendEvent(name: "batteryRange", value: theRange)
               }   
             else
@@ -526,7 +527,7 @@ private processData(data) {
 
 
 def refresh() {
-	if (debugLevel != "None") log.debug "Executing 'refresh'"
+	if (debugLevel != "None") log.info "Executing 'refresh'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
@@ -535,9 +536,9 @@ def refresh() {
     
     if (enableAddress)
     {
-        if (debug) log.info "Getting current Address"
+        if (debugLevel != "None") log.info "Getting current Address"
         def adata = parent.currentAddress(device.currentValue('vin'))
-        if (debug) log.debug "address data = $adata"
+        if (debugLevel == "Full") log.debug "address data = $adata"
         if (adata)
          sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
     }
@@ -545,7 +546,7 @@ def refresh() {
 }
 
 def reducedRefresh() {
-	 if (debugLevel != "None") log.debug "Executing 'reducedRefresh'"
+	 if (debugLevel != "None") log.info "Executing 'reducedRefresh'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
@@ -554,9 +555,9 @@ def reducedRefresh() {
     
     if (enableAddress)
     {
-        if (debug) log.info "Getting current Address"
+        if (debugLevel != "None") log.info "Getting current Address"
         def adata = parent.currentAddress(device.currentValue('vin'))
-        if (debug) log.debug "address data = $adata"
+        if (debugLevel == "Full") log.debug "address data = $adata"
         if (adata)
          sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
     }
@@ -577,9 +578,9 @@ def tempReducedRefresh()
   
    if (enableAddress)
     {
-        if (debug) log.info "Getting current Address"
+        if (debugLevel != "None") log.info "Getting current Address"
         def adata = parent.currentAddress(device.currentValue('vin'))
-        if (debug) log.debug "address data = $adata"
+        if (debugLevel == "full") log.debug "address data = $adata"
         if (adata)
          sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
     }
@@ -597,53 +598,53 @@ def wake() {
     
     log.debug "vin = $vin1"
     
-	if (debugLevel != "None") log.debug "Executing 'wake'"
+	if (debugLevel != "None") log.info "Executing 'wake'"
 	def data = parent.wake(device.currentValue('vin'))
     processData(data)
     runIn(30, refresh)
 }
 
 def lock() {
-	if (debugLevel != "None") log.debug "Executing 'lock'"
+	if (debugLevel != "None") log.info "Executing 'lock'"
 	def result = parent.lock(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def unlock() {
-	if (debugLevel != "None") log.debug "Executing 'unlock'"
+	if (debugLevel != "None") log.info "Executing 'unlock'"
 	def result = parent.unlock(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def auto() {
-	if (debugLevel != "None") log.debug "Executing 'auto'"
+	if (debugLevel != "None") log.info "Executing 'auto'"
 	def result = parent.climateAuto(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def off() {
-	if (debugLevel != "None") log.debug "Executing 'off'"
+	if (debugLevel != "None") log.info "Executing 'off'"
 	def result = parent.climateOff(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def heat() {
-	if (debugLevel != "None") log.debug "Executing 'heat'"
+	if (debugLevel != "None") log.warn "'heat but not supported.'"
 	// Not supported
 }
 
 def emergencyHeat() {
-	if (debugLevel != "None") log.debug "Executing 'emergencyHeat'"
+	if (debugLevel != "None") log.warn "'emergencyHeat not supported!'"
 	// Not supported
 }
 
 def cool() {
-	if (debugLevel != "None") log.debug "Executing 'cool'"
+	if (debugLevel != "None") log.warn "'cool not supported'"
 	// Not supported
 }
 
 def setThermostatMode(mode) {
-	if (debugLevel != "None") log.debug "Executing 'setThermostatMode'"
+	if (debugLevel != "None") log.info "Executing 'setThermostatMode'"
 	switch (mode) {
     	case "auto":
         	auto()
@@ -657,7 +658,7 @@ def setThermostatMode(mode) {
 }
 
 def setThermostatSetpoint(Number setpoint) {
-	if (debugLevel != "None") log.debug "Executing 'setThermostatSetpoint with temp scale $tempScale'"
+	if (debugLevel != "None") log.info "Executing 'setThermostatSetpoint with temp scale $tempScale'"
     if (tempScale == "F")
       {
 	    def result = parent.setThermostatSetpointF(device.currentValue('vin'), setpoint)
@@ -671,45 +672,45 @@ def setThermostatSetpoint(Number setpoint) {
 }
 
 def startCharge() {
-	if (debugLevel != "None") log.debug "Executing 'startCharge'"
+	if (debugLevel != "None") log.info "Executing 'startCharge'"
     def result = parent.startCharge(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def stopCharge() {
-	if (debugLevel != "None") log.debug "Executing 'stopCharge'"
+	if (debugLevel != "None") log.info "Executing 'stopCharge'"
     def result = parent.stopCharge(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def openFrontTrunk() {
-	if (debugLevel != "None") log.debug "Executing 'openFrontTrunk'"
+	if (debugLevel != "None") log.info "Executing 'openFrontTrunk'"
     def result = parent.openFrunk(device.currentValue('vin'))
      if (result) { refresh() }
 }
 
 def openOrCloseRearTrunk() {
-	if (debugLevel != "None") log.debug "Executing 'openRearTrunk'"
+	if (debugLevel != "None") log.info "Executing 'openRearTrunk'"
     def result = parent.openOrCloseTrunk(device.currentValue('vin'))
      if (result) { refresh() }
 }
 
 def unlockAndOpenChargePort() {
-	if (debugLevel != "None") log.debug "Executing 'unock and open charge port'"
+	if (debugLevel != "None") log.info "Executing 'unock and open charge port'"
     def result = parent.unlockandOpenChargePort(device.currentValue('vin'))
      if (result) { refresh() }   
 }  
 
 def setChargeLimit(Number Limit)
 {
-    if (debugLevel != "None") log.debug "Executing 'setChargeLimit with limit of $Limit %"
+    if (debugLevel != "None") log.info "Executing 'setChargeLimit with limit of $Limit %"
 	def result = parent.setChargeLimit(device.currentValue('vin'), Limit)
         if (result) { refresh() }
 }  
  
 def setChargeAmps(Number Amps)
 {
-    if (debugLevel != "None") log.debug "Executing 'setChargeAmpe with Amps = $Amps "
+    if (debugLevel != "None") log.info "Executing 'setChargeAmpe with Amps = $Amps "
 	def result = parent.setChargeAmps(device.currentValue('vin'), Amps)
         if (result) { refresh() }
 }    
@@ -720,100 +721,100 @@ def updated()
 }
 
 def setSeatHeaters(seat,level) {
-	if (debugLevel != "None") log.debug "Executing 'setSeatHeater'"
+	if (debugLevel != "None") log.info "Executing 'setSeatHeater'"
 	def result = parent.setSeatHeaters(device.currentValue('vin'), seat,level)
     if (result) { refresh() }
 }
 
 
 def setSeatCooling(seat,level) {
-	if (debugLevel != "None") log.debug "Executing 'setSeatCooling'"
+	if (debugLevel != "None") log.info "Executing 'setSeatCooling'"
 	def result = parent.setSeatCooling(device.currentValue('vin'), seat,level)
     if (result) { refresh() }
 }
 
 def sentryModeOn() {
-	if (debugLevel != "None") log.debug "Executing 'Turn Sentry Mode On'"
+	if (debugLevel != "None") log.info "Executing 'Turn Sentry Mode On'"
 	def result = parent.sentryModeOn(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def sentryModeOff() {
-	if (debugLevel != "None") log.debug "Executing 'Turn Sentry Mode Off'"
+	if (debugLevel != "None") log.info "Executing 'Turn Sentry Mode Off'"
 	def result = parent.sentryModeOff(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def valetModeOn() {
-	if (debugLevel != "None") log.debug "Executing 'Turn Valet Mode On'"
+	if (debugLevel != "None") log.info "Executing 'Turn Valet Mode On'"
 	def result = parent.valetModeOn(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def valetModeOff() {
-	if (debugLevel != "None") log.debug "Executing 'Turn Valet Mode Off'"
+	if (debugLevel != "None") log.info "Executing 'Turn Valet Mode Off'"
 	def result = parent.valetModeOff(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def ventWindows() {
-	if (debugLevel != "None") log.debug "Executing 'Venting Windows'"
+	if (debugLevel != "None") log.info "Executing 'Venting Windows'"
 	def result = parent.ventWindows(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def closeWindows() {
-	if (debugLevel != "None") log.debug "Executing 'Close Windows'"
+	if (debugLevel != "None") log.info "Executing 'Close Windows'"
 	def result = parent.closeWindows(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def steeringWheelHeatOn() {
-	if (debugLevel != "None") log.debug "Executing 'Steering Wheel Heat On'"
+	if (debugLevel != "None") log.info "Executing 'Steering Wheel Heat On'"
 	def result = parent.steeringWheelHeatOn(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def steeringWheelHeatOff() {
-	if (debugLevel != "None") log.debug "Executing 'Steering Wheel Heat Off'"
+	if (debugLevel != "None") log.info "Executing 'Steering Wheel Heat Off'"
 	def result = parent.steeringWheelHeatOff(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def startDefrost() {
-	if (debugLevel != "None") log.debug "Executing 'Start Max Defrost'"
+	if (debugLevel != "None") log.info "Executing 'Start Max Defrost'"
 	def result = parent.startDefrost(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def stopDefrost() {
-	if (debugLevel != "None") log.debug "Executing 'Stop Max Defrost'"
+	if (debugLevel != "None") log.info "Executing 'Stop Max Defrost'"
 	def result = parent.stopDefrost(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 
 def remoteStart() {
-	if (debugLevel != "None") log.debug "Executing 'Remote Start'"
+	if (debugLevel != "None") log.info "Executing 'Remote Start'"
 	def result = parent.remoteStart(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def ventSunroof() {
-	if (debugLevel != "None") log.debug "Executing 'Vent Sunroof'"
+	if (debugLevel != "None") log.info "Executing 'Vent Sunroof'"
 	def result = parent.ventSunroof(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 def closeSunroof() {
-	if (debugLevel != "None") log.debug "Executing 'Close Sunroof'"
+	if (debugLevel != "None") log.info "Executing 'Close Sunroof'"
 	def result = parent.closeSunroof(device.currentValue('vin'))
     if (result) { refresh() }
 }
 
 
 def listDrivers() {
-	if (debugLevel != "None") log.debug "Executing 'List Drivers'"
+	if (debugLevel != "None") log.info "Executing 'List Drivers'"
 	def result = parent.listDrivers(device.currentValue('vin'))
     log.debug "data = ${result.data}"
     if (result) { 
@@ -878,7 +879,7 @@ def double calculateDistanceBetweenTwoLatLongsInKm(double lat1, double lon1, dou
 
 def tempReducedRefreshKill()
 {
-    log.debug "Disabled Temp reduced refresh!"
+    if (debugLevel != "None") log.info "Disabled Temp reduced refresh!"
     state.tempReducedRefresh = false
     state.tempReducedRefreshTime = 0
     unschedule(tempReducedRefresh)
@@ -895,7 +896,7 @@ def reducedRefreshKill()
         {
              state.reducedRefreshDisabled = true
         }
-        if (debugLevel == "Full") log.debug "Disabling reduced refresh time."
+        if (debugLevel == "Full") log.info "Disabling reduced refresh time."
         unschedule(reducedRefresh)
         state.reducedRefresh = false 
        
@@ -916,7 +917,7 @@ def reducedRefreshKill()
 
 def setRefreshTime(String newRefreshTime)
 {  
-    log.debug "Refresh time currently set to: $refreshTime, overriding manually with $newRefreshTime"
+    if (debugLevel != "None") log.info "Refresh time currently set to: $refreshTime, overriding manually with $newRefreshTime"
  
     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
     sendEvent(name: "refreshTime", value: newrefreshTime)
@@ -959,7 +960,7 @@ def setRefreshTime(String newRefreshTime)
      }
     else if (newRefreshTime == "Disabled")
     {
-        log.debug "Disabling..."
+        if (debugLevel != "None") log.info "Disabling..."
         unschedule(refresh)
         device.updateSetting("refreshTime",[value:"Disabled",type:"enum"])
     }
@@ -970,7 +971,7 @@ def setRefreshTime(String newRefreshTime)
     
     else if (newRefreshTime == "30-Seconds")
     {
-        log.debug "Setting temp refresh to 30 seconds for 3 minutes!"
+        if (debugLevel != "None") log.info "Setting temp refresh to 30 seconds for 3 minutes!"
         unschedule(tempReducedRefresh)
         unschedule(tempReducedRefreshKill)
         state.tempReducedRefresh = true
@@ -981,7 +982,7 @@ def setRefreshTime(String newRefreshTime)
     }
     else if (newRefreshTime == "20-Seconds")
     {
-        log.debug "Setting temp refresh to 20 seconds for 3 minutes!"
+        if (debugLevel != "None") log.info "Setting temp refresh to 20 seconds for 3 minutes!"
         unschedule(tempReducedRefresh)
         unschedule(tempReducedRefreshKill)
         state.tempReducedRefresh = true
@@ -992,7 +993,7 @@ def setRefreshTime(String newRefreshTime)
     }
     else if (newRefreshTime == "10-Seconds")
     {
-        log.debug "Setting temp refresh to 10 seconds for 3 minutes!"
+        if (debugLevel != "None") log.info "Setting temp refresh to 10 seconds for 3 minutes!"
         unschedule(tempReducedRefresh)
         unschedule(tempReducedRefreshKill)
         state.tempReducedRefresh = true
@@ -1004,7 +1005,7 @@ def setRefreshTime(String newRefreshTime)
    
     else 
       { 
-          log.error "Unknown refresh time specified.. defaulting to 15 Minutes"
+          log.warn "Unknown refresh time specified.. defaulting to 15 Minutes"
           runEvery15Minutes(refresh)
           device.updateSetting("refreshTime",[value:"15-Minutes",type:"enum"])
       }
