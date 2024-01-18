@@ -1,5 +1,7 @@
+// lgk change all \n to \r\n so att mail to text does not reject the email
+//
 def smartAppNameFull() {
-    return  "BatteryMonitor SmartApp for SmartThings"
+    return  "BatteryMonitor SmartApp for Hubitat"
 }
 
 def smartAppNameShort() {
@@ -7,15 +9,15 @@ def smartAppNameShort() {
 }
 
 def smartAppVersion() {
-    return  "Version 0.0.5"
+    return  "Version 1.1"
 }
 
 def smartAppAuthor() {
-    return  "Author Brandon Gordon"
+    return  "Author Brandon Gordon, larry kahn"
 }
 
 def smartAppCopyright() {
-    return  "Copyright (c) 2014 Brandon Gordon"
+    return  "Copyright (c) 2014 Brandon Gordon, 2024 larry kah "
 }
 
 def smartAppSource() {
@@ -27,31 +29,31 @@ def smartAppDescription() {
 }
 
 def smartAppRevision () {
-    return  '2014-11-14  v0.0.1\n' +
-            ' * Initial release\n\n' +
-            '2014-11-15  v0.0.2\n' +
-            ' * Moved status to main page\n' +
-            ' * Removed status page\n' +
-            ' * Improved formatting of status page\n' +
-            ' * Added low, medium, high thresholds\n' +
-            ' * Handle battery status strings of OK and Low\n\n' +
-            '2014-11-15  v0.0.3\n' +
-            ' * Added push notifications\n\n' +
-            '2014-11-20  v0.0.4\n' +
-            ' * Added error handling for batteries that return strings\n\n' +
-            '2014-12-26  v0.0.5\n' +
-            ' * Move app metadata to a new about page\n' +
-            ' * Changed notifications to only send at specified time daily\n' +
-            ' * modified by lgkahn to send complete message whenever the schedule fires, showing the status of all devices.\n'
+    return  '2014-11-14  v0.0.1\r\n' +
+            ' * Initial release\r\n' +
+            '2014-11-15  v0.0.2\r\n' +
+            ' * Moved status to main page\r\n' +
+            ' * Removed status page\r\n' +
+            ' * Improved formatting of status page\r\n' +
+            ' * Added low, medium, high thresholds\r\n' +
+            ' * Handle battery status strings of OK and Low\r\n\r\n' +
+            '2014-11-15  v0.0.3\r\n' +
+            ' * Added push notifications\r\n\r\n' +
+            '2014-11-20  v0.0.4\r\n' +
+            ' * Added error handling for batteries that return strings\r\n\r\n' +
+            '2014-12-26  v0.0.5\r\n' +
+            ' * Move app metadata to a new about page\r\n' +
+            ' * Changed notifications to only send at specified time daily\r\n' +
+            ' * modified by lgkahn to send complete message whenever the schedule fires, showing the status of all devices.\r\n'
 }
 
 def smartAppLicense() {
     return  'Licensed under the Apache License, Version 2.0 (the "License"); you ' +
             'may not use this file except in compliance with the License. You ' +
             'may obtain a copy of the License at:' +
-            '\n\n' +
+            '\r\n\r\n' +
             'http://www.apache.org/licenses/LICENSE-2.0' +
-            '\n\n' +
+            '\r\n\r\n' +
             'Unless required by applicable law or agreed to in writing, software ' +
             'distributed under the License is distributed on an "AS IS" BASIS, ' +
             'WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or ' +
@@ -85,8 +87,8 @@ def pageAbout() {
 
     return dynamicPage(pageProperties) {
         section() {
-            paragraph smartAppVersion() + "\n" +
-                      smartAppAuthor() + "\n" +
+            paragraph smartAppVersion() + "\r\n" +
+                      smartAppAuthor() + "\r\n" +
                       smartAppCopyright()
         }
         
@@ -146,22 +148,22 @@ def pageStatus() {
         settings.devices.each() {
             try {
                 if (it.currentBattery == null) {
-                    listLevel0 += "$it.displayName\n"
+                    listLevel0 += "$it.displayName\r\n"
                 } else if (it.currentBattery >= 0 && it.currentBattery <  settings.level1.toInteger()) {
-                    listLevel1 += "$it.currentBattery  $it.displayName\n"
+                    listLevel1 += "$it.currentBattery  $it.displayName\r\n"
                 } else if (it.currentBattery >= settings.level1.toInteger() && it.currentBattery <= settings.level3.toInteger()) {
-                    listLevel2 += "$it.currentBattery  $it.displayName\n"
+                    listLevel2 += "$it.currentBattery  $it.displayName\r\n"
                 } else if (it.currentBattery >  settings.level3.toInteger() && it.currentBattery < 100) {
-                    listLevel3 += "$it.currentBattery  $it.displayName\n"
+                    listLevel3 += "$it.currentBattery  $it.displayName\r\n"
                 } else if (it.currentBattery == 100) {
-                    listLevel4 += "$it.displayName\n"
+                    listLevel4 += "$it.displayName\r\n"
                 } else {
-                    listLevel0 += "$it.currentBattery  $it.displayName\n"
+                    listLevel0 += "$it.currentBattery  $it.displayName\r\n"
                 }
             } catch (e) {
                 log.trace "Caught error checking battery status."
                 log.trace e
-                listLevel0 += "$it.displayName\n"
+                listLevel0 += "$it.displayName\r\n\r\n"
             }
         }
 
@@ -345,7 +347,7 @@ def nightlyStatus()
     def listLevel3 = ""
     def listLevel4 = ""
     def myhub =  location.hubs[0].name
-    def outgoingMsg = "For Hub: $myhub\n"
+    def outgoingMsg = "For Hub: $myhub\r\n"
     
     if (settings.level1 == null) { settings.level1 = 33 }
     if (settings.level3 == null) { settings.level3 = 67 }
@@ -355,50 +357,50 @@ def nightlyStatus()
         settings.devices.each() {
             try {
                 if (it.currentBattery == null) {
-                    listLevel0 += "$it.displayName\n"
+                    listLevel0 += "$it.displayName\r\n"
                 } else if (it.currentBattery >= 0 && it.currentBattery <  settings.level1.toInteger()) {
-                    listLevel1 += "$it.currentBattery  $it.displayName\n"
+                    listLevel1 += "$it.currentBattery  $it.displayName\r\n"
                 } else if (it.currentBattery >= settings.level1.toInteger() && it.currentBattery <= settings.level3.toInteger()) {
-                    listLevel2 += "$it.currentBattery  $it.displayName\n"
+                    listLevel2 += "$it.currentBattery  $it.displayName\r\n"
                 } else if (it.currentBattery >  settings.level3.toInteger() && it.currentBattery < 100) {
-                    listLevel3 += "$it.currentBattery  $it.displayName\n"
+                    listLevel3 += "$it.currentBattery  $it.displayName\r\n"
                 } else if (it.currentBattery == 100) {
-                    listLevel4 += "$it.displayName\n"
+                    listLevel4 += "$it.displayName\r\n"
                 } else {
-                    listLevel0 += "$it.currentBattery  $it.displayName\n"
+                    listLevel0 += "$it.currentBattery  $it.displayName\r\n"
                 }
             } catch (e) {
                 log.trace "Caught error checking battery status."
                 log.trace e
-                listLevel0 += "$it.displayName\n"
+                listLevel0 += "$it.displayName\r\n"
             }
         }
 
         if (listLevel0) {
-      	 	    outgoingMsg = outgoingMsg + "Batteries with errors or no status\n\n" +
+      	 	    outgoingMsg = outgoingMsg + "Batteries with errors or no status\r\n\r\n" +
                 listLevel0.trim()
             }
        
       // prepare message
       
         if (listLevel1) {
-     	  	    outgoingMsg = outgoingMsg + "\n\nBatteries with low charge (less than $settings.level1)\n\n" +
+     	  	    outgoingMsg = outgoingMsg + "\n\nBatteries with low charge (less than $settings.level1)\r\n\r\n" +
          		listLevel1.trim()
             }
     
         if (listLevel2) {
-       			 outgoingMsg = outgoingMsg + "\n\nBatteries with medium charge (between $settings.level1 and $settings.level3)\n\n" +
+       			 outgoingMsg = outgoingMsg + "\n\nBatteries with medium charge (between $settings.level1 and $settings.level3)\r\n\r\n" +
                  listLevel2.trim()
         }
 
         if (listLevel3) {
-                outgoingMsg = outgoingMsg + "\n\nBatteries with high charge (more than $settings.level3)\n\n" +
+                outgoingMsg = outgoingMsg + "\n\nBatteries with high charge (more than $settings.level3)\r\n\r\n" +
                 listLevel3.trim()
             }
 
 
         if (listLevel4) {
-              outgoingMsg = outgoingMsg + "\n\nBatteries with full charge\n\n" +
+              outgoingMsg = outgoingMsg + "\n\nBatteries with full charge\r\n\r\n" +
                  listLevel4.trim()
             }
       
