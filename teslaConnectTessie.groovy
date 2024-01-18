@@ -41,6 +41,7 @@
  * we previously showed 250 as it was truncating.
  *
  * 1/17 add current verion fx and print in logs in app and device in updated and initialize
+ * 1/18 clean up a couple of debug messages.
  *
  */
 
@@ -876,7 +877,7 @@ def notifyIfEnabled(message) {
 
 def currentVersion()
 {
-    return "1.50"
+    return "1.60"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
