@@ -1,7 +1,7 @@
 {
   "packageName": "Nightly Battery Monitor APP",
   "author": "Larry Kahn",
-  "version": "1.0",
+  "version": "1.1",
   "minimumHEVersion": "1.0",
   "dateReleased": "2020-10-19",
   "apps": [
