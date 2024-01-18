@@ -28,6 +28,9 @@
  * 
  * update for version 1.5 1/17/24
  * v 1.6 clean up debugging
+ * 
+ * v 1.7 add some vehicle config attributes: car_type, has_third_row_seats, has_seat_cooling, has_sunroof
+ * and check these when trying commands and print warning when using these commands if car does not have that feature.
  *
  */
 
@@ -94,6 +97,11 @@ metadata {
         attribute "method", "string"
         attribute "currentAddress", "string"
         attribute "usableBattery", "number"
+        attribute "has_Third_Row_Seats", "string"
+        attribute "has_Sunroof", "string"
+        attribute "car_Type", "string"
+        attribute "has_Seat_Cooling", "string"
+            
         
         attribute "zzziFrame", "text"
        
@@ -285,7 +293,7 @@ private processData(data) {
         sendEvent(name: "thermostatMode", value: data.thermostatMode)
         
         if (data.chargeState) {
-            if (debugLevel == "Full") log.debug "chargeState = $data.chargeState"
+            if (debugLevel == "Full") log.debug "chargeState = ${data.chargeState}"
             
         	sendEvent(name: "battery", value: data.chargeState.battery)
             sendEvent(name: "usableBattery", value: data.chargeState.usableBattery)
@@ -311,7 +319,7 @@ private processData(data) {
         }
         
         if (data.driveState) {
-            if (debugLevel == "Full") log.debug "DriveState = $data.driveState"
+            if (debugLevel == "Full") log.debug "DriveState = ${data.driveState}"
            	
             sendEvent(name: "method", value: data.driveState.method)
             sendEvent(name: "heading", value: data.driveState.heading)
@@ -418,7 +426,7 @@ private processData(data) {
         } // driver state processing
         
         if (data.vehicleState) {
-           if (debugLevel == "Full") log.debug "vehicle state = $data.vehicleState"
+            if (debugLevel == "Full") log.debug "vehicle state = ${data.vehicleState}"
             def toPSI  = 14.503773773
             
         	if (useAltPresence != true)
@@ -497,7 +505,7 @@ private processData(data) {
         }
         
         if (data.climateState) {
-            if (debugLevel == "Full") log.debug "climateState = $data.climateState"
+            if (debugLevel == "Full") log.debug "climateState = ${data.climateState}"
             if (tempScale == "F")
             {
         	  sendEvent(name: "temperature", value: data.climateState.temperature.toInteger(), unit: "F")
@@ -520,6 +528,23 @@ private processData(data) {
             sendEvent(name: "seat_heater_rear_center", value: data.climateState.seat_heater_rear_center)
 
         }
+        
+       if (data.vehicleConfig)
+        {
+            if (debugLevel == "Full") log.debug "VehicleConfig = ${data.vehicleConfig}"
+            
+            if (data.vehicleConfig.sunroof_installed)
+              sendEvent(name: "has_Sunroof", value: data.vehicleConfig.sunroof_installed)  
+            else  sendEvent(name: "has_Sunroof", value: "false")  
+            
+            if (data.vehicleConfig.has_third_row_seats)
+                sendEvent(name: "has_Third_Row_Seats", value: data.vehicleConfig.has_third_row_seats)   
+            else sendEvent(name: "has_Third_Row_Seats", value: "false") 
+            
+            sendEvent(name: "has_Seat_Cooling", value: data.vehicleConfig.has_seat_cooling)
+            sendEvent(name: "car_Type", value: data.vehicleConfig.car_type)
+        }
+         
 	} else {
     	log.error "No data found for ${device.deviceNetworkId}"
     }
@@ -722,15 +747,30 @@ def updated()
 
 def setSeatHeaters(seat,level) {
 	if (debugLevel != "None") log.info "Executing 'setSeatHeater'"
-	def result = parent.setSeatHeaters(device.currentValue('vin'), seat,level)
-    if (result) { refresh() }
+    if ((device.currentValue('has_Third_Row_Seats') == "None") && ((seat == "third_row_left") || (seat == "third_row_right")))
+    {
+     log.warn "Vehicle Does not have Third Row Seats! Operation Ignored!"
+    }
+    else
+    {
+	 def result = parent.setSeatHeaters(device.currentValue('vin'), seat,level)
+     if (result) { refresh() }
+    }
 }
-
 
 def setSeatCooling(seat,level) {
 	if (debugLevel != "None") log.info "Executing 'setSeatCooling'"
-	def result = parent.setSeatCooling(device.currentValue('vin'), seat,level)
-    if (result) { refresh() }
+    if (device.currentValue('has_Seat_Cooling') != "false")
+    {
+       if ((device.currentValue('has_Third_Row_Seats') == "None") && ((seat == "third_row_left") || (seat == "third_row_right")))
+         log.warn "Vehicle Does not have Third Row Seats! Operation Ignored!"
+        else
+        {
+   	      def result = parent.setSeatCooling(device.currentValue('vin'), seat,level)
+          if (result) { refresh() }
+        }
+    }
+  else log.warn "Vehicle Does not have Seat Cooling! Opearation Ignored!"
 }
 
 def sentryModeOn() {
@@ -802,16 +842,23 @@ def remoteStart() {
 
 def ventSunroof() {
 	if (debugLevel != "None") log.info "Executing 'Vent Sunroof'"
-	def result = parent.ventSunroof(device.currentValue('vin'))
-    if (result) { refresh() }
+    if (device.currentValue('has_Sunroof') != "false")
+    {
+	   def result = parent.ventSunroof(device.currentValue('vin'))
+       if (result) { refresh() }
+    }
+    else log.warn "Sunroof not present in Vehicle! Opearation Ignored!"
 }
 
 def closeSunroof() {
 	if (debugLevel != "None") log.info "Executing 'Close Sunroof'"
+    if (device.currentValue('has_Sunroof') != "false")
+    {
 	def result = parent.closeSunroof(device.currentValue('vin'))
     if (result) { refresh() }
+    }
+    else log.warn "Sunroof not present in Vehicle! Opearation Ignored!"      
 }
-
 
 def listDrivers() {
 	if (debugLevel != "None") log.info "Executing 'List Drivers'"
@@ -823,7 +870,6 @@ def listDrivers() {
         log.info ""
         refresh() }
 }
-
 
 private farenhietToCelcius(dF) {
 	return (dF - 32) * 5/9
