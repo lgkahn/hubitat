@@ -17,7 +17,7 @@ def smartAppAuthor() {
 }
 
 def smartAppCopyright() {
-    return  "Copyright (c) 2014 Brandon Gordon, 2024 larry kahn "
+    return  "Copyright (c) 2014 Brandon Gordon, 2024 larry kah "
 }
 
 def smartAppSource() {
@@ -384,23 +384,23 @@ def nightlyStatus()
       // prepare message
       
         if (listLevel1) {
-     	  	    outgoingMsg = outgoingMsg + "\n\nBatteries with low charge (less than $settings.level1)\r\n\r\n" +
+     	  	    outgoingMsg = outgoingMsg + "\r\n\r\nBatteries with low charge (less than $settings.level1)\r\n\r\n" +
          		listLevel1.trim()
             }
     
         if (listLevel2) {
-       			 outgoingMsg = outgoingMsg + "\n\nBatteries with medium charge (between $settings.level1 and $settings.level3)\r\n\r\n" +
+       			 outgoingMsg = outgoingMsg + "\r\n\r\nBatteries with medium charge (between $settings.level1 and $settings.level3)\r\n\r\n" +
                  listLevel2.trim()
         }
 
         if (listLevel3) {
-                outgoingMsg = outgoingMsg + "\n\nBatteries with high charge (more than $settings.level3)\r\n\r\n" +
+                outgoingMsg = outgoingMsg + "\r\n\r\nBatteries with high charge (more than $settings.level3)\r\n\r\n" +
                 listLevel3.trim()
             }
 
 
         if (listLevel4) {
-              outgoingMsg = outgoingMsg + "\n\nBatteries with full charge\r\n\r\n" +
+              outgoingMsg = outgoingMsg + "\r\n\r\nBatteries with full charge\r\n\r\n" +
                  listLevel4.trim()
             }
       
