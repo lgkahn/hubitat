@@ -266,7 +266,7 @@ def parse(String description) {
     
 private processData(data) {
 	if(data) {
-    	if (debugLevel != "None") log.infp "processData: ${data}"
+    	if (debugLevel != "None") log.info "processData: ${data}"
         
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
