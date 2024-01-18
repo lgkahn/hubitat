@@ -555,7 +555,7 @@ def wake(child) {
 
 private executeApiCommandMulti(Map options = [:], child, String command) {
     def result = false
-   if (descLog) log.debug "in execute api command Multi"
+   if (descLog) log.info "in execute api command Multi"
     authorizedHttpRequest(child,"/${child}/${command}", "GET", { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
        result = resp.data.results       
@@ -566,7 +566,7 @@ private executeApiCommandMulti(Map options = [:], child, String command) {
 
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
-   if (descLog) log.debug "in execute api command"
+   if (descLog) log.info "in execute api command"
     authorizedHttpRequest(child,"/${child}/${command}", "GET", { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
         if (debug)
@@ -584,7 +584,7 @@ private executeApiCommand(Map options = [:], child, String command) {
 
 private executeApiCommandWithTimeout(Map options = [:], child, String command, Number timeout) {
     def result = false
-   if (descLog) log.debug "in execute api command"
+   if (descLog) log.info "in execute api command"
     authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET", timeout, { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
        result = resp.data.result       
