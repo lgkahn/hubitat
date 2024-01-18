@@ -17,7 +17,7 @@ def smartAppAuthor() {
 }
 
 def smartAppCopyright() {
-    return  "Copyright (c) 2014 Brandon Gordon, 2024 larry kah "
+    return  "Copyright (c) 2014 Brandon Gordon, 2024 larry kahn "
 }
 
 def smartAppSource() {
