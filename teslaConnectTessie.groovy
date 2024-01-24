@@ -56,6 +56,7 @@
  *  v 1.81 change default for timeout to 300 from 90 as tessie seems to take longer to determine vehicle is asleep to save on api calls.
  *  also add code to check if temp is null before trying conversion from far. to celc. and vice versa.
  *
+ * v 1.82 set status to awake after a wake call so we get data immediately.4
  *
  */
 
@@ -919,7 +920,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.81"
+    return "1.82"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
