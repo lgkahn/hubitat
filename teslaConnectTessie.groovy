@@ -47,9 +47,9 @@
  * and check these when trying commands and print warning when using these commands if car does not have that feature.
  * unfortunately hubitat groovy does not support dynamic capabilities/commands.
  * 
- * v 1.8 check differenece of current time vs last response time for car.. if greater than user inputed time in seconds. 
+ * v 1.8 check difference of current time vs last response time for car.. if greater than user inputed time in seconds. 
  * then do a status command instead of state.. and see if car is asleep .
- * if it is asleep change schedule refers to do a status until it is awake. then change back to the normal state.
+ * if it is asleep change scheduled refresh to do a status until it is awake. then change back to the normal state.
  *
  * Relating to this is a new attribute currentVehicleState that can be checked..
  *
