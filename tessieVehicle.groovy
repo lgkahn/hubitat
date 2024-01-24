@@ -730,8 +730,6 @@ def tempReducedRefresh()
 def wake() {
     def vin1= device.currentValue('vin')
     
-    log.debug "vin = $vin1"
-    
 	if (debugLevel != "None") log.info "Executing 'wake'"
 	def data = parent.wake(device.currentValue('vin'))
     processData(data)
