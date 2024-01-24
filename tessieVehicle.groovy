@@ -38,9 +38,12 @@
  *
  * Relating to this is a new attribute currentVehicleState that can be checked..
  *
+ *  v 1.81 change default for timeout to 300 from 90 as tessie seems to take longer to determine vehicle is asleep to save on api calls.
+ *  also add code to check if temp is null before trying conversion from far. to celc. and vice versa.
+ *
+ *
  *
  */
-
 
 metadata {
 	definition (name: "tessieVehicle", namespace: "lgkahn", author: "Larry Kahn") {
@@ -110,8 +113,7 @@ metadata {
         attribute "car_Type", "string"
         attribute "has_Seat_Cooling", "string"
         attribute "currentVehicleState", "string"
-            
-        
+                   
         attribute "zzziFrame", "text"
        
 		command "wake"
@@ -171,12 +173,6 @@ metadata {
       
 	}
 
-
-	simulator {
-		// TODO: define status and reply messages here
-	}
-
-
     preferences
     {
        input "refreshTime", "enum", title: "How often to refresh?",options: ["Disabled","1-Hour", "30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes","1-Minute"],  required: true, defaultValue: "15-Minutes"
@@ -194,9 +190,8 @@ metadata {
        input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
        input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
        input "refreshOverrideTime", "enum", title: "How long to allow reduced refresh before giving up and go back to default (Also resets when you arrive)?",options: ["30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: false, defaultValue: "5-Minutes"     
-       input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 90)?",resuired:true, defaultValue:90
+       input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 300)?",resuired:true, defaultValue:300
     
-
     }
 }
 
@@ -223,7 +218,8 @@ def initialize() {
       
     log.info "Time after which to check if Vehicle is Asleep: ${numberOfSecsToConsiderCarAsleep}"
     state.currentVehicleState = "awake"
-      
+    sendEvent(name: "currentVehicleState", value: "awake")
+     
     state.reducedRefresh = false
     state.reducedRefreshDisabled = false    
     state.tempReducedRefresh = false
