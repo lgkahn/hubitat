@@ -53,6 +53,9 @@
  *
  * Relating to this is a new attribute currentVehicleState that can be checked..
  *
+ *  v 1.81 change default for timeout to 300 from 90 as tessie seems to take longer to determine vehicle is asleep to save on api calls.
+ *  also add code to check if temp is null before trying conversion from far. to celc. and vice versa.
+ *
  *
  */
 
@@ -550,18 +553,24 @@ String getWindowStatus(position)
 }
 
 private celciusToFarenhiet(dC) {
-    def fvalue  = dC * 9/5 +32
-    return fvalue.toInteger()
+    if (dC)
+    {
+     def fvalue  = dC * 9/5 +32
+     return fvalue.toInteger()
+    }
+    else return 0
 	//return dC * 9/5 + 32
 }
 
 private farenhietToCelcius(dF) {
+    if (dF)
 	return (dF - 32) * 5/9
+    else return 0
 }
 
 def wake(child) {
     
-    log.debug "in wake child = $child"
+    if (descLog) log.debug "in wake"
     
     def id = child
     def data = [:] 
@@ -910,7 +919,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.80"
+    return "1.81"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
