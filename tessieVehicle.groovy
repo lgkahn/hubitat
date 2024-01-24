@@ -41,7 +41,8 @@
  *  v 1.81 change default for timeout to 300 from 90 as tessie seems to take longer to determine vehicle is asleep to save on api calls.
  *  also add code to check if temp is null before trying conversion from far. to celc. and vice versa.
  *
- *
+ * v 1.82 force vehicle status to be awake after wakeup call so we get a full refresh.. otherwise it would wake up on first refersh and require a 2nd refresh before
+ * getting data.
  *
  */
 
@@ -723,6 +724,11 @@ def wake() {
 	if (debugLevel != "None") log.info "Executing 'wake'"
 	def data = parent.wake(device.currentValue('vin'))
     processData(data)
+    
+    // lgk add code here to set vehicle to awake so we get a full refresh
+    state.currentVehicleState = "awake"
+    sendEvent(name: "currentVehicleState", value: "awake")
+  
     runIn(30, refresh)
 }
 
