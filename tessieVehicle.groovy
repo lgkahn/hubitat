@@ -371,12 +371,6 @@ private processData(data) {
             
             if (debugLevel == "Full") log.debug "calculate difference in seconds from last update ($dstring) and now ($ct)"
              
-            // if the days are different assume asleep.
-            
-            def ctday = ct.format("dd")
-            def dtday = dstring.format("dd")
-            if (debugLevel == "Full")log.debug "current day = $ctday last update day = $dtday"
-            
             use (groovy.time.TimeCategory)
               {
                 diff = ct-dstring
@@ -387,7 +381,7 @@ private processData(data) {
            def secdiff = diff.getSeconds() 
            def finaldiff = (hrdiff * 3600) + (mindiff * 60) + secdiff
             
-           if (debugLevel == "Full") log.debug "Differenence in Seconds between now and last update = $finaldiff !"
+           if (debugLevel == "Full") log.debug "Difference in Seconds between now and last update = $finaldiff !"
                 
             if (finaldiff > numberOfSecsToConsiderCarAsleep)
               {
