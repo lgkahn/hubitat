@@ -214,7 +214,7 @@ def initialize() {
     sendEvent(name: "refreshTime", value: refreshTime)
     
     if (numberOfSecsToConsiderCarAsleep == null)
-      device.updateSetting("numberOfSecsToConsiderCarAsleep",[value:90])
+      device.updateSetting("numberOfSecsToConsiderCarAsleep",[value:300])
       
     log.info "Time after which to check if Vehicle is Asleep: ${numberOfSecsToConsiderCarAsleep}"
     state.currentVehicleState = "awake"
