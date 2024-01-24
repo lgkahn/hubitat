@@ -47,6 +47,12 @@
  * and check these when trying commands and print warning when using these commands if car does not have that feature.
  * unfortunately hubitat groovy does not support dynamic capabilities/commands.
  * 
+ * v 1.8 check differenece of current time vs last response time for car.. if greater than user inputed time in seconds. 
+ * then do a status command instead of state.. and see if car is asleep .
+ * if it is asleep change schedule refers to do a status until it is awake. then change back to the normal state.
+ *
+ * Relating to this is a new attribute currentVehicleState that can be checked..
+ *
  *
  */
 
@@ -588,7 +594,10 @@ private executeApiCommand(Map options = [:], child, String command) {
             if (resp.data.address)
             log.debug "Current Address = ${resp.data.address}"
         }
-        if (resp.data.address)
+        // special case status check
+        if (resp.data.status)
+          result = resp.data.status
+        else if (resp.data.address)
           result = resp.data.address
         else result = resp.data.result       
     })
@@ -889,9 +898,19 @@ def notifyIfEnabled(message) {
     }
 }
 
+def sleepStatus(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child, "status")
+}
+
+
 def currentVersion()
 {
-    return "1.70"
+    return "1.80"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
