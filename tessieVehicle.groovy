@@ -32,7 +32,15 @@
  * v 1.7 add some vehicle config attributes: car_type, has_third_row_seats, has_seat_cooling, has_sunroof
  * and check these when trying commands and print warning when using these commands if car does not have that feature.
  *
+ * v 1.8 check differenece of current time vs last response time for car.. if greater than user inputed time in seconds. 
+ * then do a status command instead of state.. and see if car is asleep .
+ * if it is asleep change schedule refers to do a status until it is awake. then change back to the normal state.
+ *
+ * Relating to this is a new attribute currentVehicleState that can be checked..
+ *
+ *
  */
+
 
 metadata {
 	definition (name: "tessieVehicle", namespace: "lgkahn", author: "Larry Kahn") {
@@ -101,6 +109,7 @@ metadata {
         attribute "has_Sunroof", "string"
         attribute "car_Type", "string"
         attribute "has_Seat_Cooling", "string"
+        attribute "currentVehicleState", "string"
             
         
         attribute "zzziFrame", "text"
@@ -185,6 +194,9 @@ metadata {
        input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
        input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
        input "refreshOverrideTime", "enum", title: "How long to allow reduced refresh before giving up and go back to default (Also resets when you arrive)?",options: ["30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: false, defaultValue: "5-Minutes"     
+       input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 90)?",resuired:true, defaultValue:90
+    
+
     }
 }
 
@@ -206,6 +218,12 @@ def initialize() {
     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
     sendEvent(name: "refreshTime", value: refreshTime)
     
+    if (numberOfSecsToConsiderCarAsleep == null)
+      device.updateSetting("numberOfSecsToConsiderCarAsleep",[value:90])
+      
+    log.info "Time after which to check if Vehicle is Asleep: ${numberOfSecsToConsiderCarAsleep}"
+    state.currentVehicleState = "awake"
+      
     state.reducedRefresh = false
     state.reducedRefreshDisabled = false    
     state.tempReducedRefresh = false
@@ -271,6 +289,21 @@ def reenable()
 def parse(String description) {
 	if (debugLevel == "Full") log.debug "Parsing '${description}'"
 }
+
+private processVehicleState(data)
+{
+    if (data) 
+    {
+       if (debugLevel != "None") log.info "processVehicleState: ${data}"
+  
+        if (data == "awake")
+        {
+           if (debugLevel != "None") log.info "Vehicle is again awake ... resuming normal refresh!"
+        }
+        state.currentVehicleState = data
+        sendEvent(name: "currentVehicleState", value: data)
+    }
+}           
     
 private processData(data) {
 	if(data) {
@@ -328,6 +361,57 @@ private processData(data) {
             sendEvent(name: "latitude", value: data.driveState.latitude)
              
             
+            // lgk calculate diff in date of last updat time and now
+    
+           if (data?.driveState?.lastUpdateTime)
+            {
+              def dstring = data.driveState.lastUpdateTime
+              def ct = new Date()
+                
+            
+            if (debugLevel == "Full") log.debug "calculate difference in seconds from last update ($dstring) and now ($ct)"
+             
+            // if the days are different assume asleep.
+            
+            def ctday = ct.format("dd")
+            def dtday = dstring.format("dd")
+            if (debugLevel == "Full")log.debug "current day = $ctday last update day = $dtday"
+            
+            use (groovy.time.TimeCategory)
+              {
+                diff = ct-dstring
+              }
+  
+           def hrdiff = diff.getHours()
+           def mindiff = diff.getMinutes()
+           def secdiff = diff.getSeconds() 
+           def finaldiff = (hrdiff * 3600) + (mindiff * 60) + secdiff
+            
+           if (debugLevel == "Full") log.debug "Differenence in Seconds between now and last update = $finaldiff !"
+                
+            if (finaldiff > numberOfSecsToConsiderCarAsleep)
+              {
+               if (debugLevel != "None")  
+                  log.info "$finaldiff is greater than $numberOfSecsToConsiderCarAsleep secs... Checking if car is asleep!"
+                  
+               def result = parent.sleepStatus(device.currentValue('vin'))
+                  if (result)
+                  {  
+                      if (debugLevel == "Full") log.debug "got result $result" 
+                      if (result != "awake")
+                      {
+                            if (debugLevel != None)
+                              log.info "Car is $result"
+                              
+                             state.currentVehicleState = result
+                             sendEvent(name: "currentVehicleState", value: result)
+                      }     
+                       
+                  }
+              }
+                    
+            }
+        
             updateIFrame()
             
             if (useAltPresence == true)
@@ -556,18 +640,26 @@ def refresh() {
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
-    def data = parent.refresh(device.currentValue('vin'))
-	processData(data)
+    // lgk if vehicle asleep just do state instead of normal refresh
+    if (state.currentVehicleState == "awake")
+    {      
+       def data = parent.refresh(device.currentValue('vin'))
+	   processData(data)
     
-    if (enableAddress)
-    {
+      if (enableAddress)
+      {
         if (debugLevel != "None") log.info "Getting current Address"
         def adata = parent.currentAddress(device.currentValue('vin'))
         if (debugLevel == "Full") log.debug "address data = $adata"
         if (adata)
          sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+      }
     }
- 
+    else
+    {
+      def data = parent.sleepStatus(device.currentValue('vin'))
+      processVehicleState(data)
+    }
 }
 
 def reducedRefresh() {
@@ -575,18 +667,26 @@ def reducedRefresh() {
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
    
-    def data = parent.refresh(device.currentValue('vin'))
-	processData(data)
+ // lgk if vehicle asleep just do state instead of normal refresh
+    if (state.currentVehicleState == "awake")
+    {      
+         def data = parent.refresh(device.currentValue('vin'))
+	   processData(data)
     
-    if (enableAddress)
-    {
-        if (debugLevel != "None") log.info "Getting current Address"
-        def adata = parent.currentAddress(device.currentValue('vin'))
-        if (debugLevel == "Full") log.debug "address data = $adata"
-        if (adata)
-         sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+       if (enableAddress)
+        {
+          if (debugLevel != "None") log.info "Getting current Address"
+          def adata = parent.currentAddress(device.currentValue('vin'))
+          if (debugLevel == "Full") log.debug "address data = $adata"
+          if (adata)
+           sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+        }
     }
- 
+    else
+    {
+      def data = parent.sleepStatus(device.currentValue('vin'))
+      processVehicleState(data)
+    }      
 }
 
 def tempReducedRefresh()
@@ -597,18 +697,27 @@ def tempReducedRefresh()
      if (debugLevel != "None") log.debug "Executing 'tempReducedRefresh'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
-   
-    def data = parent.refresh(device.currentValue('vin'))
-	processData(data)
+ 
+    // lgk if vehicle asleep just do state instead of normal refresh
+    if (state.currentVehicleState == "awake")
+    {      
+      def data = parent.refresh(device.currentValue('vin'))
+	  processData(data)
   
-   if (enableAddress)
-    {
+     if (enableAddress)
+      {
         if (debugLevel != "None") log.info "Getting current Address"
         def adata = parent.currentAddress(device.currentValue('vin'))
         if (debugLevel == "full") log.debug "address data = $adata"
         if (adata)
          sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+      }
     }
+      else
+    {
+      def data = parent.sleepStatus(device.currentValue('vin'))
+      processVehicleState(data)
+    } 
     
     // reschedule if still true
 
