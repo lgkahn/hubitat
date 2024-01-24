@@ -32,9 +32,9 @@
  * v 1.7 add some vehicle config attributes: car_type, has_third_row_seats, has_seat_cooling, has_sunroof
  * and check these when trying commands and print warning when using these commands if car does not have that feature.
  *
- * v 1.8 check differenece of current time vs last response time for car.. if greater than user inputed time in seconds. 
+ * v 1.8 check difference of current time vs last response time for car.. if greater than user inputed time in seconds. 
  * then do a status command instead of state.. and see if car is asleep .
- * if it is asleep change schedule refers to do a status until it is awake. then change back to the normal state.
+ * if it is asleep change scheduled refresh to do a status until it is awake. then change back to the normal state.
  *
  * Relating to this is a new attribute currentVehicleState that can be checked..
  *
