@@ -64,6 +64,7 @@
  * Also change wording on wake on initial try and change default to false. Also handle org.apache.http.conn.ConnectTimeoutException in case
  * net is down in a similar way.
  *
+ *
  */
 
 import groovy.transform.Field
@@ -218,8 +219,7 @@ private authorizedHttpRequestWithTimeout(String child, String path, String metho
     try {
               
     	def requestParameters = [
-            uri: 'http://192.16.1.20',
-           // uri: serverUrl + path, 
+            uri: serverUrl + path, 
             timeout: timeout,
             headers: [
                 'User-Agent': userAgent,
