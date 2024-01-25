@@ -56,7 +56,9 @@
  *  v 1.81 change default for timeout to 300 from 90 as tessie seems to take longer to determine vehicle is asleep to save on api calls.
  *  also add code to check if temp is null before trying conversion from far. to celc. and vice versa.
  *
- * v 1.82 set status to awake after a wake call so we get data immediately.4
+ * v 1.82 set status to awake after a wake call so we get data immediately.
+ *
+ * v 1.85 retry requests up to 3 times with exponential raise in timeouts.
  *
  */
 
@@ -198,10 +200,10 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
     }
 }
 
-private authorizedHttpRequestWithTimeout(String child, String path, String method, Number timeout, Closure closure) {
+private authorizedHttpRequestWithTimeout(String child, String path, String method, Number timeout, Number tries, Closure closure) {
    if (debug) log.debug "in authorize http req"
    
-    if (descLog) log.info "authorizedHttpRequest with timeout ${method} ${path}"
+    if (descLog) log.info "authorizedHttpRequestWithTimeout ${method} ${path} try: ${tries}"
     if (debug)
     {
     log.debug "token = ${state.tessieAccessToken}"
@@ -244,70 +246,22 @@ private authorizedHttpRequestWithTimeout(String child, String path, String metho
         log.debug "in error handler case resp = $resp e= $e response data = e.response"
         if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
            {
-            log.debug "code - 14 or 401"
-      
-        } else {
-        	log.error "Request failed for path: ${path}.  ${e.response?.data}"
-            
+            log.debug "code - 14 or 401"     
         }
-
-    }
-}
-
-private authorizedHttpRequest(String child, String path, String method, Closure closure) {
-   if (debug) log.debug "in authorize http req"
-   
-    if (descLog) log.info "authorizedHttpRequest ${method} ${path}"
-    if (debug)
-    {
-    log.debug "token = ${state.tessieAccessToken}"
-    log.debug "server url = $serverUrl"
-    log.debug "path = $path"
-    log.debug "method = $method"
-    }
-   
-    def timeout = 20
-    
-    try {
-              
-    	def requestParameters = [
-            uri: serverUrl + path,
-            timeout: timeout,         
-            headers: [
-                'User-Agent': userAgent,
-                Authorization: "Bearer ${state.tessieAccessToken}"
-            ]
-        ]
-    
-        if (debug) log.debug "request parms = ${requestParameters}"
+        else
+           {                   
+            if (tries >= 3)
+               {
+                   log.error "Request failed 3 times for path: ${path}, ${e.response?.data} - Giving up!"
+               } 
+             else
+              {
+               def newtimeout = timeout * 2
+               authorizedHttpRequestWithTimeout(child,path,method,newtimeout,++tries,closure)
+              }
+           }
+        } 
             
-    	if (method == "GET") {
-            httpGet(requestParameters) { resp -> closure(resp) }
-        } else if (method == "POST") {
-           httpPostJson(requestParameters) { resp -> closure(resp) }
-      
-            if (debug) {
-                log.debug "in put case"
-                log.debug "parms = $requestParameters"
-            }
-                
-                 httpPostJson(requestParameters) { resp -> closure(resp) }
-        		          
-        } else {
-        	log.error "Invalid method ${method}"
-        }
-    } catch (groovyx.net.http.HttpResponseException e) {
-        log.debug "in error handler case resp = $resp e= $e response data = e.response"
-        if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
-           {
-            log.debug "code - 14 or 401"
-      
-        } else {
-        	log.error "Request failed for path: ${path}.  ${e.response?.data}"
-            
-        }
-
-    }
 }
 
 private refreshAccountVehicles() {
@@ -446,7 +400,7 @@ def refresh(child) {
     def data = [:]
 	def id = child
 
-    	authorizedHttpRequest(child,"/${id}/state", "GET", { resp ->
+    	authorizedHttpRequestWithTimeout(child,"/${id}/state", "GET", 20, 1, { resp ->
             
          if (debug) log.debug "In refresh data = ${resp.data}"
             
@@ -574,9 +528,10 @@ def wake(child) {
     if (descLog) log.debug "in wake"
     
     def id = child
-    def data = [:] 
+    def data = [:]
  
-    authorizedHttpRequest( child,"/${id}/wake", "GET", { resp ->
+ 
+    authorizedHttpRequestWithTimeout( child,"/${id}/wake","GET",20,1, { resp ->
         data = transformWakeResponse(resp)
     })
      
@@ -585,8 +540,8 @@ def wake(child) {
 
 private executeApiCommandMulti(Map options = [:], child, String command) {
     def result = false
-   if (descLog) log.info "in execute api command Multi"
-    authorizedHttpRequest(child,"/${child}/${command}", "GET", { resp ->
+   if (descLog) log.info "ExecuteApiCommandMulti"
+    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
        result = resp.data.results       
     })
@@ -596,8 +551,8 @@ private executeApiCommandMulti(Map options = [:], child, String command) {
 
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
-   if (descLog) log.info "in execute api command"
-    authorizedHttpRequest(child,"/${child}/${command}", "GET", { resp ->
+   if (descLog) log.info "executeApiCommand"
+    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
         if (debug)
         {
@@ -614,17 +569,20 @@ private executeApiCommand(Map options = [:], child, String command) {
     return result
 }
 
-
-private executeApiCommandWithTimeout(Map options = [:], child, String command, Number timeout) {
+private executeApiCommandWithTimeout(Map options = [:], child, String command, Number timeout)
+ {
+  
     def result = false
-   if (descLog) log.info "in execute api command"
-    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET", timeout, { resp ->
-        if (debug) log.debug "resp data = ${resp.data}"
-       result = resp.data.result       
-    })
-    return result
-}
+    def tries = 1
+     
+   if (descLog) log.info "ExecuteApiCommandtWithTimeout $timeout"
 
+        authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET", timeout, tries, { resp ->
+        if (debug) log.debug "resp data = ${resp.data}"
+       result = resp.data.result })
+          
+       return result
+}
 
 def lock(child) {
    if (wakeOnInitialTry)
@@ -914,13 +872,13 @@ def sleepStatus(child) {
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "status")
+	return executeApiCommandWithTimeout(child, "status",20)
 }
 
 
 def currentVersion()
 {
-    return "1.82"
+    return "1.85"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
