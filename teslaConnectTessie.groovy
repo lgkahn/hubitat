@@ -60,6 +60,10 @@
  *
  * v 1.85 retry requests up to 3 times with exponential raise in timeouts.
  *
+ * v 1.86 refine retry code to only raise timeout and retry on java.net.SocketTimeoutException: Read timed out error. 
+ * Also change wording on wake on initial try and change default to false. Also handle org.apache.http.conn.ConnectTimeoutException in case
+ * net is down in a similar way.
+ *
  */
 
 import groovy.transform.Field
@@ -88,8 +92,8 @@ def loginToTesla() {
             input "tessieAccessToken", "string", title: "Input your Tessie Access Token?", required: true
 	        input "debug", "bool", title: "Enable detailed debugging?", required: true, defaultValue: false
             input "descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true
-            input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issuing the requested command.", required: true, defaultValue: "10", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
-            input "wakeOnInitialTry", "bool", title: "Should I issue a wake and pause on the inital try?", required: true, defaultValue: true                                                                                                                                      
+            input "pauseTime", "enum", title: "Time (in seconds) to automatically Wait/Pause after a wake before issuing the requested command.", required: true, defaultValue: "15", options:["2","3","4","5","6","7","8","9","10","15","20","30"]
+            input "wakeOnInitialTry", "bool", title: "Should I issue a wake and pause (the above time) on every command issued - (Not necessary with Tessie unless you want the car awake on every refresh)?", required: true, defaultValue: false                                                                                                                                      
         }   
         }
               
@@ -146,7 +150,6 @@ private convertEpochSecondsToDate(epoch) {
     
 private authorizedHttpVehicleRequest(String path, String method, Closure closure) {
    if (debug) log.debug "in authorize http req"
- //   def attempt = options.attempt ?: 0
    
     if (descLog) log.info "authorizedHttpVehicleRequest ${method} ${path}"
     if (debug)
@@ -187,24 +190,23 @@ private authorizedHttpVehicleRequest(String path, String method, Closure closure
         } else {
         	log.error "Invalid method ${method}"
         }
-    } catch (groovyx.net.http.HttpResponseException e) {
-        log.debug "in error handler case resp = $resp e= $e response data = e.response"
+    } catch (groovyx.net.http.HttpResponseException | java.net.SocketTimeoutException | org.apache.http.conn.ConnectTimeoutException e) {
+        log.debug "in error handler case resp = $resp $e"
         if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
            {
             log.debug "code - 14 or 401"
         } else {
-        	log.error "Request failed for path: ${path}.  ${e.response?.data}"
-           
+        	log.error "Request failed for path: ${path}. $e"         
         }
 
     }
 }
 
 private authorizedHttpRequestWithTimeout(String child, String path, String method, Number timeout, Number tries, Closure closure) {
-   if (debug) log.debug "in authorize http req"
+   if (debug) log.debug "AuthorizeHttpRequestWithTimeout"
    
     if (descLog) log.info "authorizedHttpRequestWithTimeout ${method} ${path} try: ${tries}"
-    if (debug)
+   if (debug)
     {
     log.debug "token = ${state.tessieAccessToken}"
     log.debug "server url = $serverUrl"
@@ -216,7 +218,8 @@ private authorizedHttpRequestWithTimeout(String child, String path, String metho
     try {
               
     	def requestParameters = [
-            uri: serverUrl + path, 
+            uri: 'http://192.16.1.20',
+           // uri: serverUrl + path, 
             timeout: timeout,
             headers: [
                 'User-Agent': userAgent,
@@ -227,7 +230,8 @@ private authorizedHttpRequestWithTimeout(String child, String path, String metho
     
         if (debug) log.debug "request parms = ${requestParameters}"
             
-    	if (method == "GET") {
+    	if (method == "GET") {   
+            
             httpGet(requestParameters) { resp -> closure(resp) }
         } else if (method == "POST") {
            httpPostJson(requestParameters) { resp -> closure(resp) }
@@ -242,26 +246,29 @@ private authorizedHttpRequestWithTimeout(String child, String path, String metho
         } else {
         	log.error "Invalid method ${method}"
         }
-    } catch (groovyx.net.http.HttpResponseException e) {
-        log.debug "in error handler case resp = $resp e= $e response data = e.response"
+    } catch (groovyx.net.http.HttpResponseException e)
+       {
+        log.debug "In general error handler case resp = $resp $e"
         if ((e.response?.data?.status?.code == 14) || (e.response?.data?.status?.code == 401))
            {
             log.debug "code - 14 or 401"     
-        }
-        else
-           {                   
-            if (tries >= 3)
-               {
-                   log.error "Request failed 3 times for path: ${path}, ${e.response?.data} - Giving up!"
-               } 
-             else
-              {
-               def newtimeout = timeout * 2
-               authorizedHttpRequestWithTimeout(child,path,method,newtimeout,++tries,closure)
-              }
            }
-        } 
-            
+        else log.error "Request failed for ${path}, ${e.response?.data} - $e!"
+       }
+    
+     catch (java.net.SocketTimeoutException | org.apache.http.conn.ConnectTimeoutException e)
+       {
+        log.warn "In timeout error handler case $e for try: $tries"                     
+        if (tries > 2)
+          {    
+            log.error "Request failed 3 times for path: ${path}, ${e} - Giving up!"
+          } 
+         else
+         {
+           def newtimeout = timeout * 2
+           authorizedHttpRequestWithTimeout(child,path,method,newtimeout,++tries,closure)
+         }
+       } 
 }
 
 private refreshAccountVehicles() {
@@ -399,7 +406,7 @@ def refresh(child) {
    if (descLog) log.info "in refresh child"
     def data = [:]
 	def id = child
-
+    
     	authorizedHttpRequestWithTimeout(child,"/${id}/state", "GET", 20, 1, { resp ->
             
          if (debug) log.debug "In refresh data = ${resp.data}"
@@ -551,14 +558,12 @@ private executeApiCommandMulti(Map options = [:], child, String command) {
 
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
+    
    if (descLog) log.info "executeApiCommand"
+    
     authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
-        if (debug)
-        {
-            if (resp.data.address)
-            log.debug "Current Address = ${resp.data.address}"
-        }
+      
         // special case status check
         if (resp.data.status)
           result = resp.data.status
@@ -579,8 +584,14 @@ private executeApiCommandWithTimeout(Map options = [:], child, String command, N
 
         authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET", timeout, tries, { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
-       result = resp.data.result })
-          
+            
+          // special case status check
+        if (resp.data.status)
+          result = resp.data.status
+        else if (resp.data.address)
+          result = resp.data.address
+        else result = resp.data.result                      
+        })        
        return result
 }
 
@@ -872,6 +883,7 @@ def sleepStatus(child) {
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
+    
 	return executeApiCommandWithTimeout(child, "status",20)
 }
 
