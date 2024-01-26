@@ -219,11 +219,11 @@ private authorizedHttpRequestWithTimeout(String child, String path, String metho
     try {
               
     	def requestParameters = [
+            //uri: 'http://192.168.2.5', test to force connection timeout failure
             uri: serverUrl + path, 
             timeout: timeout,
             headers: [
-                'User-Agent': userAgent,
-               
+                'User-Agent': userAgent,               
                 Authorization: "Bearer ${state.tessieAccessToken}"
             ]
         ]
