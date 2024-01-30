@@ -44,6 +44,8 @@
  * v 1.82 force vehicle status to be awake after wakeup call so we get a full refresh.. otherwise it would wake up on first refersh and require a 2nd refresh before
  * getting data.
  *
+ * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
+ *
  */
 
 metadata {
@@ -437,7 +439,7 @@ private processData(data) {
                     sendEvent(name: "altPresent", value: "present")
                     sendEvent(name: "presence", value: "present")
                     state.reducedRefresh = false
-                    state.reduceedRefreshDisabled = false
+                    state.reducedRefreshDisabled = false
                     unschedule(reducedRefreshKill)
                     unschedule(reducedRefresh)
                 }
