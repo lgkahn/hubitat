@@ -308,7 +308,7 @@ private processData(data) {
                     sendEvent(name: "altPresent", value: "present")
                     sendEvent(name: "presence", value: "present")
                     state.reducedRefresh = false
-                    state.reduceedRefreshDisabled = false
+                    state.reducedRefreshDisabled = false
                     unschedule(reducedRefreshKill)
                     unschedule(reducedRefresh)
                 }
