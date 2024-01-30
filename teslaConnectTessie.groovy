@@ -64,6 +64,8 @@
  * Also change wording on wake on initial try and change default to false. Also handle org.apache.http.conn.ConnectTimeoutException in case
  * net is down in a similar way.
  *
+ * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
+ *
  *
  */
 
@@ -890,7 +892,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.86"
+    return "1.90"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
