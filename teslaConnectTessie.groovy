@@ -65,6 +65,7 @@
  * net is down in a similar way.
  *
  * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
+ * v 1.91 handle speed of 0 interpeted as null.
  *
  *
  */
@@ -892,7 +893,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.90"
+    return "1.91"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
