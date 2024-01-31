@@ -234,8 +234,12 @@ private processData(data) {
           }   
          else
           {
-           double kspd = (data.speed) *  1.609344   
-           sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
+           if (data.speed)
+              {
+               double kspd = (data.speed) *  1.609344   
+               sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
+              }
+            else sendEvent(name: "speed", value: 0, unit: "kph")
           }
           
         sendEvent(name: "vin", value: data.vin)
