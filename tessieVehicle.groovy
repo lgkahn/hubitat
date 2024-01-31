@@ -45,6 +45,7 @@
  * getting data.
  *
  * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
+ * v 1.91 handle speed of 0 interpeted as null.
  *
  */
 
@@ -317,8 +318,13 @@ private processData(data) {
           }   
          else
           {
-           double kspd = (data.speed) *  1.609344   
-           sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
+           // handle speed of 0 which is interpreted as null
+            if (data.speed)
+              {
+               double kspd = (data.speed) *  1.609344   
+               sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
+              }
+             else sendEvent(name: "speed", value: 0, unit: "kph")
           }
           
         sendEvent(name: "vin", value: data.vin)
@@ -497,8 +503,6 @@ private processData(data) {
                 } // inner boundry check
                 } // not already done and disabled
               } // do alt presence check
-            
-            //sendEvent(name: "speed", value: data.driveState.speed)
             
         } // driver state processing
         
