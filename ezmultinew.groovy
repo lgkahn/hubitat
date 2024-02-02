@@ -22,6 +22,8 @@
 // v0.0.8 - DrZWave 2/25/2015 - change the color control to be tiles since there are only 8 colors.
 // v0.0.7 - jrs - 02/23/2015 - Jim Sulin
 // lgk v1.0 add debug and info logging options and auto turn off for debugging
+// lgk v 1.1 add state variabled to cache saturation and hue and implement the sethue and setsaturation function,
+// also add the initialize fx
 
 metadata {
         definition (name: "EZmultiPli new", namespace: "erocm123", author: "Eric Maycock", oauth: true) {
@@ -33,6 +35,10 @@ metadata {
         capability "Configuration"
         capability "Refresh"
         capability "Health Check"
+            
+        attribute "hue", "Number"
+        attribute "saturation", "Number"
+        attribute "level", "number"
 
         fingerprint mfr: "001E", prod: "0004", model: "0001", deviceJoinName: "EZmultiPli"
 
@@ -78,6 +84,14 @@ def parse(String description){
         return result
 }
 
+def initialize()
+{
+    log.info "initialize"
+    
+    state.color = "#00ff00"
+    state.hue = 70
+    state.Saturation = 100
+}
 
 // Event Generation
 def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd){
@@ -132,6 +146,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 
 def updated()
 {
+    initialize()
     if (debugEnable) log.debug "updated() is being called"
     sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
     
@@ -164,6 +179,64 @@ def off() {
         ], 500)
 }
 
+
+def setSaturation(value)
+{
+    if ((debugEnable) || (descLog)) log.info "setSaturation() : ${value}"
+    
+    if ((value < 0) || (value > 100))
+     log.error "Saturation Value must be between 0 and 100!"
+    
+    else
+    {
+        
+     //lgk implement that but getting last hue and passing to set color
+     def newvalue = [:]
+                    
+     newvalue.saturation = value
+     newvalue.hue = state.hue
+     newvalue.level = state.level
+     setColor(newvalue)
+    }
+}
+
+def getHue()
+{
+   return state.hue
+}
+
+def getSaturation()
+{
+    return state.saturation
+}
+
+def getColor()
+{
+    return state.color
+}
+                    
+def setHue(value)
+{
+    if ((debugEnable) || (descLog)) log.info "setHue() : ${value}"
+    
+    if ((value < 0) || (value > 100))
+     log.error "Hue Value must be between 0 and 100!"
+    
+    else
+    {
+        
+     //lgk implement that but getting last hue and passing to set color
+     def newvalue = [:]
+                    
+     newvalue.hue = value
+     newvalue.saturation = state.saturation
+     newvalue.level = state.level
+        
+     log.debug "new value = ${newvalue}"
+     setColor(newvalue)
+    }
+               
+}
 
 def setColor(value) {
     if ((debugEnable) || (descLog)) log.info "setColor() : ${value}"
@@ -215,9 +288,18 @@ def setColor(value) {
     }
    // cmds << " delay 100"
     cmds << zwave.basicV1.basicGet()
+    
+    sendEvent(name:"hue", value: value.hue)
+  
+    sendEvent(name:"saturation", value: value.saturation)
+    sendEvent(name:"level", value: value.level)
+    state.hue = value.hue
+    state.saturation = value.saturation
+    state.level = value.level           
 
     hexValue = rgbToHex([r:myred, g:mygreen, b:myblue])
-    if(hexValue) sendEvent(name: "color", value: hexValue, displayed: true)
+    if(hexValue) sendEvent(name: "color", value: hexValue, displayed: true) 
+    state.color = hexValue
 	commands(cmds)
 }
 
