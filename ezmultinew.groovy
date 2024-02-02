@@ -199,22 +199,7 @@ def setSaturation(value)
      setColor(newvalue)
     }
 }
-
-def getHue()
-{
-   return state.hue
-}
-
-def getSaturation()
-{
-    return state.saturation
-}
-
-def getColor()
-{
-    return state.color
-}
-                    
+         
 def setHue(value)
 {
     if ((debugEnable) || (descLog)) log.info "setHue() : ${value}"
@@ -225,7 +210,7 @@ def setHue(value)
     else
     {
         
-     //lgk implement that but getting last hue and passing to set color
+     //lgk implement that but getting last saturation and passing to set color
      def newvalue = [:]
                     
      newvalue.hue = value
