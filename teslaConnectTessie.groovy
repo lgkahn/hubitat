@@ -66,6 +66,7 @@
  *
  * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
  * v 1.91 handle speed of 0 interpeted as null.
+ * v 1.92 add savedLocation attribute and populate from tessie
  *
  *
  */
@@ -559,6 +560,30 @@ private executeApiCommandMulti(Map options = [:], child, String command) {
 }
 
 
+private executeApiCommandForAddress(Map options = [:], child, String command) {
+    def result = [:]
+    
+   if (descLog) log.info "executeApiCommandForAddress"
+    
+    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
+        //if (debug) 
+        log.debug "resp data = ${resp.data}"
+     
+        result.address = "Unknown"
+        result.status = false
+        result.savedLocation = "N/A"
+    
+        if (resp.data.address)
+        {
+          result.address = resp.data.address
+          result.status = true
+           if (resp.data.saved_location)
+             result.savedLocation = resp.data.saved_location  
+        }
+    })
+    return result
+}
+
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
     
@@ -570,8 +595,8 @@ private executeApiCommand(Map options = [:], child, String command) {
         // special case status check
         if (resp.data.status)
           result = resp.data.status
-        else if (resp.data.address)
-          result = resp.data.address
+       //else if (resp.data.address)
+        //  result = resp.data.address
         else result = resp.data.result       
     })
     return result
@@ -871,7 +896,7 @@ def currentAddress(child) {
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
-	return executeApiCommand(child, "location")
+	return executeApiCommandForAddress(child, "location")
 }
 
 def notifyIfEnabled(message) {
@@ -893,7 +918,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.91"
+    return "1.92"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
