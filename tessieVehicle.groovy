@@ -46,6 +46,7 @@
  *
  * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
  * v 1.91 handle speed of 0 interpeted as null.
+ * v 1.92 new attribute savedLocation
  *
  */
 
@@ -117,6 +118,7 @@ metadata {
         attribute "car_Type", "string"
         attribute "has_Seat_Cooling", "string"
         attribute "currentVehicleState", "string"
+        attribute "savedLocation", "string"
                    
         attribute "zzziFrame", "text"
        
@@ -648,8 +650,16 @@ def refresh() {
         if (debugLevel != "None") log.info "Getting current Address"
         def adata = parent.currentAddress(device.currentValue('vin'))
         if (debugLevel == "Full") log.debug "address data = $adata"
-        if (adata)
-         sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+        if (adata?.status)
+          {
+             sendEvent(name: "currentAddress", value: adata.address, descriptionText: "Current Address: ${adata.address}")
+             sendEvent(name: "savedLocation", value: adata.savedLocation, descriptionText: "Location: ${adata.savedLocation}")
+          }
+          else 
+          {
+            sendEvent(name: "currentAddress", value: "Unknown", descriptionText: "Current Address: Unknown")
+            sendEvent(name: "savedLocation", value: "N/A", descriptionText: "Location: N/A")   
+          }
       }
     }
     else
@@ -675,8 +685,16 @@ def reducedRefresh() {
           if (debugLevel != "None") log.info "Getting current Address"
           def adata = parent.currentAddress(device.currentValue('vin'))
           if (debugLevel == "Full") log.debug "address data = $adata"
-          if (adata)
-           sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+          if (adata?.status)
+              {
+                sendEvent(name: "currentAddress", value: adata.address, descriptionText: "Current Address: ${adata.address}")
+                sendEvent(name: "savedLocation", value: adata.savedLocation, descriptionText: "Location: ${adata.savedLocation}")
+              }
+          else 
+              {
+                sendEvent(name: "currentAddress", value: "Unknown", descriptionText: "Current Address: Unknown")
+                sendEvent(name: "savedLocation", value: "N/A", descriptionText: "Location: N/A")   
+              }   
         }
     }
     else
@@ -706,8 +724,16 @@ def tempReducedRefresh()
         if (debugLevel != "None") log.info "Getting current Address"
         def adata = parent.currentAddress(device.currentValue('vin'))
         if (debugLevel == "full") log.debug "address data = $adata"
-        if (adata)
-         sendEvent(name: "currentAddress", value: adata, descriptionText: "Current Address: $adata")
+        if (adata?.status)
+          {
+            sendEvent(name: "currentAddress", value: adata.address, descriptionText: "Current Address: ${adata.address}")
+            sendEvent(name: "savedLocation", value: adata.savedLocation, descriptionText: "Location: ${adata.savedLocation}")
+          }
+         else 
+          {
+            sendEvent(name: "currentAddress", value: "Unknown", descriptionText: "Current Address: Unknown")
+            sendEvent(name: "savedLocation", value: "N/A", descriptionText: "Location: N/A")   
+          }
       }
     }
       else
