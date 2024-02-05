@@ -67,6 +67,7 @@
  * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
  * v 1.91 handle speed of 0 interpeted as null.
  * v 1.92 add savedLocation attribute and populate from tessie
+ * v 1.93 missed an debug line in the new address/saved location code that was not checking if debug was on.
  *
  *
  */
@@ -566,8 +567,7 @@ private executeApiCommandForAddress(Map options = [:], child, String command) {
    if (descLog) log.info "executeApiCommandForAddress"
     
     authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
-        //if (debug) 
-        log.debug "resp data = ${resp.data}"
+        if (debug) log.debug "resp data = ${resp.data}"
      
         result.address = "Unknown"
         result.status = false
@@ -918,7 +918,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.92"
+    return "1.93"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
