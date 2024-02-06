@@ -46,6 +46,7 @@
 * v 4.0 add minute offset for runtime, so with multiple device say you schedule every 15 minutes with offset 2, it will run at 2 past the hour then 17 past the hour etc
 * in this way you can have multiple ups's and have them run every x minutes but stagger them so they dont all run at the same time.
 * v 4.1 only put out password if  max debug level set.. otherwise less info
+* v 4.2 add connectStatus check if Trying in rule and if soo for a long time means it times out .. used to toggle a switch to reboot my wifi connector.
 
 */
 
@@ -76,6 +77,7 @@ attribute "outputEnergy", "number"
 attribute "batteryVoltage", "number"
 attribute "lastSelfTestResult", "string"
 attribute "lastSelfTestDate", "string"
+attribute "connectStatus", "string"
 attribute "nextBatteryReplacementDate", "string"
 attribute "serialNumber" , "string"
 attribute "manufDate", "string"
@@ -110,7 +112,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "4.1"
+	state.version = "4.2"
 }
 
 def installed() {
@@ -157,6 +159,7 @@ def initialize() {
     sendEvent(name: "FTemp", value: 0.0)
     sendEvent(name: "CTemp", value: 0.0)
     sendEvent(name: "telnet", value: "Ok")
+    sendEvent(name: "connectStatus", value: "Initialized")
  
     if ((tempUnits == null) || (tempUnits == ""))
       device.tempUnits = "F"
@@ -259,6 +262,8 @@ def refresh() {
         
      if (getloglevel() > 0) log.debug "lgk SmartUPS Status Version ($state.version)"
       sendEvent(name: "lastCommand", value: "initialConnect")
+      sendEvent(name: "connectStatus", value: "Trying")
+ 
    
      if (getloglevel() > 0) log.debug "Connecting to ${UPSIP}:${UPSPort}"
 	
@@ -302,7 +307,7 @@ def parse(String msg) {
    if (lastCommand == "initialConnect")
     
     {
-           
+      sendEvent(name: "connectStatus", value: "Connected")     
       sendEvent(name: "lastCommand", value: "getStatus")     
 	        def sndMsg =[
 	        		"$Username"
