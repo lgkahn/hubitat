@@ -15,8 +15,10 @@
  * Version 3. add code to get name of device so messages don't alwasy says garage door for instance if you are using it on a fence gate etc.
  * Version 4 . Port to Hubitat. 
 *  version 4.1 change doorcontrol to virtualgaragedoor for hubitat.
+
+* lgk 2/24 v 4.2 add option to blink a light x times with y delay between each blink before closing
 */
- 
+
 definition(
     name: "LGK Virtual Garage Door",
     namespace: "lgkapps",
@@ -46,6 +48,20 @@ preferences {
     section("Timeout before checking if the door opened or closed correctly?"){
 		input "checkTimeout", "number", title: "Door Operation Check Timeout?", required: true, defaultValue: 25
 	}
+    
+      
+ section("Blinking light on closing options"){
+		input "blink", "bool", title: "Enable a light to blink to signal closing?", required: true, defaultValue: false
+		input "theLight", "capability.light", title: "Choose a light?", required: false
+		input "blinkTimes", "number", title: "Number of times to blink before closing door?", required: false, defaultValue: 6
+	      
+            input "blinkTime", "enum", title: "Blink on/off time in seconds?" , options: [
+                                "1/2 second",
+                                "1 second",
+                                "2 seconds"
+                              
+			], required: false, defaultValue: "1/2 second"
+	} 
     
      section( "Notifications" ) {
        // input("recipients", "contact", title: "Send notifications to") {
@@ -151,7 +167,7 @@ def virtualgdstate = virtualgd.currentContact
     if (debug) log.debug "Contact is in ${evt.value} state"
     //reset virtual door
      if (virtualgdstate != "closed")
-      {
+      {    
        mysend("$virtualgd.displayName Closed. Manually syncing with Virtual Device!")   
        virtualgd.close()
       }
@@ -187,7 +203,8 @@ def realgdstate = sensor.currentContact
       {
         if (descLog) log.info "closing real gd to correspond with button press."
         mysend("$virtualgd.displayName Closed. Syncing with Actual Device!")   
-        opener.on()
+        closeTheDoor()
+       
         if(debug) log.debug "Schedulng checkIfActuallyClosed via runIn for $checkTimeout seconds."
         runIn(checkTimeout, checkIfActuallyClosed)
       }
@@ -251,6 +268,38 @@ def virtualgdstate = virtualgd.currentContact
              mysend("Resetting $virtualgd.displayName to Closed as real device didn't open! (track blocked?)")   
              virtualgd.close()
     }   
+}
+
+def closeTheDoor()
+{  
+    // close the door 
+    // if option to blink lights blink
+    
+    log.debug "blink = $blink"
+    
+    if (blink)
+    {
+      //  log.debug "will blink"
+        def delaytime = 1000
+        
+        if (blinkTime == "1/2 second")
+          delaytime = 500
+        else if (blinkTime == "1 second")
+          delaytime = 1000
+        else delaytime = 2000
+        
+       // log.debug "blink times = $blinktimes delay = $delaytime"
+            
+      for(int i = 1;i<blinkTimes;i++) {
+         theLight.on()
+          pauseExecution(delaytime)
+         theLight.off()
+          pauseExecution(delaytime)
+      }
+      
+    }
+    
+     opener.on()
 }
 
 def logsOff()
