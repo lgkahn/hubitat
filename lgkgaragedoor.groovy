@@ -52,7 +52,9 @@ preferences {
       
  section("Blinking light on closing options"){
 		input "blink", "bool", title: "Enable a light to blink to signal closing?", required: true, defaultValue: false
-		input "theLight", "capability.light", title: "Choose a light?", required: false
+  
+     
+		input "theLight", "capability.switch", title: "Choose a light?", required: false
 		input "blinkTimes", "number", title: "Number of times to blink before closing door?", required: false, defaultValue: 6
 	      
             input "blinkTime", "enum", title: "Blink on/off time in seconds?" , options: [
