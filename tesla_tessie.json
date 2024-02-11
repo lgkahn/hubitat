@@ -1,7 +1,7 @@
 {
   "packageName": "Tesla Connect via Tessie app and driver",
   "author": "Larry Kahn",
-  "version": "1.93",
+  "version": "1.95",
   "minimumHEVersion": "2.3.0",
   "dateReleased": "2024-01-17",
   "apps": [
