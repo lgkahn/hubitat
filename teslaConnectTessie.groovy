@@ -68,6 +68,7 @@
  * v 1.91 handle speed of 0 interpeted as null.
  * v 1.92 add savedLocation attribute and populate from tessie
  * v 1.93 missed an debug line in the new address/saved location code that was not checking if debug was on.
+ * v 1.95 as Sebastian noticed i screwed up on the set charging amps call so new version to fix it.
  *
  *
  */
@@ -797,7 +798,7 @@ def setChargeAmps(child,amps) {
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
-    return executeApiCommand(child,"command/set_charging_amps?charging_amps=${ampsInt}")
+    return executeApiCommand(child,"command/set_charging_amps?amps=${ampsInt}")
 }
 
 def valetModeOn(child) {
@@ -918,7 +919,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.93"
+    return "1.95"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
