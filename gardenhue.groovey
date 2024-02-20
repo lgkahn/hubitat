@@ -72,6 +72,9 @@
 * 4.6 change debug to log level, rewrite all logging, change many to info which didnt exist when this is written. levels are off, minimal, maximum, minimal corresponds to what
 * loging off previously was, maximum corresponds to what debugging on previously was.
 *
+* v 4.7 warning about using fade with govee lights.. will overwhelm the hub. as there is no internal fade up or down fx.
+* add 5 new pure random colors 1-100 as govee and other lights are true 16million colors.
+*
 
 */
 
@@ -137,8 +140,10 @@ preferences {
         input "customColor2", "color", title: "Custom Color 2?", width: 2, required: false, defaultValue: "#007500"
         paragraph ""
         input "customColor3", "color", title: "Custom Color 3?", width: 2, required: false, defaultValue: "#000075"
-          paragraph ""
+        paragraph ""
         input "customColor4", "color", title: "Custom Color 4?", width: 2, required: false, defaultValue: "#750075"
+      
+        
 
     }
 	           
@@ -147,7 +152,14 @@ preferences {
         input "custom1Enabled", "bool", title: "Enable Custom Color 1?", required: false, defaultValue: false  
         input "custom2Enabled", "bool", title: "Enable Custom Color 2?", required: false, defaultValue: false  
         input "custom3Enabled", "bool", title: "Enable Custom Color 3?", required: false, defaultValue: false  
-        input "custom4Enabled", "bool", title: "Enable Custom Color 4?", required: false, defaultValue: false  
+        input "custom4Enabled", "bool", title: "Enable Custom Color 4?", required: false, defaultValue: false 
+        
+        input "random1Enabled", "bool", title: "Enable Random Color 1?", required: false, defaultValue: false  
+        input "random2Enabled", "bool", title: "Enable Random Color 2?", required: false, defaultValue: false  
+        input "random3Enabled", "bool", title: "Enable Random Color 3?", required: false, defaultValue: false  
+        input "random4Enabled", "bool", title: "Enable Random Color 4?", required: false, defaultValue: false
+        input "random5Enabled", "bool", title: "Enable Random Color 5?", required: false, defaultValue: false  
+        
     }   
              
     section ("Colors Enabled?") {
@@ -336,7 +348,7 @@ def EnableSwitchHandler(evt)
 }
 
 private def initialize() {
-     state.version = "4.6"  
+     state.version = "4.7"  
      if (getloglevel() > 0) log.info(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
@@ -645,7 +657,17 @@ def changeHandler(evt) {
                enabledColorArray << "Custom3"
            if (custom4Enabled == true)
                enabledColorArray << "Custom4"
-            
+           if (random1Enabled == true)
+               enabledColorArray << "Random1"
+           if (random2Enabled == true)
+               enabledColorArray << "Random2"
+           if (random3Enabled == true)
+               enabledColorArray << "Random3"
+           if (random4Enabled == true)
+               enabledColorArray << "Random4"
+           if (random5Enabled == true)
+               enabledColorArray << "Random5"
+             
            def int colorsEnabled = enabledColorArray.size
             if (getloglevel() > 1) 
              {
@@ -742,8 +764,38 @@ def changeHandler(evt) {
                               if (getloglevel() > 1) log.debug "color arrary = $colorArray, maxColors = $maxColors"
                            }
                           
-                     
-                           def int nextValue = new Random().nextInt(maxColors)
+                         if (random1Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Random1"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                         if (random2Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Random2"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }   
+                        if (random3Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Random3"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                        if (random4Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Random4"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                        if (random5Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Random5"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                          
+                            def int nextValue = new Random().nextInt(maxColors)
                             if (getloglevel() > 1) log.debug "Hue: $i, Random Number = $nextValue"
                             newColor = colorArray[nextValue]
                             if (getloglevel() > 0) log.info("$app.label: Hue:$i - Setting Color to $newColor.")                         
@@ -782,7 +834,38 @@ def changeHandler(evt) {
                ++maxColors
                colorArray[maxColors-1] = "Custom4"
                if (getloglevel() > 1) log.debug "color arrary = $colorArray, maxColors = $maxColors"
-              }            
+              }  
+              
+            if (random1Enabled == true)
+              {
+               ++maxColors
+               colorArray[maxColors-1] = "Random1"
+               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+            if (random2Enabled == true)
+              {
+                ++maxColors
+                colorArray[maxColors-1] = "Random2"
+                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              } 
+            if (random3Enabled == true)
+              {
+                ++maxColors
+                colorArray[maxColors-1] = "Random3"
+                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+            if (random4Enabled == true)
+              {
+                ++maxColors
+                colorArray[maxColors-1] = "Random4"
+                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+            if (random5Enabled == true)
+              {
+                ++maxColors
+                colorArray[maxColors-1] = "Random5"
+                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
               
            if (getloglevel() > 1) log.debug "Holiday mode is not on."
            def int nextValue = new Random().nextInt(maxColors)
@@ -974,6 +1057,18 @@ def sendcolor(color) {
             saturation = state.custom4Saturation
             blevel = state.custom4Level
             break;
+         case "Random1":
+         case "Random2":
+         case "Random3":
+         case "Random4":
+         case "Random5":
+         // get true random hue 1- 100
+         def int rnum = new Random().nextInt(100)
+         if (getloglevel() > 0) log.debug "Generated Random color: $rnum"                        
+            hueColor = rnum
+            saturation = 100
+            blevel = 100
+            break;
 	}
 
 	//Change the color of the light
@@ -994,7 +1089,7 @@ def sendcolor(color) {
            hues*.setLevel(1,fOffTime)
            pauseExecution(fOffTime*1000) 
         }
-            
+          
 	     def newValue = [hue: hueColor, saturation: saturation, level: blevel]  
 	     hues*.setColor(newValue)
          state.currentColor = color
@@ -1136,6 +1231,18 @@ def sendcolor(color,which)
             saturation = state.custom4Saturation
             blevel = state.custom4Level
             break;
+        case "Random1":
+        case "Random2":
+        case "Random3":
+        case "Random4":
+        case "Random5":
+         // get true random hue 1- 100
+         def int rnum = new Random().nextInt(100)
+         if (getloglevel() > 0) log.debug "Generated Random color: $rnum"                        
+            hueColor = rnum
+            saturation = 100
+            blevel = 100
+            break; 
     }
     
    if (blevel == null)
