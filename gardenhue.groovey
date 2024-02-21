@@ -75,6 +75,8 @@
 * v 4.7 warning about using fade with govee lights.. will overwhelm the hub. as there is no internal fade up or down fx.
 * add 5 new pure random colors 1-100 as govee and other lights are true 16million colors.
 *
+* v 4.8 also for govee only add 5 user selectable effects into the mix.
+*
 
 */
 
@@ -126,7 +128,7 @@ preferences {
              
         input "enabled","bool", title: "Enabled?", required: true, defaultValue: true
         input "enableswitch", "capability.switch", title: "Optional: Do you have a switch/virtual switch which the application enable/disable functionality should follow? If you do not want this feature leave blank.", multiple:false, required: false
-        input("fadeOnTime", "enum", title: "Optional time to fade when turning on/setting color?", options: ["Off","5","10","15","20","30"], required: true, defaultValue: "Off")
+        input("fadeOnTime", "enum", title: "Optional time to fade when turning on/setting color (do not use for Govee)?", options: ["Off","5","10","15","20","30"], required: true, defaultValue: "Off")
         input("fadeOffTime", "enum", title: "Optional time to fade when turning off (does work if you separate fixtures)?", options: ["Off","5","10","15","20","30"], required: true, defaultValue: "Off")
          
         input "randomMode","bool", title: "Enable Random Mode?", required: true, defaultValue: false
@@ -142,9 +144,20 @@ preferences {
         input "customColor3", "color", title: "Custom Color 3?", width: 2, required: false, defaultValue: "#000075"
         paragraph ""
         input "customColor4", "color", title: "Custom Color 4?", width: 2, required: false, defaultValue: "#750075"
-      
+    }
+     
+    section ("Effects - (Govee only) Optional (Enable in Next Section)?") {
         
-
+        input "effect1", "number", title: "Effect 1?", required: false, defaultValue: 101
+        paragraph ""
+        input "effect2", "number", title: "Effect 2?", required: false, defaultValue: 102
+        paragraph ""
+        input "effect3", "number", title: "Effect 3?", required: false, defaultValue: 103
+        paragraph ""
+        input "effect4", "number", title: "Effect 4?", required: false, defaultValue: 104
+        paragraph ""
+        input "effect5", "number", title: "Effect 5?", required: false, defaultValue: 105
+           
     }
 	           
     section ("Custom Colors Enabled - Only used in non ROYGBIV mode") {        
@@ -159,6 +172,14 @@ preferences {
         input "random3Enabled", "bool", title: "Enable Random Color 3?", required: false, defaultValue: false  
         input "random4Enabled", "bool", title: "Enable Random Color 4?", required: false, defaultValue: false
         input "random5Enabled", "bool", title: "Enable Random Color 5?", required: false, defaultValue: false  
+       
+        input "effect1Enabled", "bool", title: "Enable Effect Number 1 (Govee)?", required: false, defaultValue: false  
+        input "effect2Enabled", "bool", title: "Enable Effect Number 2 (Govee)?", required: false, defaultValue: false  
+        input "effect3Enabled", "bool", title: "Enable Effect Number 3 (Govee)?", required: false, defaultValue: false  
+        input "effect4Enabled", "bool", title: "Enable Effect Number 4 (Govee)?", required: false, defaultValue: false  
+        input "effect5Enabled", "bool", title: "Enable Effect Number 5 (Govee)?", required: false, defaultValue: false  
+              
+        
         
     }   
              
@@ -323,9 +344,7 @@ def updated() {
         def numberon = onHues.size();
         def onstr = numberon.toString() 
         if (getloglevel() > 1) log.debug "in updated on = $onstr"  
-    }
-    
-    
+    }   
 }
 
 def EnableSwitchHandler(evt)
@@ -348,7 +367,7 @@ def EnableSwitchHandler(evt)
 }
 
 private def initialize() {
-     state.version = "4.7"  
+     state.version = "4.8"  
      if (getloglevel() > 0) log.info(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
@@ -452,7 +471,7 @@ private def initialize() {
           log.info "Custom Color 1 - ${colorList1}"  
           log.info "Custom Color 2 - ${colorList2}" 
           log.info "Custom Color 3 - ${colorList3}" 
-          log.info "Custom Colot 4 - ${colorList4}" 
+          log.info "Custom Color 4 - ${colorList4}" 
         }
         
         state.custom1Hue = colorList1.get(0)
@@ -466,8 +485,13 @@ private def initialize() {
         state.custom3Level = colorList3.get(2)
         state.custom4Hue = colorList4.get(0)
         state.custom4Saturation = colorList4.get(1) 
-        state.custom4Level = colorList4.get(2)
-       
+        state.custom4Level = colorList4.get(2)  
+        
+        state.effect1 = effect1
+        state.effect2 = effect2
+        state.effect3 = effect3
+        state.effect4 = effect4
+        state.effect5 = effect5
   
     subscribe(app,changeHandler)
     
@@ -667,6 +691,16 @@ def changeHandler(evt) {
                enabledColorArray << "Random4"
            if (random5Enabled == true)
                enabledColorArray << "Random5"
+           if (effect1Enabled == true)
+               enabledColorArray << "Effect1"
+           if (effect2Enabled == true)
+               enabledColorArray << "Effect2"
+           if (effect3Enabled == true)
+               enabledColorArray << "Effect3"
+           if (effect4Enabled == true)
+               enabledColorArray << "Effect4"
+           if (effect5Enabled == true)
+               enabledColorArray << "Effect5"  
              
            def int colorsEnabled = enabledColorArray.size
             if (getloglevel() > 1) 
@@ -795,6 +829,37 @@ def changeHandler(evt) {
                               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
                             }
                           
+                         if (effect1Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Effect1"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                         if (effect2Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Effect2"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }   
+                        if (effect3Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Effect3"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                        if (effect4Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Effect4"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }
+                        if (effect5Enabled == true)
+                            {
+                              ++maxColors
+                              colorArray[maxColors-1] = "Effect5"
+                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+                            }   
+                          
                             def int nextValue = new Random().nextInt(maxColors)
                             if (getloglevel() > 1) log.debug "Hue: $i, Random Number = $nextValue"
                             newColor = colorArray[nextValue]
@@ -866,6 +931,36 @@ def changeHandler(evt) {
                 colorArray[maxColors-1] = "Random5"
                 if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
               }
+            if (effect1Enabled == true)
+              {
+               ++maxColors
+               colorArray[maxColors-1] = "Effect1"
+               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+             if (effect2Enabled == true)
+              {
+               ++maxColors
+               colorArray[maxColors-1] = "Effect2"
+               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+             if (effect3Enabled == true)    
+              {
+               ++maxColors
+               colorArray[maxColors-1] = "Effect3"
+               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }         
+             if (effect4Enabled == true)
+              {
+               ++maxColors
+               colorArray[maxColors-1] = "Effect4"
+               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+              }
+             if (effect5Enabled == true)
+              {
+               ++maxColors
+               colorArray[maxColors-1] = "Effect5"
+               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+             }
               
            if (getloglevel() > 1) log.debug "Holiday mode is not on."
            def int nextValue = new Random().nextInt(maxColors)
@@ -961,6 +1056,8 @@ def sendcolor(color) {
 	//Initialize the hue and saturation
 	def hueColor = 0
 	def saturation = 100
+    def doEffect = false
+    def effect = 101
 
 	//Use the user specified brightness level. If they exceeded the min or max values, overwrite the brightness with the actual min/max
 	if (brightnessLevel<1) {
@@ -1069,13 +1166,34 @@ def sendcolor(color) {
             saturation = 100
             blevel = 100
             break;
-	}
+        
+        case "Effect1":
+            effect = state.effect1
+            doEffect = true
+            break;
+        case "Effect2":
+            effect = state.effect2
+            doEffect = true
+            break;
+        case "Effect3":
+            effect = state.effect3
+            doEffect = true
+            break;
+        case "Effect4":
+            effect = state.effect4
+            doEffect = true
+            break;
+        case "Effect5":
+            effect = state.effect5
+            doEffect = true
+            break;  
+    }
 
 	//Change the color of the light
     
     if (blevel == null)
     {
-        log.warn "Error: brlighnes level was 0 reseting to 100"
+        log.warn "Error: brightness level was 0 reseting to 100"
         blevel = 100
     }
     
@@ -1089,12 +1207,19 @@ def sendcolor(color) {
            hues*.setLevel(1,fOffTime)
            pauseExecution(fOffTime*1000) 
         }
-          
+         if (doEffect == true)
+           {
+           if (getloglevel() > 0) log.info "Effect: $effect"
+           hues*.setEffect(effect)   
+          }
+        else
+        {
 	     def newValue = [hue: hueColor, saturation: saturation, level: blevel]  
 	     hues*.setColor(newValue)
          state.currentColor = color
          mysend("$app.label: Setting Color = $color")
          if (getloglevel() > 1) log.debug "$app.label: Setting Color = $color"
+        }
     }
     else
     {
@@ -1112,6 +1237,13 @@ def sendcolor(color) {
         if (settings.fadeOnTime != "Off") hues*.setLevel(1,0)   
        }
         
+       if (doEffect == true)
+        {
+        if (getloglevel() > 0) log.info "Effect: $effect"
+        hues*.setEffect(effect)    
+        }
+       else
+       {
         // now turn on at level 1 and fade up
         def fOnTime = settings.fadeOnTime.toInteger()
         if (getloglevel() > 1)
@@ -1124,6 +1256,7 @@ def sendcolor(color) {
         state.currentColor = color
 	    hues*.setColor(newValue)
         hues*.setLevel(blevel,fOnTime)
+       }
     }
 
 }
@@ -1134,6 +1267,8 @@ def sendcolor(color,which)
 	//Initialize the hue and saturation
 	def hueColor = 0
 	def saturation = 100
+    def doEffect = false
+    def effect = 101
 
 	//Use the user specified brightness level. If they exceeded the min or max values, overwrite the brightness with the actual min/max
 	if (brightnessLevel<1) {
@@ -1243,6 +1378,28 @@ def sendcolor(color,which)
             saturation = 100
             blevel = 100
             break; 
+        
+        case "Effect1":
+            effect = state.effect1
+            doEffect = true
+            break;
+        case "Effect2":
+            effect = state.effect2
+            doEffect = true
+            break;
+        case "Effect3":
+            effect = state.effect3
+            doEffect = true
+            break;
+        case "Effect4":
+            effect = state.effect4
+            doEffect = true
+            break;
+        case "Effect5":
+            effect = state.effect5
+            doEffect = true
+            break;          
+        
     }
     
    if (blevel == null)
@@ -1253,18 +1410,24 @@ def sendcolor(color,which)
     
    if (settings.fadeOnTime == "Off")
     {
-    
-	//Change the color of the light
-	def newValue = [hue: hueColor, saturation: saturation, level: blevel]  
-	hues[which].setColor(newValue)
-    state.currentColor = color
-    mysend("$app.label: hue: $which, Setting Color = $color")
-    if (getloglevel() > 1) log.info "$app.label: hue: $which Setting Color = $color"
+      if (doEffect == true)
+        {
+        if (getloglevel() > 0) log.info "Effect: $effect"
+        hues*.setEffect(effect)   
+        }
+       else
+       {
+	    //Change the color of the light
+	    def newValue = [hue: hueColor, saturation: saturation, level: blevel]  
+	    hues[which].setColor(newValue)
+        state.currentColor = color
+         mysend("$app.label: hue: $which, Setting Color = $color")
+         if (getloglevel() > 1) log.info "$app.label: hue: $which Setting Color = $color"
+       }
     }
     
     else
-    {
-        
+    {      
         //cannot do fade off here as we need to pause execution for the fade off time before turning back on the other color and with each fixture being separate 
         // this is done prior to the call for all fixtures if necessary not here in the looop
         
@@ -1276,9 +1439,18 @@ def sendcolor(color,which)
             log.debug "Turning fixture $which on at level 1, then fading up to $blevel in $fOnTime seconds."
             log.debug "new hue: $hueColor, new staturation: $saturation, new Level: $blevel"
         }
+        
+       if (doEffect == true)
+        {
+        if (getloglevel() > 0) log.info "Effect: $effect"
+        hues*.setEffect(effect)    
+        }
+       else
+       {
         def newValue = [hue: hueColor, saturation: saturation, level: 1]  
 	    hues[which].setColor(newValue)
         hues[which].setLevel(blevel,fOnTime)
+       }
     }
         
 }
