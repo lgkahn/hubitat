@@ -69,11 +69,13 @@
  * v 1.92 add savedLocation attribute and populate from tessie
  * v 1.93 missed an debug line in the new address/saved location code that was not checking if debug was on.
  * v 1.95 as Sebastian noticed i screwed up on the set charging amps call so new version to fix it.
+ * v 1.96 missing the import to handle java.net.sockettimeoutexception
  *
  *
  */
 
 import groovy.transform.Field
+import java.net.SocketTimeoutException
 
 definition(
     name: "Tesla Connect Tessie",
@@ -919,7 +921,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.95"
+    return "1.96"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
