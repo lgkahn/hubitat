@@ -47,6 +47,7 @@
  * v 1.9 typo in state.reducedRefreshDisabled kept it from working.
  * v 1.91 handle speed of 0 interpeted as null.
  * v 1.92 new attribute savedLocation
+ * v 1.97 handle state offline better. just report it dont try to process any data.
  *
  */
 
@@ -54,7 +55,7 @@ metadata {
 	definition (name: "tessieVehicle", namespace: "lgkahn", author: "Larry Kahn") {
 		capability "Actuator"
 		capability "Battery"
-// not supported	capability "Geolocation"
+        // not supported	capability "Geolocation"
 		capability "Lock"
 		capability "Motion Sensor"
 		capability "Presence Sensor"
@@ -308,9 +309,16 @@ private processVehicleState(data)
 }           
     
 private processData(data) {
-	if(data) {
+	if (data) {
     	if (debugLevel != "None") log.info "processData: ${data}"
         
+        if (data.state != "online")
+        {
+            // just mark it offline and ignore all data as it will be old or bogus
+            sendEvent(name: "state", value: data.state)
+        }
+        else
+        {
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
         
@@ -626,13 +634,13 @@ private processData(data) {
             
             sendEvent(name: "has_Seat_Cooling", value: data.vehicleConfig.has_seat_cooling)
             sendEvent(name: "car_Type", value: data.vehicleConfig.car_type)
-        }
-         
-	} else {
-    	log.error "No data found for ${device.deviceNetworkId}"
+        } 
+        } // online
+    } // have data     
+      else {
+    	    log.error "No data found for ${device.deviceNetworkId}"
     }
 }
-
 
 def refresh() {
 	if (debugLevel != "None") log.info "Executing 'refresh'"
