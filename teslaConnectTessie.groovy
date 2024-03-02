@@ -70,6 +70,7 @@
  * v 1.93 missed an debug line in the new address/saved location code that was not checking if debug was on.
  * v 1.95 as Sebastian noticed i screwed up on the set charging amps call so new version to fix it.
  * v 1.96 missing the import to handle java.net.sockettimeoutexception
+ * v 1.97 handle offline state better.
  *
  *
  */
@@ -418,8 +419,12 @@ def refresh(child) {
     	authorizedHttpRequestWithTimeout(child,"/${id}/state", "GET", 20, 1, { resp ->
             
          if (debug) log.debug "In refresh data = ${resp.data}"
-            
-             if (resp.data.state == "online") { 
+          if (resp.data.state != "online")
+            {
+                data.state = resp.data.state
+            }
+            else
+            { 
            
             def driveState = resp.data.drive_state
             def chargeState = resp.data.charge_state
@@ -921,7 +926,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.96"
+    return "1.97"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
