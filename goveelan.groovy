@@ -42,6 +42,7 @@ metadata {
         attribute "cloudAPI", "string"
         attribute "effectNum", "integer" 
         attribute "lastUpdate", "string"
+        attribute "color", "string"
         
         command "activateDIY", [
             [name: "diyName", type: "STRING", description: "DIY Number to activate"]
@@ -147,6 +148,7 @@ def setColor(value) {
         {
             if (theColor != "Unknown") log.info "${device.label} Color is $theColor"
             else log.info "${device.label} Color is $value"
+            sendEvent("color", theColor)
         }
         
 		
