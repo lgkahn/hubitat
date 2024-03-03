@@ -64,6 +64,7 @@ def on() {
         sendEvent(name: "switch", value: "on")
         def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
         sendEvent(name: "lastUpdate", value: now)
+        if (descLog) log.info "${device.label} was turned on."
     
 }
 
@@ -72,6 +73,7 @@ def off() {
         sendEvent(name: "switch", value: "off")
         def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
         sendEvent(name: "lastUpdate", value: now)
+        if (descLog) log.info "${device.label} was turned off."
      
 }
 
@@ -80,11 +82,12 @@ def setColorTemperature(value,level = null,transitionTime = null)
     unschedule(fadeUp)
     unschedule(fadeDown)
     if (debugLog) { log.debug "setColorTemperature(): ${value}"}
-    if (descLog) log.info "setColorTemp: $value"
     
     if (value < device.getDataValue("ctMin").toInteger()) { value = device.getDataValue("ctMin")}
     if (value > device.getDataValue("ctMax").toInteger()) { value = device.getDataValue("ctMax")}
-    if (debugLog) { log.debug "setColorTemperate(): ColorTemp = " + value }
+    
+    if (descLog) log.info "${device.label} Color Temp was set to. $value"
+    if (debugLog) { log.debug "setColorTemperature(): ColorTemp = " + value }
 	int intvalue = value.toInteger()
         sendCommandLan(GoveeCommandBuilder("colorwc",value, "ct"))
         if (level != null) setLevel(level,transitionTime);
@@ -138,8 +141,8 @@ def setColor(value) {
         def theColor = getColor(h)
         if (descLog)
         {
-           if (theColor != "Unknown") log.info "Color: $theColor"
-           else log.info "setColor(): $value"
+            if (theColor != "Unknown") log.info "${device.label} Color is $theColor"
+            else log.info "${device.label} Color is $value"
         }
         
 		def s = value.containsKey("saturation") ? value.saturation : null
@@ -185,13 +188,13 @@ def setHsb(h,s,b)
 def setHue(h)
 {
     setHsb(h,device.currentValue( "saturation" )?:100,device.currentValue("level")?:100)
-    if (descLog) log.info "SetHue: $h"
+    if (descLog) log.info "${device.label} Hue was set to $h"
 }
 
 def setSaturation(s)
 {
 	setHsb(device.currentValue("hue")?:0,s,device.currentValue("level")?:100)
-      if (descLog) log.info "SetSaturation: $s"
+    if (descLog) log.info "${device.label} Saturation was set to ${s}%"
 }
 
 def setLevel(float v,duration = 0){
@@ -200,7 +203,7 @@ def setLevel(float v,duration = 0){
     sendEvent(name: "lastUpdate", value: now) 
     
     int intv = v.toInteger()
-    if (descLog) log.info "SetLevel: $intv"
+    if (descLog) log.info "${device.label} Level was set to ${intv}%"
     
     if (duration>0){
         int intduration = duration.toInteger()
@@ -221,7 +224,7 @@ def setLevel2(int v){
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now)
     
-     if (descLog) log.info "SetLevel: $v"
+    if (descLog) log.info "${device.label} Saturation was set to ${v}%"
     
         sendCommandLan(GoveeCommandBuilder("brightness",v, "level"))
         sendEvent(name: "level", value: v)
@@ -231,7 +234,7 @@ def setLevel2(int v){
 def fade(int v,float duration){
       
     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-    sendEvent(name: "lLastUpdate", value: now)
+    sendEvent(name: "lastUpdate", value: now)
     
     unschedule(fadeUp)
     unschedule(fadeDown)
@@ -310,8 +313,10 @@ def decBrightnessRange(v)
 }
 
 def refresh() {
-    if (debugLog) {log.warn "refresh(): Performing refresh"}
+    if (debugLog) {log.warn "refresh(): Performing refresh - not implemented."}
     if (debugLog) runIn(1800, logsOff)
+    log.warn "${device.label} Refresh not implemented"
+    log.info "${device.label} IP is ${getIPString()}"
 }
 
 def updated() {
@@ -329,6 +334,7 @@ def configure() {
         retrieveScenes()
         }
     if (debugLog) runIn(1800, logsOff) 
+    log.info "${device.label} IP is ${getIPString()}"
 }
 
 def initialize(){
@@ -455,7 +461,7 @@ def  setEffect(effectNo) {
     
     effectNumber = effectNo.toString()
     
-    if (descLog) log.info "SetEffect: $effectNumber"
+    if (descLog) log.info "${device.label} SetEffect: $effectNumber"
     
     if ((parent.state."${"lightEffect_"+(device.getDataValue("DevType"))}" != null) && (parent.state."${"lightEffect_"+(device.getDataValue("DevType"))}".containsKey(effectNumber))) {
         String sceneInfo =  parent.state."${"lightEffect_"+(device.getDataValue("DevType"))}".get(effectNumber).name
