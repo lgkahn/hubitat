@@ -133,20 +133,23 @@ def setColor(value) {
     unschedule(fadeUp)
     unschedule(fadeDown)
     if (debugLog) { log.debug "setColor(): HSBColor = "+ value + "${device.currentValue("level")}"}
-  
+ 
+ 
 	if (value instanceof Map) {
+        
+        def s = value.containsKey("saturation") ? value.saturation : null
+        def b = value.containsKey("level") ? value.level : null
 		def h = value.containsKey("hue") ? value.hue : null
        
         // lgk get color
-        def theColor = getColor(h)
+        def theColor = getColor(h,s)
         if (descLog)
         {
             if (theColor != "Unknown") log.info "${device.label} Color is $theColor"
             else log.info "${device.label} Color is $value"
         }
         
-		def s = value.containsKey("saturation") ? value.saturation : null
-		def b = value.containsKey("level") ? value.level : null
+		
         if (b == null) { b = device.currentValue("level") }
 		setHsb(h, s, b)
 	} else {
@@ -792,7 +795,7 @@ def getDevType() {
     }       
 }
 
-def getColor(hue)
+def getColor(hue, saturation)
 {
    
     def color = "Unknown"
@@ -800,7 +803,9 @@ def getColor(hue)
    	//Set the hue and saturation for the specified color.
 	switch(hue) {
 		case 0:
-            color = "White"
+            if (saturation == 0)
+              color = "White"
+            else color = "Red"
 		    break;
         case 53:
             color = "Daylight"
@@ -853,9 +858,6 @@ def getColor(hue)
         case 94:
             color = "Rasberry"
             break;
-		case 0:
-			color = "Red"
-			break;
         case 4:
             color = "Brick Red"
             break;  
