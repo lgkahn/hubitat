@@ -148,7 +148,7 @@ def setColor(value) {
         {
             if (theColor != "Unknown") log.info "${device.label} Color is $theColor"
             else log.info "${device.label} Color is $value"
-            sendEvent("color", theColor)
+            sendEvent(name: "color", value: theColor)
         }
         
 		
