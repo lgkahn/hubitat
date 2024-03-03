@@ -824,6 +824,7 @@ def getColor(hue)
             color = "Amber"
             break;
 		case 17:
+        case 25:
 			color = "Yellow"
 			break; 
         case 7:
@@ -838,6 +839,8 @@ def getColor(hue)
 		case 82:
 			color = "Purple"
 			break;
+        case 90:
+        case 91:
 		case 90.78:
 			color = "Pink"
 			break;
