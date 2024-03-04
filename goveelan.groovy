@@ -146,6 +146,12 @@ def setColor(value) {
         def theColor = getColor(h,s)
         if (descLog)
         {
+            if (theColor == "Unknown")
+            {
+                if (debugLog) log.debug "trying alt. color name method"
+                theColor = convertHueToGenericColorName(h,s)
+                if (debugLog) log.debug "alt. method got back $theColor"
+            }
             if (theColor != "Unknown") log.info "${device.label} Color is $theColor"
             else log.info "${device.label} Color is $value"
             sendEvent(name: "color", value: theColor)
@@ -863,6 +869,9 @@ def getColor(hue, saturation)
         case 4:
             color = "Brick Red"
             break;  
+        case 6.95:
+            color = "Chocolate"
+            break;
     }
   return color
 }
