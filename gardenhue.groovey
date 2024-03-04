@@ -998,21 +998,25 @@ def sendcolor(color) {
             hueColor = state.custom1Hue
             saturation = state.custom1Saturation
             blevel = state.custom1Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"
             break;
         case "Custom2":
             hueColor = state.custom2Hue
             saturation = state.custom2Saturation
             blevel = state.custom2Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"   
             break;
         case "Custom3":
             hueColor = state.custom3Hue
             saturation = state.custom3Saturation
             blevel = state.custom3Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"
             break;
         case "Custom4":
             hueColor = state.custom4Hue
             saturation = state.custom4Saturation
             blevel = state.custom4Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"
             break;
         case "NamedColor1":
             hueColor = state.named1Hue
@@ -1062,22 +1066,27 @@ def sendcolor(color) {
         case "Effect1":
             effect = state.effect1
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect2":
             effect = state.effect2
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect3":
             effect = state.effect3
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect4":
             effect = state.effect4
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect5":
             effect = state.effect5
             doEffect = true
+            rv = effect.toString()
             break;  
     }
 
@@ -1246,21 +1255,25 @@ def sendcolor(color,which)
             hueColor = state.custom1Hue
             saturation = state.custom1Saturation
             blevel = state.custom1Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"
             break;
         case "Custom2":
             hueColor = state.custom2Hue
             saturation = state.custom2Saturation
             blevel = state.custom2Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"
             break;
         case "Custom3":
             hueColor = state.custom3Hue
             saturation = state.custom3Saturation
             blevel = state.custom3Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"
             break;
         case "Custom4":
             hueColor = state.custom4Hue
             saturation = state.custom4Saturation
             blevel = state.custom4Level
+            rv = "[" + hueColor.toString() + ", " + saturation.toString() + ", "  + blevel.toString() + "]"
             break;
         case "NamedColor1":
             hueColor = state.named1Hue
@@ -1310,22 +1323,27 @@ def sendcolor(color,which)
         case "Effect1":
             effect = state.effect1
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect2":
             effect = state.effect2
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect3":
             effect = state.effect3
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect4":
             effect = state.effect4
             doEffect = true
+            rv = effect.toString()
             break;
         case "Effect5":
             effect = state.effect5
             doEffect = true
+            rv = effect.toString()
             break;                 
     }
     
