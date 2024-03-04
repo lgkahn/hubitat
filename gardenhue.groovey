@@ -73,9 +73,12 @@
 * loging off previously was, maximum corresponds to what debugging on previously was.
 *
 * v 4.7 warning about using fade with govee lights.. will overwhelm the hub. as there is no internal fade up or down fx.
-* add 5 new pure random colors 1-100 as govee and other lights are true 16million colors.
+* add 5 new pure random colors 1-100 as govee and other lights are true 16 million colors.
 *
 * v 4.8 also for govee only add 5 user selectable effects into the mix.
+* v 4.9 add chocolate color change random to generate a random sat. as well has hue.. but keep it above 30 as there are not many colors below that.
+* see https://www.chilliant.com/colournames.html
+* v 5.0 instead of generating array every change just generate max number for random and the color array once in init or updated.
 *
 
 */
@@ -203,6 +206,7 @@ preferences {
         input "pinkEnabled", "bool", title: "Enable Pink?", required: false, defaultValue: true    
         input "rasberryEnabled", "bool", title: "Enable Rasberry?", required: false, defaultValue: true    
         input "whiteEnabled", "bool", title: "Enable White?", required: false, defaultValue: true 
+        input "chocolateEnabled", "bool", title: "Enable Chocolate?", required: false, defaultValue: true 
 }
 
      section( "Notification options?" ) {
@@ -505,6 +509,12 @@ private def initialize() {
     // rather than schedule a cron entry, fire a status update a little bit in the future recursively
    // scheduleNext()
     state.currentColor = "None"
+        
+    state.colorsEnabled = 0
+    state.colorArray = [:]
+        
+    // now initialize the color array and random value
+    initColorArray()
     
     }
 }
@@ -639,70 +649,9 @@ def changeHandler(evt) {
            if (getloglevel() > 1)  log.debug "Holiday Mode = On, getting count of colors Enabled."
             
          // now define new array
-         def enabledColorArray = []
-
-           if (redEnabled == true)
-               enabledColorArray <<  "Red"
-           if (brickRedEnabled == true)
-               enabledColorArray <<  "Brick Red"
-           if (safetyOrangeEnabled == true)
-               enabledColorArray <<  "Safety Orange"
-           if (orangeEnabled == true)
-               enabledColorArray <<  "Orange"
-           if (amberEnabled == true)
-               enabledColorArray <<  "Amber"
-           if (yellowEnabled == true)
-               enabledColorArray <<  "Yellow"
-           if (greenEnabled == true)
-               enabledColorArray <<  "Green"
-           if (turquoiseEnabled == true)
-               enabledColorArray <<  "Turquoise"
-           if (aquaEnabled == true)
-               enabledColorArray <<  "Aqua"
-           if (navyBlueEnabled == true)
-               enabledColorArray <<  "Navy Blue"
-           if (blueEnabled == true)
-               enabledColorArray <<  "Blue"
-           if (indigoEnabled == true)
-               enabledColorArray <<  "Indigo"
-           if (purpleEnabled == true)
-               enabledColorArray <<  "Purple"
-           if (pinkEnabled == true)
-               enabledColorArray <<  "Pink"
-           if (rasberryEnabled == true)
-               enabledColorArray <<  "Rasberry"
-           if (whiteEnabled == true)
-               enabledColorArray <<  "White"
-           if (custom1Enabled == true)
-               enabledColorArray << "Custom1"
-           if (custom2Enabled == true)
-               enabledColorArray << "Custom2"
-           if (custom3Enabled == true)
-               enabledColorArray << "Custom3"
-           if (custom4Enabled == true)
-               enabledColorArray << "Custom4"
-           if (random1Enabled == true)
-               enabledColorArray << "Random1"
-           if (random2Enabled == true)
-               enabledColorArray << "Random2"
-           if (random3Enabled == true)
-               enabledColorArray << "Random3"
-           if (random4Enabled == true)
-               enabledColorArray << "Random4"
-           if (random5Enabled == true)
-               enabledColorArray << "Random5"
-           if (effect1Enabled == true)
-               enabledColorArray << "Effect1"
-           if (effect2Enabled == true)
-               enabledColorArray << "Effect2"
-           if (effect3Enabled == true)
-               enabledColorArray << "Effect3"
-           if (effect4Enabled == true)
-               enabledColorArray << "Effect4"
-           if (effect5Enabled == true)
-               enabledColorArray << "Effect5"  
+         def enabledColorArray = state.colorArray   
+         def int colorsEnabled = state.colorsEnabled
              
-           def int colorsEnabled = enabledColorArray.size
             if (getloglevel() > 1) 
              {
                 log.debug "Enabled Color Count = $colorsEnabled"
@@ -767,98 +716,8 @@ def changeHandler(evt) {
                             
                  for (def i=0; i<numberon; i++) 
                       {
-                          def maxColors = 16
-                          def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
-                        
-                          if (custom1Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Custom1"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                              
-                          if (custom2Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Custom2"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                          
-                         if (custom3Enabled == true)
-                           {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Custom3"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                           }
-                          
-                         if (custom4Enabled == true)
-                           {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Custom4"
-                              if (getloglevel() > 1) log.debug "color arrary = $colorArray, maxColors = $maxColors"
-                           }
-                          
-                         if (random1Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Random1"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                         if (random2Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Random2"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }   
-                        if (random3Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Random3"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                        if (random4Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Random4"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                        if (random5Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Random5"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                          
-                         if (effect1Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Effect1"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                         if (effect2Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Effect2"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }   
-                        if (effect3Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Effect3"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                        if (effect4Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Effect4"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }
-                        if (effect5Enabled == true)
-                            {
-                              ++maxColors
-                              colorArray[maxColors-1] = "Effect5"
-                              if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-                            }   
+                          def maxColors = state.colorsEnabled
+                          def colorArray = state.colorArray
                           
                             def int nextValue = new Random().nextInt(maxColors)
                             if (getloglevel() > 1) log.debug "Hue: $i, Random Number = $nextValue"
@@ -869,108 +728,22 @@ def changeHandler(evt) {
              } // do each individually
           else
           { 
-           def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White"]
-           def maxColors = 16
+              
+           def colorArray = state.colorArray
+           def maxColors = state.colorsEnabled
+              
+          
            
- 
-           if (custom1Enabled == true)
-             {
-               ++maxColors
-               colorArray[maxColors-1] = "Custom1"
-               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-             }
-                              
-           if (custom2Enabled == true)
-              {
-                ++maxColors
-                colorArray[maxColors-1] = "Custom2"
-                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-                          
-            if (custom3Enabled == true)
-              {
-                ++maxColors
-                colorArray[maxColors-1] = "Custom3"
-                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-                          
-            if (custom4Enabled == true)
-              {
-               ++maxColors
-               colorArray[maxColors-1] = "Custom4"
-               if (getloglevel() > 1) log.debug "color arrary = $colorArray, maxColors = $maxColors"
-              }  
-              
-            if (random1Enabled == true)
-              {
-               ++maxColors
-               colorArray[maxColors-1] = "Random1"
-               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-            if (random2Enabled == true)
-              {
-                ++maxColors
-                colorArray[maxColors-1] = "Random2"
-                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              } 
-            if (random3Enabled == true)
-              {
-                ++maxColors
-                colorArray[maxColors-1] = "Random3"
-                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-            if (random4Enabled == true)
-              {
-                ++maxColors
-                colorArray[maxColors-1] = "Random4"
-                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-            if (random5Enabled == true)
-              {
-                ++maxColors
-                colorArray[maxColors-1] = "Random5"
-                if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-            if (effect1Enabled == true)
-              {
-               ++maxColors
-               colorArray[maxColors-1] = "Effect1"
-               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-             if (effect2Enabled == true)
-              {
-               ++maxColors
-               colorArray[maxColors-1] = "Effect2"
-               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-             if (effect3Enabled == true)    
-              {
-               ++maxColors
-               colorArray[maxColors-1] = "Effect3"
-               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }         
-             if (effect4Enabled == true)
-              {
-               ++maxColors
-               colorArray[maxColors-1] = "Effect4"
-               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-              }
-             if (effect5Enabled == true)
-              {
-               ++maxColors
-               colorArray[maxColors-1] = "Effect5"
-               if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
-             }
-              
            if (getloglevel() > 1) log.debug "Holiday mode is not on."
+           if (getloglevel() > 1) log.debug "$colorArray $maxColors"
            def int nextValue = new Random().nextInt(maxColors)
          
            if (getloglevel() > 1) log.debug "Random Number = $nextValue"
            newColor = colorArray[nextValue]    
 
            if (getloglevel() > 0) log.info("$app.label: Setting Color to $newColor.")
-            //hues.on()
-             sendcolor(newColor)
+           //hues.on()
+            sendcolor(newColor)
   
           } 
         }
@@ -1134,6 +907,10 @@ def sendcolor(color) {
         case "Brick Red":
             hueColor = 4
             break; 
+        case "Chocolate":
+            hueColor = 6.95
+            saturation = 75
+            break; 
         case "Custom1":
             hueColor = state.custom1Hue
             saturation = state.custom1Saturation
@@ -1161,9 +938,10 @@ def sendcolor(color) {
          case "Random5":
          // get true random hue 1- 100
          def int rnum = new Random().nextInt(100)
-         if (getloglevel() > 0) log.debug "Generated Random color: $rnum"                        
+         def int snum = new Random().nextInt(70)+30 // most colors have a sat. above 30 so dont do lower.
+         if (getloglevel() > 0) log.debug "Generated Random hue: $rnum, saturation: $snum"                        
             hueColor = rnum
-            saturation = 100
+            saturation = snum
             blevel = 100
             break;
         
@@ -1345,7 +1123,11 @@ def sendcolor(color,which)
 			break;
         case "Brick Red":
             hueColor = 4
-            break;
+            break;      
+        case "Chocolate":
+            hueColor = 6.95
+            saturation = 75
+            break; 
         case "Custom1":
             hueColor = state.custom1Hue
             saturation = state.custom1Saturation
@@ -1398,8 +1180,7 @@ def sendcolor(color,which)
         case "Effect5":
             effect = state.effect5
             doEffect = true
-            break;          
-        
+            break;                 
     }
     
    if (blevel == null)
@@ -1471,6 +1252,191 @@ private mysend(msg) {
     }
 }
 
+def initColorArray()
+{
+    if (getloglevel() > 1)  log.debug "In initColorArray"
+    
+     if (settings.holidayMode == true)
+         {
+           if (getloglevel() > 1)  log.debug "Holiday Mode = On, getting count of colors Enabled."
+            
+         // now define new array
+         def enabledColorArray = []
+
+           if (redEnabled == true)
+               enabledColorArray <<  "Red"
+           if (brickRedEnabled == true)
+               enabledColorArray <<  "Brick Red"
+           if (safetyOrangeEnabled == true)
+               enabledColorArray <<  "Safety Orange"
+           if (orangeEnabled == true)
+               enabledColorArray <<  "Orange"
+           if (amberEnabled == true)
+               enabledColorArray <<  "Amber"
+           if (yellowEnabled == true)
+               enabledColorArray <<  "Yellow"
+           if (greenEnabled == true)
+               enabledColorArray <<  "Green"
+           if (turquoiseEnabled == true)
+               enabledColorArray <<  "Turquoise"
+           if (aquaEnabled == true)
+               enabledColorArray <<  "Aqua"
+           if (navyBlueEnabled == true)
+               enabledColorArray <<  "Navy Blue"
+           if (blueEnabled == true)
+               enabledColorArray <<  "Blue"
+           if (indigoEnabled == true)
+               enabledColorArray <<  "Indigo"
+           if (purpleEnabled == true)
+               enabledColorArray <<  "Purple"
+           if (pinkEnabled == true)
+               enabledColorArray <<  "Pink"
+           if (rasberryEnabled == true)
+               enabledColorArray <<  "Rasberry"
+           if (whiteEnabled == true)
+               enabledColorArray <<  "White"
+           if (chocolateEnabled == true)
+               enabledColorArray <<  "Chocolate"
+           if (custom1Enabled == true)
+               enabledColorArray << "Custom1"
+           if (custom2Enabled == true)
+               enabledColorArray << "Custom2"
+           if (custom3Enabled == true)
+               enabledColorArray << "Custom3"
+           if (custom4Enabled == true)
+               enabledColorArray << "Custom4"
+           if (random1Enabled == true)
+               enabledColorArray << "Random1"
+           if (random2Enabled == true)
+               enabledColorArray << "Random2"
+           if (random3Enabled == true)
+               enabledColorArray << "Random3"
+           if (random4Enabled == true)
+               enabledColorArray << "Random4"
+           if (random5Enabled == true)
+               enabledColorArray << "Random5"
+           if (effect1Enabled == true)
+               enabledColorArray << "Effect1"
+           if (effect2Enabled == true)
+               enabledColorArray << "Effect2"
+           if (effect3Enabled == true)
+               enabledColorArray << "Effect3"
+           if (effect4Enabled == true)
+               enabledColorArray << "Effect4"
+           if (effect5Enabled == true)
+               enabledColorArray << "Effect5"  
+             
+           def int colorsEnabled = enabledColorArray.size
+            if (getloglevel() > 1) 
+             {
+                log.debug "Enabled Color Count = $colorsEnabled"
+                log.debug "Enabled Color Array = $enabledColorArray"
+             }
+            state.colorsEnabled = colorsEnabled
+            state.colorArray = enabledColorArray
+         } // holiday mode
+    else
+    {    if (getloglevel() > 1)  log.debug "Holiday Mode = On, getting count of colors Enabled."
+       
+         def maxColors = 17
+         def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White","Chocolate"]
+                        
+        if (custom1Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Custom1"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+                              
+        if (custom2Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Custom2"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+                          
+        if (custom3Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Custom3"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+                          
+        if (custom4Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Custom4"
+           if (getloglevel() > 1) log.debug "color arrary = $colorArray, maxColors = $maxColors"
+          }
+                          
+        if (random1Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Random1"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+        if (random2Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Random2"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          } 
+        if (random3Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Random3"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+        if (random4Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Random4"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+        if (random5Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Random5"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+                          
+        if (effect1Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Effect1"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+        if (effect2Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Effect2"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+        if (effect3Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Effect3"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+        if (effect4Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Effect4"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+        if (effect5Enabled == true)
+          {
+           ++maxColors
+           colorArray[maxColors-1] = "Effect5"
+           if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
+          }
+     
+        state.colorsEnabled = maxColors
+        state.colorArray = colorArray   
+     
+     
+    }
+}
 
 def getloglevel()
 {
