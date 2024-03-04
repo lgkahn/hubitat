@@ -76,7 +76,7 @@
 * add 5 new pure random colors 1-100 as govee and other lights are true 16 million colors.
 *
 * v 4.8 also for govee only add 5 user selectable effects into the mix.
-* v 4.9 add chocolate color change random to generate a random sat. as well has hue.. but keep it above 30 as there are not many colors below that.
+* v 4.9 add slate blue color change random to generate a random sat. as well has hue.. but keep it above 30 as there are not many colors below that.
 * see https://www.chilliant.com/colournames.html
 * v 5.0 instead of generating array every change just generate max number for random and the color array once in init or updated.
 *
@@ -206,7 +206,7 @@ preferences {
         input "pinkEnabled", "bool", title: "Enable Pink?", required: false, defaultValue: true    
         input "rasberryEnabled", "bool", title: "Enable Rasberry?", required: false, defaultValue: true    
         input "whiteEnabled", "bool", title: "Enable White?", required: false, defaultValue: true 
-        input "chocolateEnabled", "bool", title: "Enable Chocolate?", required: false, defaultValue: true 
+        input "slateBlueEnabled", "bool", title: "Enable Slate Blue?", required: false, defaultValue: true 
 }
 
      section( "Notification options?" ) {
@@ -371,7 +371,7 @@ def EnableSwitchHandler(evt)
 }
 
 private def initialize() {
-     state.version = "4.8"  
+     state.version = "5.0"  
      if (getloglevel() > 0) log.info(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
@@ -646,7 +646,7 @@ def changeHandler(evt) {
        // lgk define alternate color array if holiday mode enabled
        if (settings.holidayMode == true)
          {
-           if (getloglevel() > 1)  log.debug "Holiday Mode = On, getting count of colors Enabled."
+           if (getloglevel() > 1)  log.debug "Holiday Mode = On, Random On, getting count of colors Enabled."
             
          // now define new array
          def enabledColorArray = state.colorArray   
@@ -670,7 +670,7 @@ def changeHandler(evt) {
                        hues*.setLevel(1,fOffTime)
                        pauseExecution(fOffTime*1000) 
                    }
-                            
+                         
                  for (def i=0; i<numberon; i++) 
                       {
                             def int nextValue = new Random().nextInt(colorsEnabled)
@@ -684,7 +684,7 @@ def changeHandler(evt) {
         
            else
                {
-
+              
                 def int nextValue = new Random().nextInt(colorsEnabled)
                 if (getloglevel() > 1) log.debug "Colors Enabled: $colorsEnabled, Random Number = $nextValue"
                 newColor = enabledColorArray[nextValue]
@@ -907,9 +907,9 @@ def sendcolor(color) {
         case "Brick Red":
             hueColor = 4
             break; 
-        case "Chocolate":
-            hueColor = 6.95
-            saturation = 75
+        case "Slate Blue":
+            hueColor = 69
+            saturation = 39
             break; 
         case "Custom1":
             hueColor = state.custom1Hue
@@ -1124,9 +1124,9 @@ def sendcolor(color,which)
         case "Brick Red":
             hueColor = 4
             break;      
-        case "Chocolate":
-            hueColor = 6.95
-            saturation = 75
+        case "Slate Blue":
+            hueColor = 69
+            saturation = 39
             break; 
         case "Custom1":
             hueColor = state.custom1Hue
@@ -1295,8 +1295,8 @@ def initColorArray()
                enabledColorArray <<  "Rasberry"
            if (whiteEnabled == true)
                enabledColorArray <<  "White"
-           if (chocolateEnabled == true)
-               enabledColorArray <<  "Chocolate"
+           if (slateBlueEnabled == true)
+               enabledColorArray <<  "Slate Blue"
            if (custom1Enabled == true)
                enabledColorArray << "Custom1"
            if (custom2Enabled == true)
@@ -1339,7 +1339,7 @@ def initColorArray()
     {    if (getloglevel() > 1)  log.debug "Holiday Mode = On, getting count of colors Enabled."
        
          def maxColors = 17
-         def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White","Chocolate"]
+         def colorArray = ["Red","Brick Red","Safety Orange","Orange","Amber","Yellow","Green","Turquoise","Aqua","Navy Blue","Blue","Indigo","Purple","Pink","Rasberry","White","Slate Blue"]
                         
         if (custom1Enabled == true)
           {
