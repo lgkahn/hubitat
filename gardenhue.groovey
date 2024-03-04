@@ -557,7 +557,7 @@ private def initialize() {
            state.named5Hue = namedList5.get(0)
            state.named5Saturation = namedList5.get(1)
            state.named5Level = namedList5.get(2)
-           if (getloglevel() > 0) log.info "Named Color 5 ${namedColor4} - ${namedList5}"     
+           if (getloglevel() > 0) log.info "Named Color 5 ${namedColor5} - ${namedList5}"     
         }
         
     subscribe(app,changeHandler)
