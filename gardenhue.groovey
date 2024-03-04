@@ -522,6 +522,7 @@ private def initialize() {
        if (namedColor1 && namedColor1Enabled)
          {
            def namedList1 = getRGBfromName(namedColor1)
+           state.named1Color = namedColor1
            state.named1Hue = namedList1.get(0)
            state.named1Saturation = namedList1.get(1)
            state.named1Level = namedList1.get(2)
@@ -530,6 +531,7 @@ private def initialize() {
       if (namedColor2 && namedColor2Enabled)
         {
            def namedList2 = getRGBfromName(namedColor2)
+           state.named2Color = namedColor2
            state.named2Hue = namedList2.get(0)
            state.named2Saturation = namedList2.get(1)
            state.named2Level = namedList2.get(2)
@@ -538,6 +540,7 @@ private def initialize() {
       if (namedColor3 && namedColor3Enabled)
         {
            def namedList3 = getRGBfromName(namedColor3)
+           state.named3Color = namedColor3 
            state.named3Hue = namedList3.get(0)
            state.named3Saturation = namedList3.get(1)
            state.named3Level = namedList3.get(2)
@@ -546,6 +549,7 @@ private def initialize() {
       if (namedColor4 && namedColor4Enabled)
         {
            def namedList4 = getRGBfromName(namedColor4)
+           state.named4Color = namedColor4
            state.named4Hue = namedList4.get(0)
            state.named4Saturation = namedList4.get(1)
            state.named4Level = namedList4.get(2)
@@ -554,6 +558,7 @@ private def initialize() {
       if (namedColor5 && namedColor5Enabled)
         {
            def namedList5 = getRGBfromName(namedColor5)
+           state.named5Color = namedColor5
            state.named5Hue = namedList5.get(0)
            state.named5Saturation = namedList5.get(1)
            state.named5Level = namedList5.get(2)
@@ -738,10 +743,13 @@ def changeHandler(evt) {
                       {
                             def int nextValue = new Random().nextInt(colorsEnabled)
                             if (getloglevel() > 1) log.debug "Colors Enabled: $colorsEnabled, Hue: $i, Random Number = $nextValue"
-                            newColor = enabledColorArray[nextValue]
-
-                            if (getloglevel() > 0) log.info("$app.label: Hue:$i - Setting Color to $newColor.")                         
-                            sendcolor(newColor,i)
+                            newColor = enabledColorArray[nextValue]                    
+                            def rv = sendcolor(newColor,i)
+                            if (getloglevel() > 0)
+                              { 
+                                  if (rv == "NA") log.info("$app.label: Hue:$i - Setting Color to $newColor")  
+                                  else  log.info("$app.label: Hue:$i - Setting Color to $newColor ($rv)")  
+                              }
                      }
              } // do each individually
         
@@ -751,11 +759,14 @@ def changeHandler(evt) {
                 def int nextValue = new Random().nextInt(colorsEnabled)
                 if (getloglevel() > 1) log.debug "Colors Enabled: $colorsEnabled, Random Number = $nextValue"
                 newColor = enabledColorArray[nextValue]
-
-                if (getloglevel() > 0) log.info("$app.label: Setting Color to $newColor.")
+                   
                 //hues.on()
-                sendcolor(newColor)
-
+                def rv = sendcolor(newColor)
+                if (getloglevel() > 0)
+                  {
+                     if (rv == "NA") log.info("$app.label: Setting Color to $newColor")  
+                     else  log.info("$app.label: Setting Color to $newColor ($rv)")  
+                  }
               }
 
        } // holiday mode on
@@ -785,8 +796,14 @@ def changeHandler(evt) {
                             def int nextValue = new Random().nextInt(maxColors)
                             if (getloglevel() > 1) log.debug "Hue: $i, Random Number = $nextValue"
                             newColor = colorArray[nextValue]
-                            if (getloglevel() > 0) log.info("$app.label: Hue:$i - Setting Color to $newColor.")                         
-                            sendcolor(newColor,i)
+                                        
+                            def rv = sendcolor(newColor,i)
+                            if (getloglevel() > 0)
+                              { 
+                                  if (rv == "NA") log.info("$app.label: Hue:$i - Setting Color to $newColor")  
+                                  else  log.info("$app.label: Hue:$i - Setting Color to $newColor ($rv)")  
+                              } 
+                          
                      }
              } // do each individually
           else
@@ -794,9 +811,7 @@ def changeHandler(evt) {
               
            def colorArray = state.colorArray
            def maxColors = state.colorsEnabled
-              
-          
-           
+                 
            if (getloglevel() > 1) log.debug "Holiday mode is not on."
            if (getloglevel() > 1) log.debug "$colorArray $maxColors"
            def int nextValue = new Random().nextInt(maxColors)
@@ -804,9 +819,13 @@ def changeHandler(evt) {
            if (getloglevel() > 1) log.debug "Random Number = $nextValue"
            newColor = colorArray[nextValue]    
 
-           if (getloglevel() > 0) log.info("$app.label: Setting Color to $newColor.")
            //hues.on()
-            sendcolor(newColor)
+            def rv = sendcolor(newColor)
+            if (getloglevel() > 0)
+              { 
+               if (rv == "NA") log.info("$app.label: Setting Color to $newColor")  
+               else  log.info("$app.label: Setting Color to $newColor ($rv)")  
+              } 
   
           } 
         }
@@ -894,7 +913,8 @@ def sendcolor(color) {
 	def saturation = 100
     def doEffect = false
     def effect = 101
-
+    def rv = "NA"
+    
 	//Use the user specified brightness level. If they exceeded the min or max values, overwrite the brightness with the actual min/max
 	if (brightnessLevel<1) {
 		brightnessLevel=1
@@ -998,26 +1018,31 @@ def sendcolor(color) {
             hueColor = state.named1Hue
             saturation = state.named1Saturation
             blevel = state.named1Level
+            rv = state.named1Color
             break;
         case "NamedColor2":
             hueColor = state.named2Hue
             saturation = state.named2Saturation
             blevel = state.named2Level
+            rv = state.named2Color
             break;
         case "NamedColor3":
             hueColor = state.named3Hue
             saturation = state.named3Saturation
             blevel = state.named3Level
+            rv = state.named3Color
             break;
         case "NamedColor4":
             hueColor = state.named4Hue
             saturation = state.named4Saturation
             blevel = state.named4Level
+            rv = state.named4Color
             break; 
         case "NamedColor5":
             hueColor = state.named5Hue
             saturation = state.named5Saturation
             blevel = state.named5Level
+            rv = state.named5Color
             break;    
          case "Random1":
          case "Random2":
@@ -1027,10 +1052,11 @@ def sendcolor(color) {
          // get true random hue 1- 100
          def int rnum = new Random().nextInt(100)
          def int snum = new Random().nextInt(70)+30 // most colors have a sat. above 30 so dont do lower.
-         if (getloglevel() > 0) log.debug "Generated Random hue: $rnum, saturation: $snum"                        
+         if (getloglevel() > 1) log.debug "Generated Random hue: $rnum, saturation: $snum"                        
             hueColor = rnum
             saturation = snum
             blevel = 100
+            rv = "[" + rnum.toString() + ", " + snum.toString() + ", 100]"
             break;
         
         case "Effect1":
@@ -1090,8 +1116,7 @@ def sendcolor(color) {
     else
     {
       if (settings.fadeOffTime != "Off")
-        {
-         
+        {       
             // fade out first before changing color if enabled
             def fOffTime = settings.fadeOffTime.toInteger() 
             if (getloglevel() > 1) log.debug "Fading off in $fOffTime seconds before changing color."
@@ -1124,7 +1149,7 @@ def sendcolor(color) {
         hues*.setLevel(blevel,fOnTime)
        }
     }
-
+return rv
 }
 
 def sendcolor(color,which)
@@ -1135,6 +1160,7 @@ def sendcolor(color,which)
 	def saturation = 100
     def doEffect = false
     def effect = 101
+    def rv = "NA"
 
 	//Use the user specified brightness level. If they exceeded the min or max values, overwrite the brightness with the actual min/max
 	if (brightnessLevel<1) {
@@ -1240,39 +1266,46 @@ def sendcolor(color,which)
             hueColor = state.named1Hue
             saturation = state.named1Saturation
             blevel = state.named1Level
+            rv = state.named1Color
             break;
         case "NamedColor2":
             hueColor = state.named2Hue
             saturation = state.named2Saturation
             blevel = state.named2Level
+            rv = state.named2Color
             break;
         case "NamedColor3":
             hueColor = state.named3Hue
             saturation = state.named3Saturation
             blevel = state.named3Level
+            rv = state.named3Color
             break;
         case "NamedColor4":
             hueColor = state.named4Hue
             saturation = state.named4Saturation
             blevel = state.named4Level
+            rv = state.named4Color
             break; 
         case "NamedColor5":
             hueColor = state.named5Hue
             saturation = state.named5Saturation
             blevel = state.named5Level
+            rv = state.named5Color
             break;            
         case "Random1":
         case "Random2":
         case "Random3":
         case "Random4":
         case "Random5":
-         // get true random hue 1- 100
-         def int rnum = new Random().nextInt(100)
-         if (getloglevel() > 0) log.debug "Generated Random color: $rnum"                        
+            // get true random hue 1- 100
+            def int rnum = new Random().nextInt(100)
+            def int snum = new Random().nextInt(70)+30 // most colors have a sat. above 30 so dont do lower.
+            if (getloglevel() > 1) log.debug "Generated Random hue: $rnum, saturation: $snum"                        
             hueColor = rnum
-            saturation = 100
+            saturation = snum
             blevel = 100
-            break; 
+            rv = "[" + rnum.toString() + ", " + snum.toString() + ", 100]"
+            break;
         
         case "Effect1":
             effect = state.effect1
@@ -1346,7 +1379,7 @@ def sendcolor(color,which)
         hues[which].setLevel(blevel,fOnTime)
        }
     }
-        
+ return rv       
 }
 
 private mysend(msg) {
