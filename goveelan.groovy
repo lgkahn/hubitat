@@ -869,8 +869,8 @@ def getColor(hue, saturation)
         case 4:
             color = "Brick Red"
             break;  
-        case 6.95:
-            color = "Chocolate"
+        case 69:
+            color = "Slate Blue"
             break;
     }
   return color
