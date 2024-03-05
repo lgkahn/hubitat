@@ -84,7 +84,8 @@
  * 2021.11-25 -lgk change attribute from time to lastUpdate to avoid weird output on device page.. also remove timeUtcToLocalOlf function and improve way to query date/time.
  * 11/30/21   - lgk add parameters for using a weather device in a remote location so that dynamic dns ddns will work to resolve name and change ip address if it changes. Also
  *             add the function for this.
- * 9/22 lgk add additional options for ip check as ffing nat changes every 5 minutes, change input to minutes. 
+ *
+ * 06/22 lgk add code for ws90
  */
 
 public static String version() { return "v1.23.17"; }
@@ -108,6 +109,7 @@ metadata {
     attribute "status", "string";                              // Display current driver status
     attribute "lastUpdate", "string";
     attribute "dynamicIPResult","STRING"
+    attribute "upTime", "string"
   }
     
   
@@ -115,7 +117,7 @@ metadata {
   preferences {
     input(name: "macAddress", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>MAC / IP Address</font>", description: "<font style='font-size:12px; font-style: italic'>Wi-Fi gateway MAC or IP address</font>", defaultValue: "", required: true);
     input(name: "DDNSName", type: "text", title: "Dynamic DNS Name to use to resolve a changing ip address. Leave Blank if not used.", description: "Enter DDNS Name", required: false)
-    input(name: "DDNSRefreshTime", type: "number", title: "How often (in Minutes) to check/resolve the DDNS Name to discover an IP address change on a remote weather station? (Range 2 - 43200 (30 days), Default (1 day)?", range: "2..43200", defaultValue: 14400, required: false)
+    input(name: "DDNSRefreshTime", type: "number", title: "How often (in Hours) to check/resolve the DDNS Name to discover an IP address change on a remote weather station? (Range 1 - 1440, Default 24)?", range: "1..1440", defaultValue: 3, required: false)
     input(name: "bundleSensors", type: "bool", title: "<font style='font-size:12px; color:#1a77c9'>Compound Outdoor Sensors</font>", description: "<font style='font-size:12px; font-style: italic'>Combine sensors in a virtual PWS array</font>", defaultValue: true);
     input(name: "unitSystem", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>System of Measurement</font>", description: "<font style='font-size:12px; font-style: italic'>Unit system all values are converted to</font>", options: [0:"Imperial", 1:"Metric"], multiple: false, defaultValue: 0, required: true);
     input(name: "logLevel", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>Log Verbosity</font>", description: "<font style='font-size:12px; font-style: italic'>Default: 'Debug' for 30 min and 'Info' thereafter</font>", options: [0:"Error", 1:"Warning", 2:"Info", 3:"Debug", 4:"Trace"], multiple: false, defaultValue: 3, required: true);
@@ -346,6 +348,8 @@ private String dniUpdate() {
 
     if ((device.currentValue(attribute) as String) == dni.canonical) {
       // The address hasn't changed: we do nothing
+           log.debug "setting dni to ${dni.hex}"
+      device.setDeviceNetworkId(dni.hex); 
       error = null;
     }
     else {
@@ -353,6 +357,7 @@ private String dniUpdate() {
       attributeUpdateString(dni.canonical, attribute);
 
       // Update the DNI
+        log.debug "setting dni to ${dni.hex}"
       device.setDeviceNetworkId(dni.hex);
     }
   }
@@ -446,6 +451,7 @@ String sensorDniToId(String dni) {
  *      WH68                              X
  *      WH80  X                           X
  * WH65/WH69  X             X             X
+ * WS90       X             X             X
  *
  */
 
@@ -453,10 +459,11 @@ private void sensorMapping(Map data) {
   //
   // Remap sensors, boundling or decoupling devices, depending on what's present
   //
-  //                     0       1       2       3       4       5       6       7       8       9       10      11
-  String[] sensorMap =  ["WH69", "WH25", "WH26", "WH31", "WH40", "WH41", "WH51", "WH55", "WH57", "WH80", "WH34", "WFST"];
+  //                     0       1       2       3       4       5       6       7       8       9       10       11      12
+  String[] sensorMap =  ["WH69", "WH25", "WH26", "WH31", "WH40", "WH41", "WH51", "WH55", "WH57", "WH80", "WH34","WFST", "WS90"];
 
   logDebug("sensorMapping()");
+    log.debug "data = $data"
 
   // Detect outdoor sensors by their battery signature
   Boolean wh26 = data.containsKey("wh26batt");
@@ -464,6 +471,7 @@ private void sensorMapping(Map data) {
   Boolean wh68 = data.containsKey("wh68batt");
   Boolean wh80 = data.containsKey("wh80batt");
   Boolean wh69 = data.containsKey("wh65batt");
+  Boolean ws90 = data.containsKey("ws90batt");
 
   // Count outdoor sensor
   Integer outdoorSensors = 0;
@@ -471,9 +479,11 @@ private void sensorMapping(Map data) {
   if (wh40) outdoorSensors += 1;
   if (wh68) outdoorSensors += 1;
   if (wh80) outdoorSensors += 1;
+  if (ws90) outdoorSensors += 1;
 
   // A bit of sanity check
   if (wh69 && outdoorSensors) logWarning("The PWS should be the only outdoor sensor");
+  if (ws90 && outdoorSensors) logWarning("The PWS should be the only outdoor sensor");
   if (wh80 && wh26) logWarning("Both WH80 and WH26 are present with overlapping sensors");
 
   if (wh80) {
@@ -485,12 +495,25 @@ private void sensorMapping(Map data) {
 
   if (wh69) {
     //
-    // We have a real WH65/WH69 PWS
+    // We have a real WH65/WH69/ws90 PWS
     //
     sensorMap[2] = sensorMap[0];
     sensorMap[4] = sensorMap[0];
     sensorMap[9] = sensorMap[0];
   }
+    
+  if (ws90) {
+    //
+    // We have a real ws90 PWS
+    //
+    sensorMap[2] = sensorMap[12];
+    sensorMap[4] = sensorMap[12];
+    sensorMap[9] = sensorMap[12];
+    
+  }
+    
+    
+ 
   else if (bundleOutdoorSensors() && outdoorSensors > 1) {
     //
     // We are requested to bundle outdoor sensors and we have more than 1
@@ -512,8 +535,8 @@ String sensorModel(Integer id) {
 
   // assert (id >= 0 && id <= 10);
 
-  //                      0     1     2     3     4     5     6     7     8     9     10    11
-  // String sensorMap = "[WH69, WH25, WH26, WH31, WH40, WH41, WH51, WH55, WH57, WH80, WH34, WFST]";
+  //                      0     1     2     3     4     5     6     7     8     9     10    11     12
+  // String sensorMap = "[WH69, WH25, WH26, WH31, WH40, WH41, WH51, WH55, WH57, WH80, WH34, WFST, WS90]";
   //
   String sensorMap = device.getDataValue("sensorMap");
 
@@ -537,7 +560,8 @@ private String sensorName(Integer id, Integer channel) {
                   "WH57": "Lightning Detection Sensor",
                   "WH80": "Wind Solar Sensor",
                   "WH34": "Water/Soil Temperature Sensor",
-                  "WFST": "WeatherFlow Station"];
+                  "WFST": "WeatherFlow Station",
+                  "WS90": "WittBoy Weather Station"];
 
   String model = sensorId."${sensorModel(id)}";
 
@@ -618,8 +642,10 @@ private Boolean sensorUpdate(String key, String value, Integer id = null, Intege
   try {
     if (id) {
       String dni = sensorIdToDni(sensorId(id, channel));
+      logDebug("dna = $dni")
 
       com.hubitat.app.ChildDeviceWrapper sensor = getChildDevice(dni);
+       logDebug("got sensor ${sensor}")
       if (sensor == null) {
         //
         // Support for sensors with legacy DNI (without the parent ID)
@@ -628,11 +654,13 @@ private Boolean sensorUpdate(String key, String value, Integer id = null, Intege
         if (sensor) {
           // Found existing sensor with legacy name: update it
           sensor.setDeviceNetworkId(dni);
+          logDebug( "found existing sensor")
         }
         else {
           //
           // Sensor doesn't exist: we need to create it
           //
+           logDebug("didnt find existing ")
           sensor = addChildDevice("Ecowitt RF Sensor", dni, [name: sensorName(id, channel), isComponent: true]);
           if (sensor && sensorIsBundled(id, channel)) sensor.updateDataValue("isBundled", "true");
         }
@@ -751,10 +779,21 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "monthlyrainin":
     case "yearlyrainin":
     case "totalrainin":
-    case "totalainin":
       updated = sensor(it.key, it.value, 4);
       break;
 
+      // Rain ws90)
+
+    case "rrain_piezo":
+    case "erain_piezo":
+    case "hrain_piezo":
+    case "drain_piezo":
+    case "wrain_piezo":
+    case "mrain_piezo":
+    case "yrain_piezo":
+    case "train_piezo": 
+      updated = sensor(it.key, it.value, 4);
+      break;
     //
     // Multi-channel Air Quality Sensor (WH41)
     //
@@ -806,11 +845,13 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       break;
 
     //
-    // Wind & Solar Sensor (WH80 -> WH69)
+    // Wind & Solar Sensor (WH80 -> WH69, ws90)
     //
     case "wh65batt":
     case "wh68batt":
     case "wh80batt":
+    case "ws90batt":
+    case "wh90batt":
     case "winddir":
     case "winddir_avg10m":
     case "windspeedmph":
@@ -858,6 +899,11 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value, 11, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
       break;
 
+    case "runtime":
+        def ut = formatUpTime(it.value)
+        attributeUpdateString(ut, "upTime")
+        break;
+        
     case "endofdata":
       // Special key to notify all drivers (parent and children) of end-od-data status
       updated = sensor(it.key, it.value);
@@ -994,7 +1040,7 @@ void updated() {
       // now schedule next run of update
       if ((ddnsupdatetime != null) && (ddnsupdatetime != 00))
           {
-              def thesecs = ddnsupdatetime * 60
+              def thesecs = ddnsupdatetime * 3600
              logInfo("Rescheduling IP Address Check to run again in $thesecs seconds.")
              runIn(thesecs, "DNSCheckCallback");
           }
@@ -1120,6 +1166,27 @@ void parse(String msg) {
     logError("Exception in parse(): ${e}");
   }
 }
+
+// lgk format updatime                  
+def formatUpTime(runtime)
+{       
+        def uptimeString = ""
+        Long ut = runtime.toLong()
+        Integer days = Math.floor(ut/(3600*24)).toInteger()
+        Integer hrs = Math.floor((ut - (days * (3600*24))) /3600).toInteger()
+        Integer min = Math.floor( (ut -  ((days * (3600*24)) + (hrs * 3600))) /60).toInteger()
+        Integer sec = Math.floor(ut -  ((days * (3600*24)) + (hrs * 3600) + (min * 60))).toInteger()
+
+        if (days > 0)
+         uptimeString = uptimeString + days.toString() + " days, "
+    
+        uptimeString = uptimeString + hrs.toString() + " hours "
+        uptimeString = uptimeString + min.toString() + " minutes, "
+        uptimeString = uptimeString + sec.toString() + " seconds"
+        
+    return uptimeString
+}
+
 
 // Recycle bin ----------------------------------------------------------------------------------------------------------------
 
