@@ -80,6 +80,7 @@
 * see https://www.chilliant.com/colournames.html
 * v 5.0 instead of generating array every change just generate max number for random and the color array once in init or updated.
 * v 5.1 add 5 optional named colors
+* v 5.2 missing named color code in non holiday random mode 
 
 */
 
@@ -392,7 +393,7 @@ def EnableSwitchHandler(evt)
 }
 
 private def initialize() {
-     state.version = "5.1"  
+     state.version = "5.2"  
      if (getloglevel() > 0) log.info(" in initialize() (app version ${state.version} for $app.label with settings: ${settings}")   
 
     // for holiday. mode to work random must be on so if no turn on.
@@ -1488,8 +1489,7 @@ def initColorArray()
            if (effect4Enabled == true)
                enabledColorArray << "Effect4"
            if (effect5Enabled == true)
-               enabledColorArray << "Effect5"
-             
+               enabledColorArray << "Effect5"  
            if ((namedColor1Enabled == true) && (namedColor1 != null)) 
               enabledColorArray << "NamedColor1"
            if ((namedColor2Enabled == true) && (namedColor2 != null)) 
@@ -1608,6 +1608,37 @@ def initColorArray()
            colorArray[maxColors-1] = "Effect5"
            if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors"
           }
+         if ((namedColor1Enabled == true) && (namedColor1 != null)) 
+           {
+             ++maxColors
+             colorArray[maxColors-1] = "NamedColor1"
+             if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors" 
+           }
+         if ((namedColor2Enabled == true) && (namedColor2 != null)) 
+           {
+             ++maxColors
+             colorArray[maxColors-1] = "NamedColor2"
+             if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors" 
+         if ((namedColor3Enabled == true) && (namedColor3 != null)) 
+           {
+             ++maxColors
+             colorArray[maxColors-1] = "NamedColor3"
+             if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors" 
+           }
+         if ((namedColor4Enabled == true) && (namedColor4 != null)) 
+           {
+             ++maxColors
+             colorArray[maxColors-1] = "NamedColor4"
+             if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors" 
+           }         
+         if ((namedColor5Enabled == true) && (namedColor5 != null)) 
+           {
+             ++maxColors
+             colorArray[maxColors-1] = "NamedColor5"
+             if (getloglevel() > 1) log.debug "color array = $colorArray, maxColors = $maxColors" 
+           }
+     
+           } // else
      
         state.colorsEnabled = maxColors
         state.colorArray = colorArray  
