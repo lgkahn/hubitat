@@ -1110,7 +1110,7 @@ def sendcolor(color) {
         }
          if (doEffect == true)
            {
-           if (getloglevel() > 0) log.info "Effect: $effect"
+           if (getloglevel() > 1) log.info "Effect: $effect"
            hues*.setEffect(effect)   
           }
         else
@@ -1139,7 +1139,7 @@ def sendcolor(color) {
         
        if (doEffect == true)
         {
-        if (getloglevel() > 0) log.info "Effect: $effect"
+        if (getloglevel() > 1) log.info "Effect: $effect"
         hues*.setEffect(effect)    
         }
        else
@@ -1357,7 +1357,7 @@ def sendcolor(color,which)
     {
       if (doEffect == true)
         {
-        if (getloglevel() > 0) log.info "Effect: $effect"
+        if (getloglevel() > 1) log.info "Effect: $effect"
         hues*.setEffect(effect)   
         }
        else
@@ -1387,7 +1387,7 @@ def sendcolor(color,which)
         
        if (doEffect == true)
         {
-        if (getloglevel() > 0) log.info "Effect: $effect"
+        if (getloglevel() > 1) log.info "Effect: $effect"
         hues*.setEffect(effect)    
         }
        else
