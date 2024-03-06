@@ -409,7 +409,7 @@ private processData(data) {
                       if (debugLevel == "Full") log.debug "got result $result" 
                       if (result != "awake")
                       {
-                            if (debugLevel != None)
+                            if (debugLevel != "None")
                               log.info "Car is $result"
                               
                              state.currentVehicleState = result
