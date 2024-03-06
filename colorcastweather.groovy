@@ -532,7 +532,7 @@ def checkForWeatherOW() {
                             if (descLog) log.info "Rain"
                             if (descLog) log.info rainColor
                            }             
-                        if (((thisAlert.toLowerCase().indexOf('snow') >= 0) || (overallDesc.toLowerCase().indexOf('snow') >= 0)) && (snowColor != 'Disabled'))
+                        if (((thisAlert.toLowerCase().indexOf('snow ') >= 0) || (overallDesc.toLowerCase().indexOf('snow ') >= 0)) && (snowColor != 'Disabled'))
                           {
                             if (descLog) log.info "Found alert of type Snow!"
                             colors.push(snowColor)
