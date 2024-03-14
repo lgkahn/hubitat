@@ -14,6 +14,7 @@ Major Releases:
 11-27-2020 :  Alpha Release (0.1)
 12-15-2020 :  Beta 1 Release (0.2.0)
 4/23 lgk fix supportedThermostatModes and supportedThermostatFanModes so dashboards work again for setting these.
+ 3/24 lgk add code to handle and retry after communication failures
 
 
 Considerable inspiration an example to: https://github.com/dkilgore90/google-sdm-api/
@@ -23,7 +24,7 @@ Considerable inspiration an example to: https://github.com/dkilgore90/google-sdm
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
 import groovy.transform.Field
-
+import java.net.SocketTimeoutException
 
 @Field static String global_apiURL = "https://api.honeywell.com"
 @Field static String global_redirectURL = "https://cloud.hubitat.com/oauth/stateredirect"
@@ -694,7 +695,23 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
             LogDebug("reJson: {$reJson}")
         }
     }
-    catch (groovyx.net.http.HttpResponseException e) 
+    catch (java.net.SocketTimeoutException e)
+    {
+        if (!retry)
+        {
+        LogInfo("Thermosat API failed retrying... -- ${e.getLocalizedMessage()}")    
+        refreshToken()
+        refreshThermosat(device, true)
+        }   
+     else
+     {
+        LogError("Thermosat API failed 2nd time (giving up) -- ${e.getLocalizedMessage()}")     
+     }
+       
+      return;
+    }
+    
+    catch (groovyx.net.http.HttpResponseException | org.apache.http.conn.ConnectTimeoutException e ) 
     {
         if (e.getStatusCode() == 401 && !retry)
         {
