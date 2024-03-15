@@ -87,6 +87,7 @@
  *
  * 06/22 lgk add code for ws90
  * 3/24 add dniupdatecmd so that it can be called via a rule as the auto schedule seems to be failing at times.
+ * also call dni update regardless if the field is not blank to see if that fixes issue with loosing connection.
  */
 
 public static String version() { return "v1.23.17"; }
@@ -1001,7 +1002,7 @@ def nsCallback(resp, data)
             resyncSensors();
             }
         }
-           
+        dniUpdate()   
     }
 }
 
@@ -1024,7 +1025,7 @@ void updated() {
     // Unschedule possible previous runIn() calls
     unschedule();
 
-     // lgk if ddns name resolve this first and do ip check before dniupdatE.. ALSO schedule the re-check.
+     // lgk if ddns name resolve this first and do ip check before dniupdatr.. ALSO schedule the re-check.
      def String ddnsname = settings.DDNSName
      def Number ddnsupdatetime = settings.DDNSRefreshTime
                                           
@@ -1054,6 +1055,7 @@ void updated() {
           }
           
     // Update Device Network ID
+    log.warn "Calling dniUpdate"
     String error = dniUpdate();
     if (error == null) {
       // The gateway dni hasn't changed: we set OK only if a resync sensors is not pending
