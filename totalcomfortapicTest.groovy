@@ -391,7 +391,8 @@ def setStatusHandler(resp, data) {
 }
 
 
-def getStatus() {
+def getStatus(Boolean fromUnauth = false) {
+    
     if (debugOutput) log.debug "Honeywell TCC getStatus"
     if (debugOutput) log.debug "enable outside temps = $enableOutdoorTemps"
     def today = new Date()
@@ -417,21 +418,35 @@ def getStatus() {
     ]
 
     if (debugOutput) log.debug "sending getStatus request"
+    state.fromUnauth = fromUnauth
+    
     asynchttpGet("getStatusHandler", params)
 }
 
-def getStatusHandler(resp, data) {
-	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
+def getStatusHandler(resp, data) 
+{   
+	if (resp.getStatus() == 200 || resp.getStatus() == 207)
+    {
+        if (debugOutput) log.info "status = ${resp.getStatus()}"
+        if (debugOutput) log.info "data = ${resp.data}"
+        
+        // lgk error handling for bad page coming back
+        
+     try {
+              
+        if (resp.data)
+        {
+            
 		def setStatusResult = parseJson(resp.data)
 	
-      if (debugOutput) { 
+      if (debugOutput) 
+      { 
           log.debug "Request was successful, $resp.status"
           log.debug "data = $setStatusResult"
           log.debug "ld = $setStatusResult.latestData.uiData"
           log.debug "ld = $setStatusResult.latestData.fanData"
-      }
-        
-        
+      }   
+       
     sendEvent(name: 'supportedThermostatFanModes', value: ["\"auto\"", "\"circulate\"", "\"on\""] )
 	    
 	def curTemp = setStatusResult.latestData.uiData.DispTemperature.toDouble().round(2)
@@ -579,10 +594,37 @@ def getStatusHandler(resp, data) {
 	        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:"°${location.temperatureScale}")
 	    }
 	}
-	} else { if (descTextEnable) log.info "TCC getStatus failed" }
+            
+	} // got resp data
+     else
+        {
+            log.warn "No data returned status = ${resp.getStatus()}"
+            log.warn "Scheduling a retry in 5 minutes due to failure!"
+            runIn(300,"refreshFromRunin")
+        }    
+   
+     } catch (groovy.json.JsonException e) {
+         
+       log.warn "in error handler case resp = $resp error = $e"
+       if (state.fromUnauth)
+            {
+              log.debug "2nd failure ... giving up!"
+            }
+            else
+            { 
+             log.warn "First failure, Trying again in 60 seconds.!" 
+             runIn(60,"refreshFromRunin")
+            }     
+        }
+        
+    } // good status code
+
+ else 
+    { 
+     if (descTextEnable) log.info "TCC getStatus failed" 
+    }
+    
 }
-
-
 
 def getHumidifierStatus(Boolean fromUnauth = false)
 {
@@ -609,13 +651,7 @@ def getHumidifierStatus(Boolean fromUnauth = false)
     ]
 
     if (debugOutput) log.debug "sending gethumidStatus request: $params"
-/*    asynchttpGet("getHumidStatusHandler", params)
-}
 
-def getHumidStatusHandler(resp, data) {
-	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
-        if (debugOutput) log.debug "GetHumidity Request was successful, $resp.status"
-*/
     def CancelLine = [:]
     def Number HumLevel
     def Number HumMin
@@ -758,7 +794,7 @@ def refreshFromRunin()
 void componentRefresh(cd)
 {
 	if (debugOutput) log.debug "Refresh request from device ${cd.displayName}. This will refresh all component devices."
-	getStatus()
+	getStatus(false)
 }
 
 def refresh(Boolean fromUnauth = false) {
@@ -770,7 +806,7 @@ def refresh(Boolean fromUnauth = false) {
 		}
 	}
     getHumidifierStatus(fromUnauth)
-    getStatus()
+    getStatus(fromUnauth)
 }
 
 def login(Boolean fromUnauth = false) {
@@ -844,7 +880,7 @@ def login(Boolean fromUnauth = false) {
                 }
             }
             int cookieCount = device.data.cookiess.split(";", -1).length - 1;
-            if (cookieCount < 9) {
+            if (cookieCount < 8) {
 			ofExit = false
             }
             //log.debug "cookies: $device.data.cookiess"
