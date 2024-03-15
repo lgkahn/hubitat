@@ -471,7 +471,7 @@ private void sensorMapping(Map data) {
   String[] sensorMap =  ["WH69", "WH25", "WH26", "WH31", "WH40", "WH41", "WH51", "WH55", "WH57", "WH80", "WH34","WFST", "WS90"];
 
   logDebug("sensorMapping()");
-    log.debug "data = $data"
+   // log.debug "data = $data"
 
   // Detect outdoor sensors by their battery signature
   Boolean wh26 = data.containsKey("wh26batt");
