@@ -86,6 +86,7 @@
  *             add the function for this.
  *
  * 06/22 lgk add code for ws90
+ * 3/24 add dniupdatecmd so that it can be called via a rule as the auto schedule seems to be failing at times.
  */
 
 public static String version() { return "v1.23.17"; }
@@ -110,6 +111,7 @@ metadata {
     attribute "lastUpdate", "string";
     attribute "dynamicIPResult","STRING"
     attribute "upTime", "string"
+    command "DNIUpdateCMD"
   }
     
   
@@ -329,6 +331,12 @@ private Map dniIsValid(String str) {
 }
 
 // ------------------------------------------------------------
+
+def DNIUpdateCMD()
+{
+    log.warn "Calling dniUpdate()"
+    dniUpdate()
+}
 
 private String dniUpdate() {
   //
