@@ -47,6 +47,7 @@
 * in this way you can have multiple ups's and have them run every x minutes but stagger them so they dont all run at the same time.
 * v 4.1 only put out password if  max debug level set.. otherwise less info
 * v 4.2 add connectStatus check if Trying in rule and if soo for a long time means it times out .. used to toggle a switch to reboot my wifi connector.
+* v 4.3 add sku to differentiate between smt1500 and smt1500c
 
 */
 
@@ -85,6 +86,7 @@ attribute "model", "string"
 attribute "firmwareVersion", "string"
 attribute "batteryType", "string"
 attribute "outputWatts", "number"
+attribute "SKU", "string"
 
 command "refresh"
 
@@ -112,7 +114,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "4.2"
+	state.version = "4.3"
 }
 
 def installed() {
@@ -377,6 +379,20 @@ def parse(String msg) {
               
             }  // length = 5        
         
+       if (pair.length == 2)
+            {
+               def p0 = pair[0]
+               def p1 = pair[1] 
+                
+               if (getloglevel() > 1) log.debug "p1 = $p0 p1 = $p1"
+                
+                if (p0 == "SKU:")
+                  {
+                    sendEvent(name: "SKU", value: p1)
+                    if (getloglevel() > 0) log.debug "Got SKU: $p1"
+                  }
+            } // end length 2
+                
        if (pair.length == 3)
             {
                 
