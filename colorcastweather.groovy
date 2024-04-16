@@ -48,13 +48,16 @@
 
 // lgk 12/22 slight change to yellow color to better reflect newer hue bulbs.
 // add option to enable 3.0 api calls for the newer openweather apis.
+
+// lgk 4/24 convert to open weather 3 api calls now that 2.5 is going away.
+
 //
 import java.util.regex.*
 
 definition(
-	name: "ColorCast Weather Lamp",
+	name: "ColorCast Weather Lamp V2",
 	namespace: "lgkapps",
-	author: "Joe DiBenedetto, laurence kahn",
+	author: "laurence kahn",
 	description: "Get a simple visual indicator for the days weather whenever you leave home. ColorCast will change the color of one or more Hue lights to match the weather forecast whenever it senses motion",
 	category: "Convenience",
 	iconUrl: "http://apps.shiftedpixel.com/weather/images/icons/colorcast.png",
@@ -75,7 +78,7 @@ preferences {
 			title: "Get your openweather One Call API key",
 			required: false,
 			style: "external",
-			url: "https://openweathermap.org/full-price#current",
+			url: "https://openweathermap.org/full-price#onecall",
 			description: "tap to view openweather website in mobile browser")
 	
 			input "apiKey", "text", title: "Enter your new key", required:true
