@@ -50,9 +50,11 @@
 // add option to enable 3.0 api calls for the newer openweather apis.
 
 // lgk 4/24 convert to open weather 3 api calls now that 2.5 is going away.
+// lgk 4.24 ver 3.0 apis timing out periodically add retry code.
 
 //
 import java.util.regex.*
+import org.apache.http.conn.ConnectTimeoutException
 
 definition(
 	name: "ColorCast Weather Lamp V2",
@@ -64,6 +66,8 @@ definition(
 	iconX2Url: "http://apps.shiftedpixel.com/weather/images/icons/colorcast@2x.png",
 	iconX3Url: "http://apps.shiftedpixel.com/weather/images/icons/colorcast@2x.png"
 )
+
+import java.net.SocketTimeoutException
 
 preferences {
 	page(name: "pageAPI", title: "API Key", nextPage: "pageSettings", install: false, uninstall: true) {
@@ -261,7 +265,7 @@ def updated() {
 }
 
 
-def getWeather()
+def getWeather(retry=false)
 {
     def forecastUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=$location.latitude&lon=$location.longitude&mode=json&units=imperial&appid=$apiKey&exclude=daily,flags,minutely"
 
@@ -285,10 +289,13 @@ def getWeather()
 	
 	if (descLog) log.info forecastUrl
 	
+     try 
+    {
+        
 	httpGet(forecastUrl) {response -> 
 		if (response.data) {
             
-            //log.debug "got response - $response.data" 
+           // log.debug "got response - $response.data" 
 			state.weatherData = response.data
 			def d = new Date()
 			state.forecastTime = d.getTime()
@@ -297,7 +304,21 @@ def getWeather()
 			runIn(60, getWeather)
 			log.warn("Open Weather: Failed to retrieve weather.")
 		}
+       
 	}
+    }     
+  catch (java.net.SocketTimeoutException | ConnectTimeoutException e)
+    {
+        if (!retry)
+        {
+        log.warn("HttpGet timed out! Trying again in 60 seconds -- ${e.getLocalizedMessage()}")    
+        runIn(60,getWeather,[data: [retry:true]])
+        }   
+     else
+     {
+        log.error("HttpGet failed 2nd time (giving up) -- ${e.getLocalizedMessage()}")     
+     }   
+    }           
 }
 
 /*
