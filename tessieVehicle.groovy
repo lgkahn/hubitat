@@ -48,6 +48,9 @@
  * v 1.91 handle speed of 0 interpeted as null.
  * v 1.92 new attribute savedLocation
  * v 1.97 handle state offline better. just report it dont try to process any data.
+ * v 1.98 4/30/24 add command to get battery health (which shows battery degradation) and fill in related attributes, add option to get this data on very query either never, on every refresh or only on reenable if using that.
+ *        since this is not really needed all the time, recommend if using set to only-on-reenable (assuming you use the sleep at night option to save on queries).
+ *        this adds the following attributes: batteryCapacity, batteryOriginalCapacity, batteryDegradation, batteryHealth.
  *
  */
 
@@ -120,7 +123,11 @@ metadata {
         attribute "has_Seat_Cooling", "string"
         attribute "currentVehicleState", "string"
         attribute "savedLocation", "string"
-                   
+        attribute "batteryCapacity", "number"
+        attribute "batteryOriginalCapacity", "number"
+        attribute "batteryDegradation", "number"
+        attribute "batteryHealth", "number"
+      
         attribute "zzziFrame", "text"
        
 		command "wake"
@@ -177,6 +184,7 @@ metadata {
         command "ventSunroof"
         command "closeSunroof"
         command "listDrivers"
+        command "getBatteryHealth"
       
 	}
 
@@ -198,7 +206,7 @@ metadata {
        input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
        input "refreshOverrideTime", "enum", title: "How long to allow reduced refresh before giving up and go back to default (Also resets when you arrive)?",options: ["30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: false, defaultValue: "5-Minutes"     
        input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 300)?",resuired:true, defaultValue:300
-    
+       input "enableBatteryHealth", "enum", title: "Enable an extra query on every refresh to get battery health?", options: ["disabled", "on-every-refresh", "only-on-reenable"], required: false, defaultValue: "disabled" 
     }
 }
 
@@ -286,6 +294,12 @@ def reenable()
     pauseExecution(3000)
     initialize() 
     wake()
+    
+    if (enableBatteryHealth == "only-on-reenable")
+       {
+          if (debugLevel != "None") log.info "Getting Battery Health Status"
+            getBatteryHealth()
+       }    
 }
 
 // parse events into attributes
@@ -669,6 +683,13 @@ def refresh() {
             sendEvent(name: "savedLocation", value: "N/A", descriptionText: "Location: N/A")   
           }
       }
+        
+      if (enableBatteryHealth == "on-every-refresh")
+        {
+          if (debugLevel != "None") log.info "Getting Battery Health Status"
+            getBatteryHealth()
+        }
+                                  
     }
     else
     {
@@ -1198,4 +1219,54 @@ def setRefreshTime(String newRefreshTime)
           runEvery15Minutes(refresh)
           device.updateSetting("refreshTime",[value:"15-Minutes",type:"enum"])
       }
+}
+
+def getBatteryHealth()
+{
+   	if (debugLevel != "None") log.info "Executing 'getBatteryHealth'"
+    
+       def data = parent.getBatteryHealth(device.currentValue('vin'))
+	   processBatteryHealth(data)  
+}
+   
+private processBatteryHealth(data) {
+    
+    // this returns a result list so make sure we have correct vin
+    
+	if (data) {
+    	if (debugLevel != "None") log.info "processbatteryHealthData: ${data}"
+        
+        if (data.results)
+        {
+         if (debugLevel == "Full") log.debug "got battery result data = ${data}"
+         
+         for (onecar in data)
+            {
+         
+             def vin = onecar.vin
+             def cvin = device.currentValue('vin')
+           
+              if (onecar?.vin)  
+                {
+                 if (debugLevel == "Full")  log.debug "vin = $vin, cvin = $cvin"  
+                
+                 if (vin == cvin)
+                  {
+                   def capacity = onecar.capacity
+                   def originalCapacity = onecar.original_capacity
+                   def degradation = onecar.degradation_percent
+                   def health = onecar.health_percent
+                     
+                   if (debugLevel == "Full") log.debug "health percent = $health %, capacity = $capacity, orig. capacity = $originalCapacity, degradation = $degradation %"
+            
+                   sendEvent(name: "batteryCapacity", value: capacity)
+                   sendEvent(name: "batteryOriginalCapacity", value: originalCapacity)
+                   sendEvent(name: "batteryDegradation", value: degradation)
+                   sendEvent(name: "batteryHealth", value: health)
+                  }
+                }
+            }
+            
+        }
+    }
 }
