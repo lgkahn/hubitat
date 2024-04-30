@@ -71,6 +71,7 @@
  * v 1.95 as Sebastian noticed i screwed up on the set charging amps call so new version to fix it.
  * v 1.96 missing the import to handle java.net.sockettimeoutexception
  * v 1.97 handle offline state better.
+ * v 1.98 add battery health query
  *
  *
  */
@@ -610,6 +611,18 @@ private executeApiCommand(Map options = [:], child, String command) {
     return result
 }
 
+private executeApiCommand(Map options = [:], String command) {
+    def result = false
+    
+   if (descLog) log.info "executeApiCommand"
+    
+    authorizedHttpRequestWithTimeout(child,"/${command}", "GET",20,1, { resp ->
+        if (debug) log.debug "resp data = ${resp.data}"
+        result = resp.data.results       
+    })
+    return result
+}
+
 private executeApiCommandWithTimeout(Map options = [:], child, String command, Number timeout)
  {
   
@@ -907,6 +920,17 @@ def currentAddress(child) {
 	return executeApiCommandForAddress(child, "location")
 }
 
+
+def getBatteryHealth(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand("battery_health")
+}
+
+
 def notifyIfEnabled(message) {
     if (notificationDevice) {
         notificationDevice.deviceNotification(message)
@@ -926,7 +950,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.97"
+    return "1.98"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
