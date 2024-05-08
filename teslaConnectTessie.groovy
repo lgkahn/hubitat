@@ -72,6 +72,7 @@
  * v 1.96 missing the import to handle java.net.sockettimeoutexception
  * v 1.97 handle offline state better.
  * v 1.98 add battery health query
+ * v 1.99 fix issue finding cars with a null name and add code to skip cars without a vin as it is required.
  *
  *
  */
@@ -324,13 +325,17 @@ private refreshAccountVehicles() {
                 state.accountVehicles[id] = vname
               else state.accountVehicles[id] = "Tesla ${id}"
             }
-            if (vin != null)
-             if (vin != "")
-               state.accountVINs[id] = vin
-            
-              else state.accountVehicles[id] = "Tesla ${id}"
+           else state.accountVehicles[id] = "Tesla ${id}" // null vname case
+           
+           if (vin != null)
+             {
+              if (vin != "")
+                 state.accountVINs[id] = vin
+              else log.warn "Found an invalid vehicle without a VIN... skipping!"
+             }
+             else log.warn "Found an invalid vehicle without a VIN... skipping!"
             }
-            else log.debug "Found an invalid vehicle without a vehicle id... skipping!"
+            else log.warn "Found an invalid vehicle without a vehicle id... skipping!"
         }
     })
 }
@@ -950,7 +955,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.98"
+    return "1.99"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
