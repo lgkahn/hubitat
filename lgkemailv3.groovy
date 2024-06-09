@@ -136,6 +136,8 @@ or
 
 * 2/8/23  v 4.93 skip initial 220- as well as 250- which was already in place.
 
+* 6/24 v 4.94 add desclog or debug check so single sent message doesnt come out unless one or the other or both are enabled.
+
 
 
 */
@@ -198,7 +200,7 @@ def configure()
 
 String getVersion()
 {
-    return "4.93"
+    return "4.94"
 }
 
 def logsOff()
@@ -529,7 +531,7 @@ void updateStatus(int index, String newStatus)
          def String sentMsg = element.get(1)
          element.set(2,newStatus)
          messageStatus.set(index-1,element)
-         if (newStatus == "Completed") log.info "Sent Message via child($index): $sentMsg" 
+          if (debug || descLog) if (newStatus == "Completed") log.info "Sent Message via child($index): $sentMsg" 
          // checkArrayForTimedoutMessages()  
            synchronized (messageStateMutex) { state.messageStatus = messageStatus }
        } 
