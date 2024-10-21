@@ -14,6 +14,7 @@ Major Releases:
 11-27-2020 :  Alpha Release (0.1)
 12-15-2020 :  Beta 1 Release (0.2.0)
 lgk 12-24-2020 add lastUpdated and humidity
+lgk 10/24 new attributes 
 
 */
 import groovy.json.JsonSlurper
@@ -35,11 +36,25 @@ metadata {
         //Maybe?
 		capability "Sensor"
 		attribute "thermostatFanState", "enum", ["true", "false"]
+        
+        // lgk new attributes
+        attribute "fanOperatingState", "enum", ["on", "off"]
+        attribute "macID", "String"
+        attribute "maxCoolSetPoint", "Number"
+        attribute "minCoolSetPoint", "Number"
+        attribute "maxHeatSetPoint", "Number"
+        attribute "minHeatSetPoint", "Number"
+        attribute "vacationHold", "enum", ["true", "false"]
+        attribute "deviceName", "String"
+        attribute "isAlive", "enum", ["true", "false"]
+        attribute "model", "String"
+        // lgk end new attributes
+       
 		attribute "emergencyHeatActive", "enum", [null, "true", "false"]
         attribute "autoChangeoverActive", "enum", ["unsupported", "true", "false"]
         attribute "allowedModes", "enum", ["EmergencyHeat", "Heat", "Off", "Cool","Auto"]
         attribute "units", "enum", ["F", "C"]
-        attribute  "lastUpdate",         "string"
+        attribute  "lastUpdate", "string"
 
     }
     preferences{
