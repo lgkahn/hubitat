@@ -746,7 +746,7 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
         tempUnits = "°C"
     }
     sendEvent(device, [name: "units", value: tempUnits])
-    LogInfo("updateThermostats-tempUnits: ${tempUnits}")
+    LogDebug("updateThermostats-tempUnits: ${tempUnits}")
     
     
     def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
@@ -806,14 +806,8 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
     refreshHelper(reJson, "userDefinedDeviceName", "userDefinedDeviceName", device, tempUnits, false, false, false)
     refreshHelper(reJson, "macID", "macID", device, tempUnits, false, false, false)
     refreshHelper(reJson, "deviceModel", "model", device, null, false, false, false)
- 
-    
-   // if (reJson.containsKey("vactionHold"))
-      //  {
-            log.warn "in vaca hold"
-            refreshHelper(reJson.vacationHold, "enabled", "vacationHold", device, null, false, false, true)  
-       // }
-   
+    refreshHelper(reJson.vacationHold, "enabled", "vacationHold", device, null, false, false, true)  
+
      // now actual fan state
    
     def fanOn = reJson.operationStatus.fanRequest
