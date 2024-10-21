@@ -1,5 +1,5 @@
 /*
-Hubitat Driver For Honeywell Thermistate
+Hubitat Driver For Honeywell Thermistat
 
 Copyright 2020 - Taylor Brown
 
@@ -15,6 +15,18 @@ Major Releases:
 12-15-2020 :  Beta 1 Release (0.2.0)
 4/23 lgk fix supportedThermostatModes and supportedThermostatFanModes so dashboards work again for setting these.
  3/24 lgk add code to handle and retry after communication failures
+ 10/24 lgk add tons of new attrbiutes
+ie 
+maxCoolSetPoint : 90
+minCoolSetPoint : 70
+maxHeatSetPoint : 79
+minHeatSetPoint : 60
+userDefinedDeviceName : Condo 304
+isAlive : true
+macID : 48A2E6363B49
+fanOperatingState : off
+vacationHold : false
+model : T5-T6
 
 
 Considerable inspiration an example to: https://github.com/dkilgore90/google-sdm-api/
@@ -622,12 +634,12 @@ def refreshHelper(jsonString, cloudString, deviceString, com.hubitat.app.DeviceW
         LogDebug("refreshHelper() cloudString:${cloudString} - deviceString:${deviceString} - device:${device} - optionalUnits:${optionalUnits} - optionalMakeLowerMap:${optionalMakeLower} -optionalMakeLowerString:${optionalMakeLower}")
         
         def value = jsonString.get(cloudString)
-        
+       
          LogInfo("updateThermostats-${cloudString}: ${value}")
          LogDebug("updateThermostats-${cloudString}: ${value}")
         if (value == null)
         {
-            LogDebug("Thermostate Does not Support: ${deviceString} (${cloudString})")
+            LogDebug("Thermostat Does not Support: ${deviceString} (${cloudString})")
             return false;
         }
         if (optionalMakeLowerMap)
@@ -653,12 +665,14 @@ def refreshHelper(jsonString, cloudString, deviceString, com.hubitat.app.DeviceW
                 if (settings?.debugOutput) log.debug("Caught supportedModes... converted value = ${newValue}")
             }
           
+            //lgk debugging
+            LogDebug "sending: $deviceString value: $newValue"
             sendEvent(device, [name: deviceString, value: newValue])
         }
     }
     catch (java.lang.NullPointerException e)
     {
-        LogDebug("Thermostate Does not Support: ${deviceString} (${cloudString})")
+        LogDebug("Thermostat Does not Support: ${deviceString} (${cloudString})")
         return false;
     }
 
@@ -780,7 +794,35 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
         }
         refreshHelper(reJson.settings.fan, "fanRunning", "thermostatFanState", device, null, false, false)
     }
-
+    
+    
+    // lgk new attributes    
+    refreshHelper(reJson, "maxCoolSetpoint", "maxCoolSetPoint", device, tempUnits, false, false, true)
+    refreshHelper(reJson, "minCoolSetpoint", "minCoolSetPoint", device, tempUnits, false, false, true)
+    refreshHelper(reJson, "maxHeatSetpoint", "maxHeatSetPoint", device, tempUnits, false, false, true)   
+    refreshHelper(reJson, "minHeatSetpoint", "minHeatSetPoint", device, tempUnits, false, false, true) 
+    
+    refreshHelper(reJson, "isAlive", "isAlive", device,  null, false, false, true) 
+    refreshHelper(reJson, "userDefinedDeviceName", "userDefinedDeviceName", device, tempUnits, false, false, false)
+    refreshHelper(reJson, "macID", "macID", device, tempUnits, false, false, false)
+    refreshHelper(reJson, "deviceModel", "model", device, null, false, false, false)
+ 
+    
+   // if (reJson.containsKey("vactionHold"))
+      //  {
+            log.warn "in vaca hold"
+            refreshHelper(reJson.vacationHold, "enabled", "vacationHold", device, null, false, false, true)  
+       // }
+   
+     // now actual fan state
+   
+    def fanOn = reJson.operationStatus.fanRequest
+    def fanCirc = reJson.operationStatus.circulationFanRequest
+   
+    if (fanOn == true || fanCirc == true)
+         sendEvent(device, [name: "fanOperatingState", value: "on"]) 
+    else  sendEvent(device, [name: "fanOperatingState", value: "off"]) 
+        
     def operationStatus = reJson.operationStatus.mode
     def formatedOperationStatus =''
     if (operationStatus == "EquipmentOff")
