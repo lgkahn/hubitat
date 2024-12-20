@@ -73,7 +73,7 @@
  * v 1.97 handle offline state better.
  * v 1.98 add battery health query
  * v 1.99 fix issue finding cars with a null name and add code to skip cars without a vin as it is required.
- * v 2.0 add following attributes  aactive_route_destination, active_route_minutes_to_arrival thanks Alan_F
+ * v 2.0 add following attributes active_route_destination, active_route_minutes_to_arrival thanks Alan_F
  *
  *
  */
