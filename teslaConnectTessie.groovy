@@ -73,6 +73,7 @@
  * v 1.97 handle offline state better.
  * v 1.98 add battery health query
  * v 1.99 fix issue finding cars with a null name and add code to skip cars without a vin as it is required.
+ * v 2.0 add following attributes  aactive_route_destination, active_route_minutes_to_arrival thanks Alan_F
  *
  *
  */
@@ -442,8 +443,10 @@ def refresh(child) {
             data.vin = resp.data.vin
             data.speed = driveState.speed ? driveState.speed : 0
             data.motion = data.speed > 0 ? "active" : "inactive"            
-            data.thermostatMode = climateState.is_climate_on ? "auto" : "off"
-                 
+            data.thermostatMode = climateState.is_climate_on ? "auto" : "off"      
+            data.active_route_destination = driveState.active_route_destination ? driveState.active_route_destination : "none"
+            data.active_route_minutes_to_arrival = driveState.active_route_minutes_to_arrival ? driveState.active_route_minutes_to_arrival : 0
+               
            if (debug) log.debug "Vehicle Config = $vehicleConfig"
             data["vehicleConfig"] = [
                 has_third_row_seats: vehicleConfig.third_row_seats,
@@ -955,7 +958,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "1.99"
+    return "2.0"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
