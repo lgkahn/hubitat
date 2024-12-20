@@ -51,7 +51,7 @@
  * v 1.98 4/30/24 add command to get battery health (which shows battery degradation) and fill in related attributes, add option to get this data on very query either never, on every refresh or only on reenable if using that.
  *        since this is not really needed all the time, recommend if using set to only-on-reenable (assuming you use the sleep at night option to save on queries).
  *        this adds the following attributes: batteryCapacity, batteryOriginalCapacity, batteryDegradation, batteryHealth.
- *
+ * v 2.0 add following attributes  aactive_route_destination, active_route_minutes_to_arrival thanks Alan_F
  */
 
 metadata {
@@ -127,6 +127,8 @@ metadata {
         attribute "batteryOriginalCapacity", "number"
         attribute "batteryDegradation", "number"
         attribute "batteryHealth", "number"
+        attribute "active_route_destination", "string"
+        attribute "active_route_minutes_to_arrival", "number"
       
         attribute "zzziFrame", "text"
        
@@ -335,6 +337,8 @@ private processData(data) {
         {
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
+        sendEvent(name: "active_route_destination", value: data.active_route_destination) 
+        sendEvent(name: "active_route_minutes_to_arrival", value: data.active_route_minutes_to_arrival)     
         
         if (mileageScale == "M")
           {
