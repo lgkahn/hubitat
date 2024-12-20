@@ -51,7 +51,7 @@
  * v 1.98 4/30/24 add command to get battery health (which shows battery degradation) and fill in related attributes, add option to get this data on very query either never, on every refresh or only on reenable if using that.
  *        since this is not really needed all the time, recommend if using set to only-on-reenable (assuming you use the sleep at night option to save on queries).
  *        this adds the following attributes: batteryCapacity, batteryOriginalCapacity, batteryDegradation, batteryHealth.
- * v 2.0 add following attributes  aactive_route_destination, active_route_minutes_to_arrival thanks Alan_F
+ * v 2.0 add following attributes active_route_destination, active_route_minutes_to_arrival thanks Alan_F
  */
 
 metadata {
