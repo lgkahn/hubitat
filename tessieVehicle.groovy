@@ -52,6 +52,7 @@
  *        since this is not really needed all the time, recommend if using set to only-on-reenable (assuming you use the sleep at night option to save on queries).
  *        this adds the following attributes: batteryCapacity, batteryOriginalCapacity, batteryDegradation, batteryHealth.
  * v 2.0 add following attributes active_route_destination, active_route_minutes_to_arrival thanks Alan_F
+ * v 2.01 round minutes to arrivate to 2 decimal digits
  */
 
 metadata {
@@ -338,7 +339,10 @@ private processData(data) {
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
         sendEvent(name: "active_route_destination", value: data.active_route_destination) 
-        sendEvent(name: "active_route_minutes_to_arrival", value: data.active_route_minutes_to_arrival)     
+      
+        def Float minToArrivalFloat = Math.round(data.active_route_minutes_to_arrival)
+        def minToArrival = minToArrivalFloat.round(2)
+        sendEvent(name: "active_route_minutes_to_arrival", value: minToArrival)     
         
         if (mileageScale == "M")
           {
