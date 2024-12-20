@@ -74,6 +74,7 @@
  * v 1.98 add battery health query
  * v 1.99 fix issue finding cars with a null name and add code to skip cars without a vin as it is required.
  * v 2.0 add following attributes active_route_destination, active_route_minutes_to_arrival thanks Alan_F
+ * v 2.01 round minutes to arrivate to 2 decimal digits
  *
  *
  */
@@ -958,7 +959,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.0"
+    return "2.01"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
