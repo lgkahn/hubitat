@@ -54,7 +54,7 @@
  * v 2.0 add following attributes active_route_destination, active_route_minutes_to_arrival thanks Alan_F
  * v 2.01 round minutes to arrivate to 2 decimal digits
  * v 2.02 it was truncating to whole integer instead of 2 digits for minutes to arrival... fix
- *    also added active_rouite_miles_to_arrival and active_route_energy_at_arrival
+ *    also added active_route_miles_to_arrival and active_route_energy_at_arrival
  *
  */
 
