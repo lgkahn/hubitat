@@ -53,6 +53,9 @@
  *        this adds the following attributes: batteryCapacity, batteryOriginalCapacity, batteryDegradation, batteryHealth.
  * v 2.0 add following attributes active_route_destination, active_route_minutes_to_arrival thanks Alan_F
  * v 2.01 round minutes to arrivate to 2 decimal digits
+ * v 2.02 it was truncating to whole integer instead of 2 digits for minutes to arrival... fix
+ *    also added active_rouite_miles_to_arrival and active_route_energy_at_arrival
+ *
  */
 
 metadata {
@@ -130,6 +133,8 @@ metadata {
         attribute "batteryHealth", "number"
         attribute "active_route_destination", "string"
         attribute "active_route_minutes_to_arrival", "number"
+        attribute "active_route_miles_to_arrival", "number"
+        attribute "active_route_energy_at_arrival", "number"
       
         attribute "zzziFrame", "text"
        
@@ -338,11 +343,14 @@ private processData(data) {
         {
     	sendEvent(name: "state", value: data.state)
         sendEvent(name: "motion", value: data.motion)
-        sendEvent(name: "active_route_destination", value: data.active_route_destination) 
+        sendEvent(name: "active_route_destination", value: data.active_route_destination)
       
-        def Float minToArrivalFloat = Math.round(data.active_route_minutes_to_arrival)
+        def Float minToArrivalFloat = data.active_route_minutes_to_arrival
         def minToArrival = minToArrivalFloat.round(2)
-        sendEvent(name: "active_route_minutes_to_arrival", value: minToArrival)     
+        sendEvent(name: "active_route_minutes_to_arrival", value: minToArrival) 
+        
+        sendEvent(name: "active_route_miles_to_arrival", value: data.active_route_miles_to_arrival)
+        sendEvent(name: "active_route_energy_at_arrival", value: data.active_route_energy_at_arrival)
         
         if (mileageScale == "M")
           {
