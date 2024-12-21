@@ -75,6 +75,8 @@
  * v 1.99 fix issue finding cars with a null name and add code to skip cars without a vin as it is required.
  * v 2.0 add following attributes active_route_destination, active_route_minutes_to_arrival thanks Alan_F
  * v 2.01 round minutes to arrivate to 2 decimal digits
+ * v 2.02 it was truncating to whole integer instead of 2 digits for minutes to arrival... fix
+ *    also added active_rouite_miles_to_arrival and active_route_energy_at_arrival
  *
  *
  */
@@ -447,7 +449,9 @@ def refresh(child) {
             data.thermostatMode = climateState.is_climate_on ? "auto" : "off"      
             data.active_route_destination = driveState.active_route_destination ? driveState.active_route_destination : "none"
             data.active_route_minutes_to_arrival = driveState.active_route_minutes_to_arrival ? driveState.active_route_minutes_to_arrival : 0
-               
+            data.active_route_energy_at_arrival = driveState.active_route_energy_at_arrival ? driveState.active_route_energy_at_arrival : 0
+            data.active_route_miles_to_arrival = driveState.active_route_miles_to_arrival ? driveState.active_route_miles_to_arrival : 0
+                  
            if (debug) log.debug "Vehicle Config = $vehicleConfig"
             data["vehicleConfig"] = [
                 has_third_row_seats: vehicleConfig.third_row_seats,
@@ -959,7 +963,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.01"
+    return "2.02"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
