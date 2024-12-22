@@ -55,6 +55,7 @@
  * v 2.01 round minutes to arrivate to 2 decimal digits
  * v 2.02 it was truncating to whole integer instead of 2 digits for minutes to arrival... fix
  *    also added active_route_miles_to_arrival and active_route_energy_at_arrival
+ * v 2.03 round miles to arrival to 1 digit past decimal.
  *
  */
 
@@ -349,7 +350,9 @@ private processData(data) {
         def minToArrival = minToArrivalFloat.round(2)
         sendEvent(name: "active_route_minutes_to_arrival", value: minToArrival) 
         
-        sendEvent(name: "active_route_miles_to_arrival", value: data.active_route_miles_to_arrival)
+        def Float milesToArrivalFloat = data.active_route_miles_to_arrival
+        def milesToArrival = milesToArrivalFloat.round(1)
+        sendEvent(name: "active_route_miles_to_arrival", value: milesToArrival)
         sendEvent(name: "active_route_energy_at_arrival", value: data.active_route_energy_at_arrival)
         
         if (mileageScale == "M")
