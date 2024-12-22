@@ -77,6 +77,7 @@
  * v 2.01 round minutes to arrivate to 2 decimal digits
  * v 2.02 it was truncating to whole integer instead of 2 digits for minutes to arrival... fix
  *    also added active_route_miles_to_arrival and active_route_energy_at_arrival
+ * v 2.03 round miles to arrival to 1 digit past decimal.
  *
  *
  */
@@ -963,7 +964,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.02"
+    return "2.03"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
