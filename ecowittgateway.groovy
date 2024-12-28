@@ -88,6 +88,8 @@
  * 06/22 lgk add code for ws90
  * 3/24 add dniupdatecmd so that it can be called via a rule as the auto schedule seems to be failing at times.
  * also call dni update regardless if the field is not blank to see if that fixes issue with loosing connection.
+ *
+ * 12/24 add srain_piezo = 0 1 and associated raining = true false, also firmware version/ws90_ver and ws90cap_volt firmware version and capacitor voltage are stuckon the wind device for now
  */
 
 public static String version() { return "v1.23.17"; }
@@ -801,6 +803,7 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "mrain_piezo":
     case "yrain_piezo":
     case "train_piezo": 
+    case "srain_piezo":
       updated = sensor(it.key, it.value, 4);
       break;
     //
@@ -869,6 +872,8 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "maxdailygust":
     case "uv":
     case "solarradiation":
+    case "ws90cap_volt":
+    case "ws90_ver":
       updated = sensor(it.key, it.value, 9);
       break;
 
