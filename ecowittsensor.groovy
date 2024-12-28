@@ -52,7 +52,6 @@ metadata {
     attribute "batteryWind", "number";                         //
     attribute "batteryWindIcon", "number";                     // Only created/used when a WH68/WH80 is bundled in a PWS
     attribute "batteryWindOrg", "number";                      //
-    attribute "fimwareVersion", "string";
     attribute "capacitorVoltage", "number";
     attribute "ws90Firmware", "string";
 
