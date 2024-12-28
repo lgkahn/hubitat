@@ -19,6 +19,7 @@
  * I use this to alert when the hot tub will be at max in xx amount of time etc.
  *
  * lgk add code for capablity Air Quality using aqi
+ * lgk add srain_piezo and raining = true or false, also capacitorVoltage and firmware versions, stick the raing on the rain device and cap voltate and firmware version on the wind device
  *
  */
 
@@ -51,6 +52,9 @@ metadata {
     attribute "batteryWind", "number";                         //
     attribute "batteryWindIcon", "number";                     // Only created/used when a WH68/WH80 is bundled in a PWS
     attribute "batteryWindOrg", "number";                      //
+    attribute "fimwareVersion", "string";
+    attribute "capacitorVoltage", "number";
+    attribute "ws90Firmware", "string";
 
  // attribute "temperature", "number";                         // °F
 
@@ -75,6 +79,7 @@ metadata {
     attribute "rainMonthly", "number";                         // in - rainfall in the current month
     attribute "rainYearly", "number";                          // in - rainfall in the current year
     attribute "rainTotal", "number";                           // in - rainfall total since sensor installation
+    attribute "raining", "string";
 
     attribute "pm25", "number";                                // µg/m³ - PM2.5 particle reading - current
     attribute "pm25_avg_24h", "number";                        // µg/m³ - PM2.5 particle reading - average over the last 24 hours
@@ -148,6 +153,8 @@ metadata {
   preferences {
     input(name: "htmlTemplate", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>Tile HTML Template(s)</font>", description: "<font style='font-size:12px; font-style: italic'>See <u><a href='https://github.com/mircolino/ecowitt/blob/master/readme.md#templates' target='_blank'>documentation</a></u> for input formats</font>", defaultValue: "");
     input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+      
+    input("pressureinMbar", "bool", title: "Display pressure in millibars?", required:true, defaultValue:false)
       
      if (localAltitude != null) {
       input(name: "localAltitude", type: "string", title: "<font style='font-size:12px; color:#1a77c9'><u><a href='https://www.advancedconverter.com/map-tools/altitude-on-google-maps' target='_blank'>Altitude</a></u> to Correct Sea Level Pressure</font>", description: "<font style='font-size:12px; font-style: italic'>Examples: \"378 ft\" or \"115 m\"</font>", defaultValue: "", required: true);
@@ -225,8 +232,16 @@ private Boolean unitSystemIsMetric() {
   //
   // Return true if the selected unit system is metric
   //
-  return (getParent().unitSystemIsMetric());
+    
+    def isM = parent.unitSystemIsMetric()
+    
+    if (isM == null)
+    return false
+    else return isM
+
+    //return (getParent().unitSystemIsMetric());
 }
+
 
 // ------------------------------------------------------------
 
@@ -430,7 +445,6 @@ private Boolean attributeUpdateBattery(String val, String attribBattery, String 
   BigDecimal icon;
   String unitOrg;
 
-   // log.debug "in attribute update battery val = $val attrib = $attribBattery type = $type"
   switch (type) {
   case 1:
     // Change range from voltage to (0% - 100%)
@@ -588,6 +602,7 @@ private Boolean attributeUpdatePressure(String val, String attribPressure, Strin
   // Get unit system
   Boolean metric = unitSystemIsMetric();
 
+   // log.debug "in aattribute update pressure in mbar = $pressureinMbar"
   // Get pressure in hectopascal
   BigDecimal absolute = convert_inHg_to_hPa(val.toBigDecimal());
 
@@ -624,13 +639,16 @@ private Boolean attributeUpdatePressure(String val, String attribPressure, Strin
   // Correct pressure to sea level using this conversion formula: https://keisan.casio.com/exec/system/1224575267
   BigDecimal relative = absolute * Math.pow(1 - ((altitude * 0.0065) / (temperature + (altitude * 0.0065) + 273.15)), -5.257);
 
+    
   // Convert to imperial if requested
-  if (metric) val = "hPa";
+  if (pressureinMbar) 
+    val = "hPa";
   else {
     absolute = convert_hPa_to_inHg(absolute);
     relative = convert_hPa_to_inHg(relative);
     val = "inHg";
-  }
+  }  
+  
 
   Boolean updated = attributeUpdateNumber(relative, attribPressure, val, 2);
   if (attributeUpdateNumber(absolute, attribPressureAbs, val, 2)) updated = true;
@@ -863,6 +881,15 @@ private Boolean attributeUpdateWindSpeed(String val, String attribWindSpeed) {
    attributeUpdateString("false", "orphanedWind");
     
   return (attributeUpdateNumber(speed, attribWindSpeed, measure, 1));
+}
+
+// ------------------------------------------------------------
+
+private Boolean attributeUpdateCapacitorVoltage(String val, String attribCap) {
+
+  BigDecimal voltage = val.toBigDecimal();
+    
+  return (attributeUpdateNumber(voltage, attribCap));
 }
 
 // ------------------------------------------------------------
@@ -1192,6 +1219,20 @@ Boolean attributeUpdate(String key, String val) {
     updated = attributeUpdateBattery(val, "battery", "batteryIcon", "batteryOrg", 0);  // !boolean
     break;
 
+   case ~/ws90cap_volt[1-8]/:
+   case "ws90cap_volt":
+    state.sensor = 1;
+    updated = attributeUpdateCapacitorVoltage(val, "capacitorVoltage");
+    break;
+ 
+   case ~/ws90_ver[1-8]/:
+   case "ws90_ver":
+    state.sensor = 1;
+    log.warn "got firmware version --------------"
+    log.warn "val = $val"
+    updated = attributeUpdateString(val, "ws90Firmware");
+    break;  
+      
   case ~/batt_wf[1-8]/:
   case ~/soilbatt[1-8]/:
   case ~/tf_batt[1-8]/:
@@ -1257,6 +1298,15 @@ Boolean attributeUpdate(String key, String val) {
     updated = attributeUpdateRain(val, "rainRate", true);
     break;
 
+  case ~/srain_piezo[1-8]/:
+  case "srain_piezo":
+     log.warn "got raining ----------------"
+     if (debug) log.debug "Updating raining: $val"  
+    state.sensor = 1
+    if (val == 1)
+      updated = attributeUpdateString("true","raining");
+    else updated = attributeUpdateString("false","raining");    
+      
   case ~/eventrainin_wf[1-8]/:
   case "eventrainin":
   case "erain_piezo":
@@ -1267,6 +1317,7 @@ Boolean attributeUpdate(String key, String val) {
 
   case ~/hourlyrainin_wf[1-8]/:
   case "hourlyrainin":
+  case "hrain_piezo":
     state.sensor = 1;
     updated = attributeUpdateRain(val, "rainHourly");
     break;
@@ -1700,6 +1751,7 @@ private String htmlUpdateUserInput(String input) {
   }
 
   // Finally! We have a (1 <= number <= count) of valid templates: let's write them down
+    log.debug "template size = ${templateList.size()}"
   for (Integer idx = 0; idx < templateList.size(); idx++) {
     template = idx? "${htmlTemplate}${idx}": htmlTemplate;
 
