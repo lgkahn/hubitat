@@ -1,9 +1,9 @@
 
 /**
- * Driver:     DDNSFree updater script
+ * Driver:    Dynamic ip updater script
  * Author:    lgkahn
  *
- *
+
  * Change Log:
  *
  * 2025.01.05 - Initial implementation
@@ -15,12 +15,10 @@ public static String version() { return "v1"; }
 // Metadata -------------------------------------------------------------------------------------------------------------------
 
 metadata {
-  definition(name: "DDNSFree Updater Script", namespace: "lgkahn", author: "lgkahn", importUrl: "https://raw.githubusercontent.com/lgkahn/ecowitt/master/ddnsfree_updater.groovy") {
-   	
-    attribute "status", "string"                             
+  definition(name: "Dynamic IP Updater Script", namespace: "lgkahn", author: "lgkahn", importUrl: "https://raw.githubusercontent.com/lgkahn/ecowitt/master/ddnsfree_updater.groovy") {
+   	                         
     attribute "lastUpdate", "string"
     attribute "dynamicIPResult","string"
-    attribute "upTime", "string"
     attribute "currentIP", "string"
     command "DDNSUpdate"
   }
