@@ -257,7 +257,7 @@ def nsCallback(resp, data)
     def jSlurp = new JsonSlurper()
     Map ipData = (Map)jSlurp.parseText((String)resp.data)
         
-        log.debug "ipdata = $ipData"
+    logDebug( "ipdata = $ipData")
         
     if ((ipData == null) || (ipData.Status != 0))
         {
