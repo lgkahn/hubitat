@@ -7,6 +7,7 @@
  * Change Log:
  *
  * 2025.01.05 - Initial implementation
+ * v2 add lastupdate and lastupdatecheck attributes, get rid of duplicate check. reorder inputs
 
  */
 
@@ -20,18 +21,22 @@ metadata {
     attribute "lastUpdate", "string"
     attribute "dynamicIPResult","string"
     attribute "currentIP", "string"
+    attribute "lastUpdate", "string"
+    attribute "lastUpdateCheck", "string"
+    attribute "nextUpdateCheck", "string"
     command "DDNSUpdate"
   }
     
     
   preferences {
  
-    input(name: "DDNSName", type: "text", title: "Dynamic DNS Name to use to resolve a changing ip address. Leave Blank if not used.", description: "Enter DDNS Name", required: false)
+    input(name: "DDNSName", type: "text", title: "Dynamic DNS Name to use to resolve a changing ip address.", description: "Enter DDNS Name", required: false)
     input(name: "DDNSRefreshTime", type: "number", title: "How often (in Hours) to check/resolve the DDNS Name to discover if your IP address changed? (Range 1 - 1440, Default 24)?", range: "1..1440", defaultValue: 3, required: false)
-    input(name: "logLevel", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>Log Verbosity</font>", description: "<font style='font-size:12px; font-style: italic'>Default: 'Debug' for 30 min and 'Info' thereafter</font>", options: [0:"Error", 1:"Warning", 2:"Info", 3:"Debug", 4:"Trace"], multiple: false, defaultValue: 3, required: true);
     input(name: "DDNSUsername", type: "String", title: "DDNS Username ?", required: true)
     input(name: "DDNSPassword", type: "password", title: "DDNS Password ?", required: true)
     input(name: "DDNSBaseURL", type: "String", title: "DDNS URL ?", required: true)  
+    input(name: "logLevel", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>Log Verbosity</font>", description: "<font style='font-size:12px; font-style: italic'>Default: 'Debug' for 30 min and 'Info' thereafter</font>", options: [0:"Error", 1:"Warning", 2:"Info", 3:"Debug", 4:"Trace"], multiple: false, defaultValue: 3, required: true);
+
   }
 }
 
@@ -110,6 +115,9 @@ private Boolean attributeUpdateString(String val, String attribute) {
 def DDNSUpdate()
 {
     logDebug( "Calling IP_Update()")
+    
+     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+     sendEvent(name: "lastUpdateCheck", value: now)
     IP_Check()
 }
 
@@ -128,7 +136,7 @@ private String IP_Check() {
     
     publicIpReq()
 
-    dni = device.currentValue("currentIP")
+   dni = device.currentValue("currentIP")
    logDebug( "got public ip = $dni")
     
   if (dni) {
@@ -206,9 +214,15 @@ def updateCallback(resp, data)
     
     else
     {
-        if ((resp.data == "nochg") || (resp.data == "good"))
+        def String checkString = "good " + device.currentValue("currentIP")
+        
+        log.debug "check string = $checkString"
+        
+        if ((resp.data == "nochg") || (resp.data == "good") || (resp.data == checkString))
         {
             logInfo("Dynamic DNS succesfully updated!")
+            def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+           sendEvent(name: "lastUpdate", value: now)
         }
       else
       {
@@ -242,7 +256,7 @@ def nsCallback(resp, data)
     
    // test change
     
-   logDebug "in callback resp = $resp"
+   logDebug "in callback"
     if (resp == null)
     {
         logError("Error - dynamic ip name ${settings.DDNSName} does not resolve!")
@@ -294,8 +308,13 @@ def nsCallback(resp, data)
 void DNSCheckCallback()
 {
     logInfo("Dns Update Check Callback Startup")
+    
+     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+     sendEvent(name: "lastUpdateCheck", value: now)
     updated()
 }
+
+// ---------------------------------------------
 
 void updated() {
   //
@@ -305,9 +324,6 @@ void updated() {
     logDebug("updated()");
       
     publicIpReq()
-
-    // Clear previous states
-    state.clear();
 
     // Unschedule possible previous runIn() calls
     unschedule();
@@ -336,15 +352,18 @@ void updated() {
       // now schedule next run of update
       if ((ddnsupdatetime != null) && (ddnsupdatetime != 00))
           {
+             use(groovy.time.TimeCategory) {
+              
              def thesecs = ddnsupdatetime * 3600
              logInfo("Rescheduling IP Address Check to run again in $thesecs seconds.")
              runIn(thesecs, "DNSCheckCallback");
+             def Integer ntime = ddnsupdatetime
+             def next = new Date() + ntime.hour
+             def now = next.format('MM/dd/yyyy h:mm a',location.timeZone)
+             sendEvent(name: "nextUpdateCheck", value: now)  
+          }
           }
           
-    // Update Device Network ID
-    logDebug( "Calling DDNSUpdate")
-    String error = DDNSUpdate();
-  
     // Turn off debug log in 30 minutes
     if (logGetLevel() > 2) runIn(1800, logDebugOff);
          
