@@ -243,12 +243,30 @@ def performUpdate(base, uname, pwd, newIP, host)
     
 def nsCallback(resp, data)
 {  
-    logDebug("in callback")
     
    // test change
     
+   logDebug "in callback resp = $resp"
+    if (resp == null)
+    {
+        logError("Error - dynamic ip name ${settings.DDNSName} does not resolve!")
+    }
+    else
+    {
+                 
     def jSlurp = new JsonSlurper()
     Map ipData = (Map)jSlurp.parseText((String)resp.data)
+        
+        log.debug "ipdata = $ipData"
+        
+    if ((ipData == null) || (ipData.Status != 0))
+        {
+             logError("Error - dynamic ip name ${settings.DDNSName} does not resolve!")
+        }
+     
+     else
+     {
+            
     def String oldIP = ipData.Answer.data[0]
     sendEvent(name:"dynamicIPResult", value:ipData.Answer.data[0])
     
@@ -270,6 +288,8 @@ def nsCallback(resp, data)
             performUpdate(baseURL,uname,pwd,currentIP,host)
         }
        else logInfo("No change - Update not necessary.")
+    }
+    }
     }
 }
 
