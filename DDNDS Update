@@ -1,0 +1,348 @@
+
+/**
+ * Driver:     DDNSFree updater script
+ * Author:    lgkahn
+ * Repository: https://github.com/mircolino/ecowitt
+ * Import URL: https://raw.githubusercontent.com/mircolino/ecowitt/master/ecowitt_gateway.groovy
+ *
+
+ * Change Log:
+ *
+ * 2025.01.05 - Initial implementation
+
+ */
+
+public static String version() { return "v1"; }
+
+// Metadata -------------------------------------------------------------------------------------------------------------------
+
+metadata {
+  definition(name: "DDNSFree Updater Script", namespace: "lgkahn", author: "lgkahn", importUrl: "https://raw.githubusercontent.com/lgkahn/ecowitt/master/ddnsfree_updater.groovy") {
+   	
+    attribute "status", "string"                             
+    attribute "lastUpdate", "string"
+    attribute "dynamicIPResult","string"
+    attribute "upTime", "string"
+    attribute "currentIP", "string"
+    command "DDNSUpdate"
+  }
+    
+    
+  preferences {
+ 
+    input(name: "DDNSName", type: "text", title: "Dynamic DNS Name to use to resolve a changing ip address. Leave Blank if not used.", description: "Enter DDNS Name", required: false)
+    input(name: "DDNSRefreshTime", type: "number", title: "How often (in Hours) to check/resolve the DDNS Name to discover if your IP address changed? (Range 1 - 1440, Default 24)?", range: "1..1440", defaultValue: 3, required: false)
+    input(name: "logLevel", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>Log Verbosity</font>", description: "<font style='font-size:12px; font-style: italic'>Default: 'Debug' for 30 min and 'Info' thereafter</font>", options: [0:"Error", 1:"Warning", 2:"Info", 3:"Debug", 4:"Trace"], multiple: false, defaultValue: 3, required: true);
+    input(name: "DDNSUsername", type: "String", title: "DDNS Username ?", required: true)
+    input(name: "DDNSPassword", type: "password", title: "DDNS Password ?", required: true)
+    input(name: "DDNSBaseURL", type: "String", title: "DDNS URL ?", required: true)  
+  }
+}
+
+// Preferences ----------------------------------------------------------------------------------------------------------------
+
+import groovy.json.JsonSlurper;
+
+void publicIpReq(cookie){
+    params = [
+        uri: "https://api.ipify.org?format=json",
+        headers: [            
+            Accept: "application/json"
+        ]
+    ]
+    
+    if(debugEnable)log.debug params
+    asynchttpGet("getPublicIp", params)
+}
+
+@SuppressWarnings('unused')
+void getPublicIp(resp, data){
+    try{
+
+        if (resp.getStatus() == 200){
+            if (debugEnable) log.debug resp.data
+            def jSlurp = new JsonSlurper()
+            Map ipData = (Map)jSlurp.parseText((String)resp.data)
+            
+            logDebug( "got ip = ${ipData.ip}")
+            
+            attributeUpdateString(ipData.ip, "currentIP");
+        } else {
+            if (!warnSuppress) log.warn "Status ${resp.getStatus()} while fetching Public IP"
+        } 
+    } catch (Exception ex){
+        if (!warnSuppress) log.warn ex
+    }
+}
+
+
+// ------------------------------------------------------------
+
+Integer logGetLevel() {
+  //
+  // Get the log level as an Integer:
+  //
+  //   0) log only Errors
+  //   1) log Errors and Warnings
+  //   2) log Errors, Warnings and Info
+  //   3) log Errors, Warnings, Info and Debug
+  //   4) log Errors, Warnings, Info, Debug and Trace/diagnostic (everything)
+  //
+  // If the level is not yet set in the driver preferences, return a default of 2 (Info)
+  // Declared public because it's being used by the child-devices as well
+  //
+  if (settings.logLevel != null) return (settings.logLevel.toInteger());
+  return (2);
+}
+
+
+
+// ------------------------------------------------------------
+
+private Boolean attributeUpdateString(String val, String attribute) {
+ 
+  if ((device.currentValue(attribute) as String) != val) {
+    sendEvent(name: attribute, value: val);
+    return (true);
+  }
+
+  return (false);
+}
+
+// ------------------------------------------------------------
+
+def DDNSUpdate()
+{
+    logDebug( "Calling IP_Update()")
+    IP_Check()
+}
+
+// -------------------------------------------------------------
+
+private String IP_Check() {
+  //
+  // Get the gateway address (either MAC or IP) from the properties and, if valid and not done already, update the driver DNI
+  // Return "error") invalid address entered by the user
+  //           null) same address as before
+  //             "") new valid address
+  //
+  logDebug("IP_Check()");
+    
+    // first get current publicip
+    
+    publicIpReq()
+
+    dni = device.currentValue("currentIP")
+   logDebug( "got public ip = $dni")
+    
+  if (dni) {
+      // now resolv dynmaic ip
+       logDebug("calling dns Update url = $params")
+      
+     def String ddnsname = settings.DDNSName
+     def Number ddnsupdatetime = settings.DDNSRefreshTime
+                                          
+     logDebug("DDNS Name = $ddnsname")
+     logDebug("DDNS Refresh Time = $ddnsupdatetime")
+                                          
+     if ((ddnsname != null) && (ddnsname != ""))
+      {
+        logDebug("Got ddns name $ddnsname")
+   
+     Map params = [
+        uri: "https://8.8.8.8/resolve?name=$ddnsname&type=A",
+        contentType: "text/plain",
+        timeout: 20
+    ]
+
+    logDebug("calling dns query url = $params")
+    asynchttpGet("nsCallback", params)
+      }   
+  }      
+   
+}
+
+// Conversion -----------------------------------------------------------------------------------------------------------------
+
+// Logging --------------------------------------------------------------------------------------------------------------------
+
+void logDebugOff() {
+  //
+  // runIn() callback to disable "Debug" logging after 30 minutes
+  // Cannot be private
+  //
+  if (logGetLevel() > 2) device.updateSetting("logLevel", [type: "enum", value: "2"]);
+}
+
+// ------------------------------------------------------------
+
+private void logError(String str) { log.error(str); }
+private void logWarning(String str) { if (logGetLevel() > 0) log.warn(str); }
+private void logInfo(String str) { if (logGetLevel() > 1) log.info(str); }
+private void logDebug(String str) { if (logGetLevel() > 2) log.debug(str); }
+private void logTrace(String str) { if (logGetLevel() > 3) log.trace(str); }
+
+// ------------------------------------------------------------
+
+void installed() {
+  //
+  // Called once when the driver is created
+  //
+  try {
+    logDebug("installed()");
+
+      publicIpReq()
+      
+  }
+  catch (Exception e) {
+    logError("Exception in installed(): ${e}");
+  }
+}
+
+// -------------------------------------------------------------
+def updateCallback(resp, data)
+{  
+    logDebug("in ddns update callback")
+    
+   // test change
+   if (resp == null)
+    logError("Dynamic DNS update failed return was null!")
+    
+    else
+    {
+        if ((resp.data == "nochg") || (resp.data == "good"))
+        {
+            logInfo("Dynamic DNS succesfully updated!")
+        }
+      else
+      {
+          logError("Dynamic DNS update failed - return code = ${resp.data}!")
+      }
+    } // not null 
+}
+
+// --------------------------------------------------------------
+
+def performUpdate(base, uname, pwd, newIP, host)
+
+{   
+    logDebug( "in peformUpdate")
+    
+        Map params = [
+        uri: "${base}hostname=${host}&myip=${newIP}&username=${uname}&pwd=${pwd}",            
+        contentType: "text/plain",
+        timeout: 20
+    ]
+
+    logDebug("calling dns Update url = $params")
+    asynchttpGet("updateCallback", params)
+      }   
+    
+    
+ // -----------------------------------------------------------
+    
+def nsCallback(resp, data)
+{  
+    logDebug("in callback")
+    
+   // test change
+    
+    def jSlurp = new JsonSlurper()
+    Map ipData = (Map)jSlurp.parseText((String)resp.data)
+    def String oldIP = ipData.Answer.data[0]
+    sendEvent(name:"dynamicIPResult", value:ipData.Answer.data[0])
+    
+    // now compare ip to our own and if different reset and log
+    if ((oldIP != null) && (oldIP != ""))
+    {
+        def String currentIP =  device.currentValue("currentIP")
+        logInfo("Comparing resolved IP: $oldIP to $currentIP")
+        
+      if (currentIP != oldIP)
+       {
+            logInfo("IP address has Changed !!! Re-registering !")
+             
+            def String baseURL = device.getSetting("DDNSBaseURL")
+            def String uname = device.getSetting("DDNSUsername")
+            def String pwd = device.getSetting("DDNSPassword")
+            def String host = device.getSetting("DDNSName")
+            
+            performUpdate(baseURL,uname,pwd,currentIP,host)
+        }
+       else logInfo("No change - Update not necessary.")
+    }
+}
+
+// --------------------------------------------------
+
+void DNSCheckCallback()
+{
+    logInfo("Dns Update Check Callback Startup")
+    updated()
+}
+
+void updated() {
+  //
+  // Called everytime the user saves the driver preferences
+  //
+  try {
+    logDebug("updated()");
+      
+    publicIpReq()
+
+    // Clear previous states
+    state.clear();
+
+    // Unschedule possible previous runIn() calls
+    unschedule();
+
+     // lgk if ddns name resolve this first and do ip check before dniupdatr.. ALSO schedule the re-check.
+     def String ddnsname = settings.DDNSName
+     def Number ddnsupdatetime = settings.DDNSRefreshTime
+                                          
+     logDebug("DDNS Name = $ddnsname")
+     logDebug("DDNS Refresh Time = $ddnsupdatetime")
+                                          
+     if ((ddnsname != null) && (ddnsname != ""))
+       {
+           logDebug("Got ddns name $ddnsname")
+           // now resolve
+   
+     Map params = [
+        uri: "https://8.8.8.8/resolve?name=$ddnsname&type=A",
+        contentType: "text/plain",
+        timeout: 20
+    ]
+
+    logDebug("calling dns Update url = $params")
+    asynchttpGet("nsCallback", params)
+}   
+      // now schedule next run of update
+      if ((ddnsupdatetime != null) && (ddnsupdatetime != 00))
+          {
+             def thesecs = ddnsupdatetime * 3600
+             logInfo("Rescheduling IP Address Check to run again in $thesecs seconds.")
+             runIn(thesecs, "DNSCheckCallback");
+          }
+          
+    // Update Device Network ID
+    logDebug( "Calling DDNSUpdate")
+    String error = DDNSUpdate();
+  
+    // Turn off debug log in 30 minutes
+    if (logGetLevel() > 2) runIn(1800, logDebugOff);
+         
+  }
+  catch (Exception e) {
+    logError("Exception in updated(): ${e}");
+  }
+}
+
+// ------------------------------------------------------------
+
+void uninstalled() {
+  //
+  // Called once when the driver is deleted
+  //
+
+}
