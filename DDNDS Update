@@ -2,10 +2,8 @@
 /**
  * Driver:     DDNSFree updater script
  * Author:    lgkahn
- * Repository: https://github.com/mircolino/ecowitt
- * Import URL: https://raw.githubusercontent.com/mircolino/ecowitt/master/ecowitt_gateway.groovy
  *
-
+ *
  * Change Log:
  *
  * 2025.01.05 - Initial implementation
