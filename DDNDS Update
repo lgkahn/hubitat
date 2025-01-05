@@ -11,7 +11,7 @@
 
  */
 
-public static String version() { return "v1"; }
+public static String version() { return "v2"; }
 
 // Metadata -------------------------------------------------------------------------------------------------------------------
 
