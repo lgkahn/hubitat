@@ -8,7 +8,7 @@
  *
  * 2025.01.05 - Initial implementation
  * v2 add lastupdate and lastupdatecheck attributes, get rid of duplicate check. reorder inputs
- * v 2.1 add last result attribute
+ * v 2.1 add last result attribute, add actuator capability so it can be added to a dashboard to see status attributes.
 
  */
 
@@ -26,6 +26,7 @@ metadata {
     attribute "lastUpdateCheck", "string"
     attribute "nextUpdateCheck", "string"
     attribute "lastResult", "string"
+    capability "Actuator" 
     command "DDNSUpdate"
   }
     
