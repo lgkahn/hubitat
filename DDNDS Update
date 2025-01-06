@@ -8,10 +8,11 @@
  *
  * 2025.01.05 - Initial implementation
  * v2 add lastupdate and lastupdatecheck attributes, get rid of duplicate check. reorder inputs
+ * v 2.1 add last result attribute
 
  */
 
-public static String version() { return "v2"; }
+public static String version() { return "v2.1"; }
 
 // Metadata -------------------------------------------------------------------------------------------------------------------
 
@@ -24,6 +25,7 @@ metadata {
     attribute "lastUpdate", "string"
     attribute "lastUpdateCheck", "string"
     attribute "nextUpdateCheck", "string"
+    attribute "lastResult", "string"
     command "DDNSUpdate"
   }
     
@@ -222,11 +224,14 @@ def updateCallback(resp, data)
         {
             logInfo("Dynamic DNS succesfully updated!")
             def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-           sendEvent(name: "lastUpdate", value: now)
+            sendEvent(name: "lastUpdate", value: now)
+            sendEvent(name: "lastResult", value: resp.data)
         }
       else
       {
           logError("Dynamic DNS update failed - return code = ${resp.data}!")
+          sendEvent(name: "lastResult", value: resp.data)
+          
       }
     } // not null 
 }
