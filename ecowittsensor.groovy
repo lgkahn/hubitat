@@ -374,8 +374,9 @@ private Boolean attributeUpdateString(String val, String attribute) {
   // Only update "attribute" if different
   // Return true if "attribute" has actually been updated/created
   //
-  
-  if ((device.currentValue(attribute) as String) != val) {
+ if (debug) log.debug "in attrupstring vsl = $val , attr = $attribute"
+ 
+    if ((device.currentValue(attribute) as String) != val) {
     sendEvent(name: attribute, value: val);
     return (true);
   }
@@ -392,7 +393,7 @@ private Boolean attributeUpdateNumber(BigDecimal val, String attribute, String m
   //
     
   // If rounding is required we use the Float one because the BigDecimal is not supported/not working on Hubitat
-   if (debug) log.debug "in attr update number val [ $val attribute = $attribute"
+   if (debug) log.debug "in attr update number val = $val attribute = $attribute"
     
   if (decimals >= 0) val = val.toFloat().round(decimals).toBigDecimal();
 
@@ -1170,7 +1171,7 @@ Boolean attributeUpdate(String key, String val) {
  
   def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
   sendEvent(name: "lastUpdate", value: now)
-   // log.debug "got key $key val = $val"
+  if (debug) log.debug "got key $key val = $val"
       
   switch (key) {
 
@@ -1227,8 +1228,6 @@ Boolean attributeUpdate(String key, String val) {
    case ~/ws90_ver[1-8]/:
    case "ws90_ver":
     state.sensor = 1;
-    log.warn "got firmware version --------------"
-    log.warn "val = $val"
     updated = attributeUpdateString(val, "ws90Firmware");
     break;  
       
@@ -1299,10 +1298,9 @@ Boolean attributeUpdate(String key, String val) {
 
   case ~/srain_piezo[1-8]/:
   case "srain_piezo":
-     log.warn "got raining ----------------"
-     if (debug) log.debug "Updating raining: $val"  
+    if (debug) log. "Updating raining: $val"  
     state.sensor = 1
-    if (val == 1)
+    if (val == "1")
       updated = attributeUpdateString("true","raining");
     else updated = attributeUpdateString("false","raining");    
       
