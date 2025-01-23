@@ -78,6 +78,7 @@
  * v 2.02 it was truncating to whole integer instead of 2 digits for minutes to arrival... fix
  *    also added active_route_miles_to_arrival and active_route_energy_at_arrival
  * v 2.03 round miles to arrival to 1 digit past decimal.
+ * v 2.04 fixed bug.. type in settemperature when in celsius mode
  *
  *
  */
@@ -722,7 +723,7 @@ def setThermostatSetpointF(child, Number setpoint) {
       pause((pauseTime.toInteger() * 1000))
     }
     log.debug "setting tesla temp to $setpointCelcius input = $setpoint"
-    return executeApiCommand(child, "command/set_temperatures?temperature=${setpointCelcius}")
+    return executeApiCommand(child, "command/set_temperature?temperature=${setpointCelcius}")
 }
 
 def startCharge(child) {
@@ -964,7 +965,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.03"
+    return "2.04"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
