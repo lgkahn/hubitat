@@ -86,6 +86,7 @@
  * For this reason, normal polling probably should not be set lower than 10 minutes, 15-30 minutes is now the recommended level for the normal API polling.
  *
  * v 2.11 fix typo in disable fx
+ * v 2.12 fromtime was not disabling the websocket correctly, the status fx was reopening it.
  */
 
 metadata {
@@ -277,6 +278,7 @@ def initialize()
       
     log.info "Time after which to check if Vehicle is Asleep: ${numberOfSecsToConsiderCarAsleep}"
     state.currentVehicleState = "awake"
+    state.disabled = false 
     sendEvent(name: "currentVehicleState", value: "awake")
     
       if (useAltPresence == true) 
@@ -347,8 +349,8 @@ def initialize()
     }
     else 
     {
-        log.info "Disabling Real Time Fleet API!"
-        webSocketClose()
+      log.info "Disabling Real Time Fleet API!"
+      webSocketClose()
     }
     
 }
@@ -360,11 +362,12 @@ def disable()
     // schedule reenable time
     if (toTime != null)
       schedule(toTime, reenable)
+    state.disabled = true
     
     if (useRealTimeAPI)
     {
-        if (debugLevel != "None") log.info "Disabling Real Time API" 
-        webSocketClose()
+      if (debugLevel != "None") log.info "Disabling Real Time API" 
+      webSocketClose()
     }
 }
 
@@ -374,6 +377,7 @@ def reenable()
     // now schedule the sleep again
     // pause for 3 secs so when we reschedule it wont run again immediately
     pauseExecution(3000)
+    state.disabled = false
     initialize() 
     wake()
     
@@ -1491,6 +1495,7 @@ def checkAltHomePresence(it) {
 /* --------------------------- web socket fleet api code enhancements -------------------------------- */
 
 def webSocketInit() {
+    // this gets called on a close or problem and spawns a new open, dont want a new open if we are disabled to sleep.
     state.remove('webSocketOpenDelay')
     webSocketOpen()
 }
@@ -1530,8 +1535,8 @@ def webSocketStatus(String message) {
     // lgk dont do anything such as reopen if it is not enabled
     
     if (useRealTimeAPI)
-    {
-        
+    {      
+  
     if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug("${device.displayName} webSocketStatus $message${state?.webSocketTimestamp ? " after ${(now() - state?.webSocketTimestamp)/1000 as Integer} seconds" : ""}")    
     if (message?.contains("open"))
     {
@@ -1546,18 +1551,26 @@ def webSocketStatus(String message) {
     }
     else if (state?.webSocketTimestamp)
     {
-        // we had a good connection and now closing. but if open for less than one minute we had a problem. lets slow down next attempt. max ten minutes delay        
-        state.webSocketOpenDelay = (now() - state.webSocketTimestamp > 60*1000) ? 1 : (state?.webSocketOpenDelay ? Math.min( state.webSocketOpenDelay * 2, 600 ) : 2)
-        if (state?.webSocketOpenDelay>2) log.warn "${device.displayName} delaying websocket retry by $state.webSocketOpenDelay seconds with reason: $message (short connection)"
-        webSocketClose()
-        runIn(state.webSocketOpenDelay,"webSocketOpen")
+        // we had a good connection and now closing. but if open for less than one minute we had a problem. lets slow down next attempt. max ten minutes delay     
+        // if disabled by time dont re-open
+        if (state.disabled != true)
+        {
+         state.webSocketOpenDelay = (now() - state.webSocketTimestamp > 60*1000) ? 1 : (state?.webSocketOpenDelay ? Math.min( state.webSocketOpenDelay * 2, 600 ) : 2)
+         if (state?.webSocketOpenDelay>2) log.warn "${device.displayName} delaying websocket retry by $state.webSocketOpenDelay seconds with reason: $message (short connection)"
+         webSocketClose()
+         runIn(state.webSocketOpenDelay,"webSocketOpen")
+        }
     }
     else
     {
-        // we never had a good connection. lets slow down next attempt. max ten minutes delay        
-        state.webSocketOpenDelay = state?.webSocketOpenDelay ? Math.min( state.webSocketOpenDelay * 2, 600 ) : 2
-        if (state?.webSocketOpenDelay>2) log.warn "${device.displayName} delaying websocket retry by $state.webSocketOpenDelay seconds with reason: $message"
-        runIn(state.webSocketOpenDelay,"webSocketOpen")
+        
+        // we never had a good connection. lets slow down next attempt. max ten minutes delay 
+        if (state.disabled != true)
+        {
+          state.webSocketOpenDelay = state?.webSocketOpenDelay ? Math.min( state.webSocketOpenDelay * 2, 600 ) : 2
+          if (state?.webSocketOpenDelay>2) log.warn "${device.displayName} delaying websocket retry by $state.webSocketOpenDelay seconds with reason: $message"
+          runIn(state.webSocketOpenDelay,"webSocketOpen")
+        }
     }
     }
 }
