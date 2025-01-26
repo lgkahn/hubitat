@@ -82,6 +82,8 @@
  *
  * v 2.1 first integration of webstocket fleet api
  * v 2.11 fix typo in disable fx
+ * v 2.12 fromtime was not disabling the websocket correctly, the status fx was reopening it.
+ *
  *
  */
 
@@ -966,7 +968,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.11"
+    return "2.12"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
