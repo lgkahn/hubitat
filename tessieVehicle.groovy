@@ -67,21 +67,21 @@
  * As before alternate present uses your home longitude and latitude and the distance you decide it should fire.. Without all these set it will flag an error in the logs and disable it.
  *
  * There is also a new debug toggle just for the new websocket api, if either this or the older debug_level=full are on websocket debugging will come out. This is so that if issues
- * arrise with the new code you told have to commit to full debugging of the polling api as well.
+ * arrise with the new code you don't have to commit to full debugging of the polling api as well.
  *
  * the following functions and attributes and related input preference have been removed:
  *        input "outerBoundryCircleDistance", 
  *        input "outerRefreshTime", 
  *        input "refreshOverrideTime",
  *
- * FromTime and ToTime settings are still relavent to disable polling and also now will disable the websocket api interface duriong this time as well. This normally is used
+ * FromTime and ToTime settings are still relavent to disable polling and also now will disable the websocket api interface during this time as well. This normally is used
  * when you know the car will not be used ie. late at night to help it sleep and also reduce load on the hub. If the websocket interface is enabled it will also now re-enable
  * when the daily toTime is met.
  *
- * A timetoFullCharge attribute that display the remaining tile to charge (NOT the name is misleading) it is not really the time to full charge but the time remaining to charge up- to the
+ * A timeToFullCharge attribute that displays the remaining time to charge (NOTE the name is misleading) it is not really the time to full charge but the time remaining to charge up- to the
  * level you have set. But anywhoo this is what telsa has called this attribute. The attribute is a string similiar to what is found in the tesla app.
  *
- * Other notes: Beyond our control is that the websocket interface seems to reset every 3 minutes, and in order to fill in missing data on intial startup or when this occurs 
+ * Other notes: Beyond our control is that the websocket interface seems to reset every 5 minutes, and in order to fill in missing data on intial startup or when this occurs 
    (as long as the car is NOT Asleep) a normal polling refresh is fired off.  The result is that you will see normal refreshes every 3 minutes if the car is awake.
  * For this reason, normal polling probably should not be set lower than 10 minutes, 15-30 minutes is now the recommended level for the normal API polling.
 
