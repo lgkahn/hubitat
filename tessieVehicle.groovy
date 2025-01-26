@@ -57,6 +57,34 @@
  *    also added active_route_miles_to_arrival and active_route_energy_at_arrival
  * v 2.03 round miles to arrival to 1 digit past decimal.
  *
+ * v 2.1 many changes. first integration using the new tesla/tessia fleet streaming API. Thanks to  Bloodtick_Jones and ALAN_F for initial code stub.
+ *
+ * Caveats, this is a little differnt that the non official version:
+ *
+ * 1. There is a new input preference flag that needs to be enabled to use the web fleet websocket API. Without this it works just like it used to albeit alternate presence sensing will
+ * now NOT work without the websocket API. So all the code and preference flags for reduced refresh are gone and the minimum refresh time is 1 minute. the Reason being is that
+ * this methods works much better for frequent data updates to figure out when you are close to home to set whether you are present or not. This is also enabled with a setting.
+ * As before alternate present uses your home longitude and latitude and the distance you decide it should fire.. Without all these set it will flag an error in the logs and disable it.
+ *
+ * There is also a new debug toggle just for the new websocket api, if either this or the older debug_level=full are on websocket debugging will come out. This is so that if issues
+ * arrise with the new code you told have to commit to full debugging of the polling api as well.
+ *
+ * the following functions and attributes and related input preference have been removed:
+ *        input "outerBoundryCircleDistance", 
+ *        input "outerRefreshTime", 
+ *        input "refreshOverrideTime",
+ *
+ * FromTime and ToTime settings are still relavent to disable polling and also now will disable the websocket api interface duriong this time as well. This normally is used
+ * when you know the car will not be used ie. late at night to help it sleep and also reduce load on the hub. If the websocket interface is enabled it will also now re-enable
+ * when the daily toTime is met.
+ *
+ * A timetoFullCharge attribute that display the remaining tile to charge (NOT the name is misleading) it is not really the time to full charge but the time remaining to charge up- to the
+ * level you have set. But anywhoo this is what telsa has called this attribute. The attribute is a string similiar to what is found in the tesla app.
+ *
+ * Other notes: Beyond our control is that the websocket interface seems to reset every 3 minutes, and in order to fill in missing data on intial startup or when this occurs 
+   (as long as the car is NOT Asleep) a normal polling refresh is fired off.  The result is that you will see normal refreshes every 3 minutes if the car is awake.
+ * For this reason, normal polling probably should not be set lower than 10 minutes, 15-30 minutes is now the recommended level for the normal API polling.
+
  */
 
 metadata {
@@ -71,6 +99,7 @@ metadata {
 		capability "Temperature Measurement"
 		capability "Thermostat Mode"
         capability "Thermostat Setpoint"
+        capability "Initialize"
      
 		attribute "state", "string"
         attribute "vin", "string"
@@ -136,6 +165,7 @@ metadata {
         attribute "active_route_minutes_to_arrival", "number"
         attribute "active_route_miles_to_arrival", "number"
         attribute "active_route_energy_at_arrival", "number"
+        attribute "timeToFullCharge", "string"
       
         attribute "zzziFrame", "text"
        
@@ -206,14 +236,16 @@ metadata {
        input "tempScale", "enum", title: "Display temperature in F or C ?", options: ["F", "C"], required: true, defaultValue: "F" 
        input "mileageScale", "enum", title: "Display mileage/speed in Miles or Kilometers ?", options: ["M", "K"], required: true, defaultValue: "M"  
        input "debugLevel", "enum", title: "Set Debug/Logging Level (Full will automatically change to Info after an hour)?", options: ["Full","Info","None"], required:true,defaultValue: "Info"
-       input "useAltPresence", "bool", title: "Use alternate presence method based on distance from home longitude and latitude?", required: true, defaultValue: false    
+       input "debugWebSocketAPI", "bool", title: "Debug the Websocket realtime api (this is independent of the overall debug level)? This automatically disable after an hour.", required: true, defaultValue: false
+       input "useRealTimeAPI", "bool", title: "Use fleet Real Time API (note: if using this the refresh time should be set higher to fill in attributes missing in the Real Time API.) This needs to be enabled to use Alternate Presence sensing based on long. and lat.", required: true, defaultValue: false    
+       input "useAltPresence", "bool", title: "Use alternate presence method based on distance from home based on longitude and latitude?", required: true, defaultValue: false    
        input "homeLongitude", "Double", title: "Home longitude value?", required: false
        input "homeLatitude", "Double", title: "Home latitude value?", required: false
        input "enableAddress", "bool", title: "Enable an extra query on every refresh to fill in current address?", required:false, defaultValue:false
        input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
-       input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
-       input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
-       input "refreshOverrideTime", "enum", title: "How long to allow reduced refresh before giving up and go back to default (Also resets when you arrive)?",options: ["30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: false, defaultValue: "5-Minutes"     
+      // input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
+      // input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
+       //input "refreshOverrideTime", "enum", title: "How long to allow reduced refresh before giving up and go back to default (Also resets when you arrive)?",options: ["30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: false, defaultValue: "5-Minutes"     
        input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 300)?",resuired:true, defaultValue:300
        input "enableBatteryHealth", "enum", title: "Enable an extra query on every refresh to get battery health?", options: ["disabled", "on-every-refresh", "only-on-reenable"], required: false, defaultValue: "disabled" 
     }
@@ -223,10 +255,12 @@ def logsOff()
 {
     log.info "Turning off Logging!"
     device.updateSetting("debugLevel",[value:"Info",type:"enum"])
+    device.updateSetting("debugWebSocketAPI",[value:"false",type:"bool"])
 }
 
-def initialize() {
-    log.info "'initialize - Current Version: ${parent.currentVersion()}'"
+def initialize() 
+{
+     log.info "'initialize - Current Version: ${parent.currentVersion()}'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "zzziFrame", value: "")
  
@@ -243,11 +277,32 @@ def initialize() {
     log.info "Time after which to check if Vehicle is Asleep: ${numberOfSecsToConsiderCarAsleep}"
     state.currentVehicleState = "awake"
     sendEvent(name: "currentVehicleState", value: "awake")
-     
-    state.reducedRefresh = false
-    state.reducedRefreshDisabled = false    
-    state.tempReducedRefresh = false
-    state.tempReducedRefreshTime = 0
+    
+      if (useAltPresence == true) 
+       {
+           if (useRealTimeAPI == false)
+            {
+               log.error "Alternate Presence detection based on long. and lat. is enabled but useRealTimeAPI is not so it will not function correctly - Disabling it."
+               useAltPresence = false
+               device.updateSetting("useAltPresence",[value:"false",type:"bool"]) 
+            }
+            else if (homeLongitude == null || homeLatitude == null)
+             {
+                log.error "Home longitude or latitude is null and Alternate Presence method selected, Boundry Checking disabled!"
+                useAltPresence = false
+                device.updateSetting("useAltPresence",[value:"false",type:"bool"]) 
+             }
+            else
+            {
+              if (debugLevel != "None") log.info "Using Alternate presence detection, requested distance: $boundryCircleDistance"
+            }
+       }
+                   
+    // remove no longer used reduce refresh states
+    state.remove('reducedRefresh')
+    state.remove('reducedRefreshDisabled')    
+    state.remove('tempReducedRefresh')
+    state.remove('tempReducedRefreshTime')
     
     if (refreshTime == "1-Hour")
       runEvery1Hour(refresh)
@@ -278,12 +333,23 @@ def initialize() {
        schedule(toTime, reenable)       
     }
    
-     if (debugLevel == "Full")
+    if ((debugLevel == "Full") || (debugWebSocketAPI))
     {
         log.info "Turning off logging in 1 hour!"
         runIn(3600,logsOff)
     } 
-   
+
+    if (useRealTimeAPI)
+    {
+      log.info "Enabling Real Time Fleet API!"
+      webSocketInit() 
+    }
+    else 
+    {
+        log.info "Disabling Real Time Fleet API!"
+        webSocketClose()
+    }
+    
 }
 
 def disable()
@@ -293,6 +359,12 @@ def disable()
     // schedule reenable time
     if (toTime != null)
       schedule(toTime, reenable)
+    
+    if (useRealTimeAPI)
+    {
+        if (debugLevel != "None") log.info "Disabling Real Time API" 
+        webSockeClose()
+    }
 }
 
 def reenable()
@@ -308,12 +380,14 @@ def reenable()
        {
           if (debugLevel != "None") log.info "Getting Battery Health Status"
             getBatteryHealth()
-       }    
+       } 
+    // lgk no need to reenable websocket here as it is done above in initialize.
 }
 
 // parse events into attributes
 def parse(String description) {
 	if (debugLevel == "Full") log.debug "Parsing '${description}'"
+    webSocketParse(description)
 }
 
 private processVehicleState(data)
@@ -397,6 +471,8 @@ private processData(data) {
             sendEvent(name: "current_charge_limit", value: data.chargeState.chargeLimit)
             sendEvent(name: "current_charge_amps", value: data.chargeState.chargeAmps)
 
+            if (data.chargeState.chargingState != "Charging") sendEvent(name: "timeToFullCharge", value: "Not Charging")
+            else processTimeToFullCharge(data.chargeState.minutes_to_full_charge.toInteger())
         }
         
         if (data.driveState) {
@@ -456,6 +532,9 @@ private processData(data) {
         
             updateIFrame()
             
+            // alt presence is no longer done here it is now done in the fleet real time websocket api - leave code here for now eventually remove
+            
+            /*
             if (useAltPresence == true)
               {
                   
@@ -547,25 +626,29 @@ private processData(data) {
                 } // not already done and disabled
               } // do alt presence check
             
+            
+            */
+            
         } // driver state processing
         
         if (data.vehicleState) {
             if (debugLevel == "Full") log.debug "vehicle state = ${data.vehicleState}"
-            def toPSI  = 14.503773773
-            
+          
         	if (useAltPresence != true)
-            {
+            { 
                 sendEvent(name: "presence", value: data.vehicleState.presence)
-                sendEvent(name: "altPresent", value: data.vehicleState.presence)
-                
-                state.reducedRefresh = false
+                sendEvent(name: "altPresent", value: data.vehicleState.presence)  
+               // state.reducedRefresh = false
             }
             
-            if (data.vehicleState.presence == present)
+           // lgk no more reduced refresh
+            /*
+           if (data.vehicleState.presence == present)
             {
                   unschedule(reducedRefreshKill)
                   unschedule(reducedRefresh)
             }
+            */
             
             sendEvent(name: "lock", value: data.vehicleState.lock)
            
@@ -596,33 +679,33 @@ private processData(data) {
             
             if ((data.vehicleState.tire_pressure_front_left != null) && (data.vehicleState.tire_pressure_front_left != 0 ))
               { 
-                def thePressure = ((float)data.vehicleState.tire_pressure_front_left * toPSI).round(1)
-                sendEvent(name: "tire_pressure_front_left", value: thePressure)
-                sendEvent(name: "last_known_tire_pressure_front_left", value: thePressure)
+                def thePressure = ((float)data.vehicleState.tire_pressure_front_left * toPSI()).round(1)
+                sendEvent(name: "tire_pressure_front_left", value: thePressure, unit: "psi")
+                sendEvent(name: "last_known_tire_pressure_front_left", value: thePressure,  unit: "psi")
               }
             else  sendEvent(name: "tire_pressure_front_left", value: "n/a")
             
            if ((data.vehicleState.tire_pressure_front_right != null) && (data.vehicleState.tire_pressure_front_right != 0 ))
               {
-                def thePressure = ((float)data.vehicleState.tire_pressure_front_right * toPSI).round(1) 
-                sendEvent(name: "tire_pressure_front_right", value: thePressure)
-                sendEvent(name: "last_known_tire_pressure_front_right", value: thePressure)
+                def thePressure = ((float)data.vehicleState.tire_pressure_front_right * toPSI()).round(1) 
+                sendEvent(name: "tire_pressure_front_right", value: thePressure, unit: "psi")
+                sendEvent(name: "last_known_tire_pressure_front_right", value: thePressure, unit: "psi")
               }
             else  sendEvent(name: "tire_pressure_front_right", value: "n/a")
           
             if ((data.vehicleState.tire_pressure_rear_left != null) && (data.vehicleState.tire_pressure_rear_left != 0))
               { 
-                def thePressure = ((float)data.vehicleState.tire_pressure_rear_left * toPSI).round(1)
-                sendEvent(name: "tire_pressure_rear_left", value: thePressure)
-                sendEvent(name: "last_known_tire_pressure_rear_left", value: thePressure)
+                def thePressure = ((float)data.vehicleState.tire_pressure_rear_left * toPSI()).round(1)
+                sendEvent(name: "tire_pressure_rear_left", value: thePressure, unit: "psi")
+                sendEvent(name: "last_known_tire_pressure_rear_left", value: thePressure,  unit: "psi")
               }
             else sendEvent(name: "tire_pressure_rear_left", value: "n/a")
  
              if ((data.vehicleState.tire_pressure_rear_right != null) && (data.vehicleState.tire_pressure_rear_right != 0))
               {
-                def thePressure = ((float)data.vehicleState.tire_pressure_rear_right * toPSI).round(1)
-                sendEvent(name: "tire_pressure_rear_right", value: thePressure)
-                sendEvent(name: "last_known_tire_pressure_rear_right", value: thePressure)
+                def thePressure = ((float)data.vehicleState.tire_pressure_rear_right * toPSI()).round(1)
+                sendEvent(name: "tire_pressure_rear_right", value: thePressure, unit: "psi")
+                sendEvent(name: "last_known_tire_pressure_rear_right", value: thePressure, unit: "psi")
               }
             else sendEvent(name: "tire_pressure_rear_right", value: "n/a")
 
@@ -675,7 +758,8 @@ private processData(data) {
     }
 }
 
-def refresh() {
+def refresh()
+{
 	if (debugLevel != "None") log.info "Executing 'refresh'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
@@ -716,6 +800,8 @@ def refresh() {
       processVehicleState(data)
     }
 }
+
+/* no more reduce refresh
 
 def reducedRefresh() {
 	 if (debugLevel != "None") log.info "Executing 'reducedRefresh'"
@@ -797,6 +883,7 @@ def tempReducedRefresh()
        if (state.tempReducedRefreshTime > 0) runIn(state.tempReducedRefreshTime,tempReducedRefresh)
     }    
 }
+*/
 
 def wake() {
     def vin1= device.currentValue('vin')
@@ -1066,33 +1153,6 @@ def setLastokenUpdateTime()
     sendEvent(name: "lastTokenUpdateInt", value: nowint)
 }
     
-/**
- * Calculate distance between two points in latitude and longitude taking
- * into account height difference. If you are not interested in height
- * difference pass 0.0. Uses Haversine method as its base.
- * 
- * lat1, lon1 Start point lat2, lon2 End point el1 Start altitude in meters
- * el2 End altitude in meters
- * @returns Distance in Meters
- 
-def double calculateDistanceBetweenTwoLatLongsInKm(double lat1, double lon1, double lat2,
-        double lon2) {
-
-    final int R = 6371; // Radius of the earth
-
-    double latDistance = Math.toRadians(lat2 - lat1);
-    double lonDistance = Math.toRadians(lon2 - lon1);
-    double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
-            Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-            Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-   // double distance =
-        return R * c
-    // 1000; // convert to meters
-
-   // double height = el1 - el2;
-}
-*/
 
  def Double calculateDistanceBetweenTwoLatLongsInKm(
     Double lat1, Double lon1, Double lat2, Double lon2) {
@@ -1105,6 +1165,8 @@ def double calculateDistanceBetweenTwoLatLongsInKm(double lat1, double lon1, dou
       Math.cos(lat1 * p) * Math.cos(lat2 * p) * (1 - Math.cos((lon2 - lon1) * p)) / 2;
   return 12742 * Math.asin(Math.sqrt(a));
 }
+
+/* no more reduced refresh with real time api
 
 def tempReducedRefreshKill()
 {
@@ -1131,6 +1193,7 @@ def reducedRefreshKill()
        
     }
 }
+*/
 
  def updateIFrame() {
      
@@ -1197,7 +1260,7 @@ def setRefreshTime(String newRefreshTime)
     // can set less than one minute but will revert in 3 minutes back to normal automatically
     // existing refresh is left in place.. just extra ones 30 20 or 10 secs
     // also add wake or this doesnt really do anything if car asleep
-    
+    /*
     else if (newRefreshTime == "30-Seconds")
     {
         if (debugLevel != "None") log.info "Setting temp refresh to 30 seconds for 3 minutes!"
@@ -1231,7 +1294,7 @@ def setRefreshTime(String newRefreshTime)
         runIn(180,tempReducedRefreshKill)
         runIn(10,tempReducedRefresh)
     }
-   
+   */
     else 
       { 
           log.warn "Unknown refresh time specified.. defaulting to 15 Minutes"
@@ -1288,4 +1351,382 @@ private processBatteryHealth(data) {
             
         }
     }
+}
+
+// lgk new web socket fleet api code
+
+def toPSI()
+{
+    def BigDecimal PSI = 14.503773773
+    return PSI
+}
+ 
+def processTimeToFullCharge2(perc)
+{
+    def double minutestofc = perc * 60.0
+    def intmin = minutestofc.toInteger()
+    processTimeToFullCharge(intmin)
+}
+
+def processTimeToFullCharge(perc)
+{   
+    if (device.currentValue('chargingState') == "Charging")
+     {  
+       if (perc != null )  
+       {  
+        def intmin = perc.toInteger()
+        def remain = 0
+        def hrs = 0
+        
+       // send minutes here are this is no longer coming through the websocket api
+       sendEvent(name: "minutes_to_full_charge", value: intmin)   
+           
+       if (intmin >= 60)
+       {
+        hrs = (intmin / 60).round(0)         
+        remain = (intmin - (hrs * 60) ).toInteger() 
+       }
+       else
+       {
+         remain = intmin
+       }
+           
+        // now create string
+        def timestring = ""
+        if (hrs == 1)
+        {
+           timestring = "1 hour"
+        }
+        else if (hrs >= 1)
+        {
+           timestring = hours.toString() + " hours"
+    
+           // now handle minutes
+           if (remain == 1)
+             {
+               timestring = timestring + " and 1 minute"
+             }
+           else if (remain > 0)
+           {
+            timestring = timestring + " and " + remain.toString() + " minutes"
+           }
+        }
+        else if (hrs == 0)
+        { // hrs  = 0
+          // now handle minutes
+          if (remain == 1)
+            {
+               timestring = timestring + "1 minute"
+            }
+           else if (remain > 0)
+           {
+            timestring = timestring + remain.toString() + " minutes"
+           }   
+        }
+        
+        // finish it off
+        timestring = timestring + " remaining to charge limit"
+        
+        if (debugLevel != "None") log.debug "charging timestring = $timestring"
+        sendEvent(name: "timeToFullCharge", value: timestring)
+            
+       } 
+     } // we are charging
+   else
+   {
+       // not charge reset charge to time as for some reason the websocket still sends times here when the car is NOT charging but power is on say for conditioning.
+       sendEvent(name: "timeToFullCharge", value: "Not Charging")
+   }
+}
+
+def checkAltHomePresence(it) {
+  if (useAltPresence == true)
+    {
+      if (homeLongitude == null || homeLatitude == null)
+        {
+         log.error "Error: Home longitude or latitude is null and Alternate Presence method selected, Boundry Checking disabled!"
+         useAltPresence = false;
+         device.updateSetting("useAltPresence",[value:"false",type:"bool"]) 
+        }
+       else
+       {
+    
+        def Float vehlat = it.value?.locationValue?.latitude?.toFloat()
+		def Float vehlong = it.value?.locationValue?.longitude?.toFloat()
+		def Float homelong =  homeLongitude.toFloat() //-71.5996 
+    	def Float homelat = homeLatitude.toFloat() // 42.908368 
+		
+        if (debugLevel != "None")    
+        	{
+            log.debug "current vehicle longitude,latitude = [ $vehlong, $vehlat ]"                 
+            log.debug "User set home longitude,latitude =   [ $homelong, $homelat ]"
+            }
+        
+        def Double dist = calculateDistanceBetweenTwoLatLongsInKm(vehlong, vehlat, homelong, homelat)
+        if (debugLevel != "None") log.debug "Calculated distance from home: $dist"
+         
+        if (dist <= boundryCircleDistance.toDouble())
+        	{ 
+                if (device.currentValue('altPresent') == 'not present')
+                {
+                    if (debugLevel != "None") log.debug "Vehicle in range... setting presence to true"
+                    sendEvent(name: "altPresent", value: "present")
+                    sendEvent(name: "presence", value: "present")
+                }
+            }
+            else 
+            {
+            	if (device.currentValue('altPresent') == 'present')
+                {
+                	if (debugLevel != "None") log.debug "Vehicle outside range... setting presence to false"
+                    sendEvent(name: "altPresent", value: "not present")
+                    sendEvent(name: "presence", value: "not present")
+        		}
+			}
+       }
+    }
+}
+
+/* --------------------------- web socket fleet api code enhancements -------------------------------- */
+
+def webSocketInit() {
+    state.remove('webSocketOpenDelay')
+    webSocketOpen()
+}
+
+def webSocketClose() {
+    state.remove('webSocketTimestamp')
+    interfaces.webSocket.close()
+}
+
+def webSocketOpen() {
+    String tessieAccessToken = getParent()?.state?.tessieAccessToken ?: getParent()?.tessieAccessToken
+    String cvin = device.currentValue('vin')
+    if (tessieAccessToken && cvin && !state?.webSocketTimestamp)
+    {
+        try
+        {
+    		interfaces.webSocket.connect("wss://streaming.tessie.com/${cvin}?access_token=${tessieAccessToken}")  
+             if ((debugLevel == "FULL") || (debugWebSocketAPI))  "Websock opened!"
+        }
+        catch (Exception e)
+        {
+        	log.error("${device.displayName} webSocketOpen() exception: $e")
+    	}      
+    }
+    else if(state?.webSocketTimestamp)
+    {
+        webSocketClose()
+        runIn(5,"webSocketOpen")
+    } 
+    else
+    {
+        log.error "${device.displayName} webSocketOpen() could not start websocket vin:$cvin token:$tessieAccessToken"
+    }
+}
+
+def webSocketStatus(String message) {
+    // lgk dont do anything such as reopen if it is not enabled
+    
+    if (useRealTimeAPI)
+    {
+        
+    if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug("${device.displayName} webSocketStatus $message${state?.webSocketTimestamp ? " after ${(now() - state?.webSocketTimestamp)/1000 as Integer} seconds" : ""}")    
+    if (message?.contains("open"))
+    {
+        if ((debugLevel != "None" || (debugWebSocketAPI)) && state?.webSocketOpenDelay!=1) log.info "<b>${device.displayName} websocket open</b>"
+        state.webSocketTimestamp = now()
+        
+        if (state?.currentVehicleState!="asleep")
+        {
+            runIn(2,refresh)
+            if ((debugLevel != "None") || (debugWebSocketAPI)) log.info "Scheduling refresh from Websocket API"
+        }
+    }
+    else if (state?.webSocketTimestamp)
+    {
+        // we had a good connection and now closing. but if open for less than one minute we had a problem. lets slow down next attempt. max ten minutes delay        
+        state.webSocketOpenDelay = (now() - state.webSocketTimestamp > 60*1000) ? 1 : (state?.webSocketOpenDelay ? Math.min( state.webSocketOpenDelay * 2, 600 ) : 2)
+        if (state?.webSocketOpenDelay>2) log.warn "${device.displayName} delaying websocket retry by $state.webSocketOpenDelay seconds with reason: $message (short connection)"
+        webSocketClose()
+        runIn(state.webSocketOpenDelay,"webSocketOpen")
+    }
+    else
+    {
+        // we never had a good connection. lets slow down next attempt. max ten minutes delay        
+        state.webSocketOpenDelay = state?.webSocketOpenDelay ? Math.min( state.webSocketOpenDelay * 2, 600 ) : 2
+        if (state?.webSocketOpenDelay>2) log.warn "${device.displayName} delaying websocket retry by $state.webSocketOpenDelay seconds with reason: $message"
+        runIn(state.webSocketOpenDelay,"webSocketOpen")
+    }
+    }
+}
+
+def webSocketParse(String message) {
+    try {
+        def data = parseJson(message)        
+        if (data?.data)
+        {
+        	webSocketProcess(data.data)
+        }
+        else
+        {
+             if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug("${device.displayName} webSocketParse() message: $data")
+            // if (state?.currentVehicleState=="asleep") runIn(2,refresh) // dont want refresh on every iteration. 
+        }
+    }
+    catch (Exception e)
+    {
+        log.warn("${device.displayName} webSocketParse() exception ignored: $e message: $message")
+    }
+}
+
+
+// The api was changing, so not sure how long term these functions are needed. But for now, they work. 
+// [value:[stringValue:6.700000695884228], key:InsideTemp] but sometimes [value:[doubleValue:6.700000695884228], key:InsideTemp]
+float getValueFloat(Map value) { return (value?.doubleValue ?: value?.stringValue ?: value?.intValue ?: 0.0).toFloat() }
+float getValueTemp(Map value) { return (tempScale == "C") ? getValueFloat(value) : celsiusToFahrenheit(getValueFloat(value)) }
+float getValueMile(Map value) { return (mileageScale == "M") ? getValueFloat(value) : getValueFloat(value)*1.609344 }
+Integer getValueInt(Map value) { return Math.round(getValueFloat(value)) as Integer}
+Boolean getValueBool(Map value) { return (value?.stringValue ?: value?.booleanValue).toBoolean() }
+
+void webSocketProcess(data) {
+ 
+    final Map<String, Closure> handlers = [
+        "BatteryLevel": { it -> sendEventX(name: "battery", value: getValueInt(it?.value), unit: "%") }, // [value:[stringValue:80.68002108592515], key:BatteryLevel]
+        "SentryMode": { it -> sendEventX(name: "sentry_mode", value: it.value?.sentryModeStateValue=="SentryModeStateOff" ? "Off" : "On") }, // [value:[sentryModeStateValue:SentryModeStateOff], key:SentryMode]
+        "Locked": { it -> sendEventX(name: "lock", value: getValueBool(it?.value) ? "locked" : "unlocked") }, // [value:[stringValue:true], key:Locked]
+        "InsideTemp": { it -> sendEventX(name: "temperature", value: Math.round( getValueTemp(it?.value) ), unit: tempScale) }, // [value:[stringValue:6.700000695884228], key:InsideTemp] but sometimes [value:[doubleValue:6.700000695884228], key:InsideTemp]
+        "OutsideTemp": { it -> sendEventX(name: "outside_temperature", value: Math.round( getValueTemp(it?.value) ), unit: tempScale) }, // [value:[stringValue:4.5], key:OutsideTemp]
+        "TpmsHardWarnings": { it -> /* Handle TpmsHardWarnings */ },
+        "TpmsLastSeenPressureTimeFl": { it -> /* Handle TpmsLastSeenPressureTimeFl */ }, // [value:[stringValue:Sat Jan 11 13:31:17 2025], key:TpmsLastSeenPressureTimeFl]
+        "TpmsLastSeenPressureTimeFr": { it -> /* Handle TpmsLastSeenPressureTimeFr */ },
+        "TpmsLastSeenPressureTimeRl": { it -> /* Handle TpmsLastSeenPressureTimeRl */ },
+        "TpmsLastSeenPressureTimeRr": { it -> /* Handle TpmsLastSeenPressureTimeRr */ },
+        "TpmsPressureFl": { it -> sendEventX(name: "tire_pressure_front_left", value: (getValueFloat(it?.value) * toPSI()).round(1), unit: "psi") }, //  [value:[stringValue:2.525000037625432], key:TpmsPressureFl]
+        "TpmsPressureFr": { it -> sendEventX(name: "tire_pressure_front_right", value: (getValueFloat(it?.value) * toPSI()).round(1), unit: "psi") },
+        "TpmsPressureRl": { it -> sendEventX(name: "tire_pressure_rear_left", value: (getValueFloat(it?.value) * toPSI()).round(1), unit: "psi") },
+        "TpmsPressureRr": { it -> sendEventX(name: "tire_pressure_rear_right", value: (getValueFloat(it?.value) * toPSI()).round(1), unit: "psi") },        
+        "FdWindow": { it -> sendEventX(name: "front_drivers_window", value: it.value?.stringValue) }, // [value:[stringValue:Closed], key:FdWindow]
+        "FpWindow": { it -> sendEventX(name: "front_pass_window", value: it.value?.stringValue) },
+        "RdWindow": { it -> sendEventX(name: "rear_drivers_window", value: it.value?.stringValue) },
+        "RpWindow": { it -> sendEventX(name: "rear_pass_window", value: it.value?.stringValue) },
+        "SoftwareUpdateScheduledStartTime": { it -> /* Handle SoftwareUpdateScheduledStartTime */ },
+        "VehicleSpeed": { it -> Integer speed = Math.round(getValueMile(it?.value)); sendEventX(name: "speed", value: speed, unit: (mileageScale == "M") ? "mph" : "kph" ); sendEventX(name: "motion", value: speed>0 ? "active" : "inactive") }, // [value:[invalid:true], key:VehicleSpeed]
+        "ExpectedEnergyPercentAtTripArrival": { it -> sendEventX(name: "active_route_energy_at_arrival", value: getValueInt(it?.value)) },
+        "MilesToArrival": { it -> sendEventX(name: "active_route_miles_to_arrival", value: getValueMile(it?.value).round(1), unit: mileageScale ) }, // [value:[doubleValue:1.4336150427289294], key:MilesToArrival] 
+        "MinutesToArrival": { it -> sendEventX(name: "active_route_minutes_to_arrival", value: getValueFloat(it?.value).round(2), unit: "min" ) }, // [value:[doubleValue:7], key:MinutesToArrival] 
+        "Gear": { it -> /* Handle Gear */ }, //  [value:[shiftStateValue:ShiftStateP], key:Gear],  [value:[shiftStateValue:ShiftStateD], key:Gear], [value:[shiftStateValue:ShiftStateR], key:Gear]
+        "ClimateKeeperMode": { it -> /* Handle ClimateKeeperMode */ },
+        "ScheduledChargingStartTime": { it -> /* Handle ScheduledChargingStartTime */ },
+
+        "SeatHeaterLeft": { it -> sendEventX(name: "seat_heater_left", value: getValueInt(it?.value)) }, //  [value:[stringValue:0], key:SeatHeaterLeft]
+        "SeatHeaterRight": { it -> sendEventX(name: "seat_heater_right", value: getValueInt(it?.value)) },
+        "SeatHeaterRearLeft": { it -> sendEventX(name: "seat_heater_rear_left", value: getValueInt(it?.value)) },
+        "SeatHeaterRearCenter": { it -> sendEventX(name: "seat_heater_rear_center", value: getValueInt(it?.value)) },
+        "SeatHeaterRearRight": { it -> sendEventX(name: "seat_heater_rear_right", value: getValueInt(it?.value)) },
+        "HvacSteeringWheelHeatAuto": { it -> /* Handle HvacSteeringWheelHeatAuto */ },
+        "HvacLeftTemperatureRequest": { it -> sendEventX(name: "thermostatSetpoint", value: Math.round( getValueTemp(it?.value) ), unit: tempScale) }, // [value:[doubleValue:20.5], key:HvacLeftTemperatureRequest] 
+        "HvacRightTemperatureRequest": { it -> sendEventX(name: "passengerSetpoint", value: Math.round( getValueTemp(it?.value) ), unit: tempScale) },        
+        "HvacPower": { it -> sendEventX(name: "thermostatMode", value: it.value?.hvacPowerValue=="HvacPowerStateOff" ? "off" : "auto") }, // [value:[hvacPowerValue:HvacPowerStateOn], key:HvacPower], [value:[hvacPowerValue:HvacPowerStateOff], key:HvacPower] 
+        "AutoSeatClimateLeft": { it -> /* Handle AutoSeatClimateLeft */ },
+        "AutoSeatClimateRight": { it -> /* Handle AutoSeatClimateRight */ },        
+
+        "RouteTrafficMinutesDelay": { it -> /* Handle RouteTrafficMinutesDelay */ },
+        "BatteryHeaterOn": { it -> /* Handle BatteryHeaterOn */ },
+        "CurrentLimitMph": { it -> /* Handle CurrentLimitMph */ },
+        "RatedRange": { it -> sendEventX(name: "batteryRange", value: Math.round( getValueMile(it?.value) ), unit: mileageScale ) }, // [value:[stringValue:225.9622591002932], key:RatedRange]
+        "RemoteStartEnabled": { it -> /* Handle RemoteStartEnabled */ },
+        "SoftwareUpdateVersion": { it -> /* Handle SoftwareUpdateVersion */ },
+        "Odometer": { it -> sendEventX(name: "odometer", value: getValueMile(it?.value).toInteger(), unit: mileageScale ) }, // [value:[stringValue:3379.656716239699], key:Odometer]
+        "DefrostMode": { it -> /* Handle DefrostMode */ },
+        "ScheduledChargingPending": { it -> /* Handle ScheduledChargingPending */ },
+        "VehicleName": { it -> /* Handle VehicleName */ },
+        "CabinOverheatProtectionMode": { it -> /* Handle CabinOverheatProtectionMode */ },
+        "ACChargingPower": { it -> /* Handle ACChargingPower */ },
+        "EnergyRemaining": { it -> /* Handle EnergyRemaining */ },        
+        "DestinationLocation": { it -> /* Handle DestinationLocation */ },
+        "PackCurrent": { it -> /* Handle PackCurrent */ },
+        "CabinOverheatProtectionTemperatureLimit": { it -> /* Handle CabinOverheatProtectionTemperatureLimit */ },        
+        "ModuleTempMin": { it -> /* Handle ModuleTempMin */ },
+        "SoftwareUpdateExpectedDurationMinutes": { it -> /* Handle SoftwareUpdateExpectedDurationMinutes */ },
+        "SoftwareUpdateInstallationPercentComplete": { it -> /* Handle SoftwareUpdateInstallationPercentComplete */ },
+
+        "PackVoltage": { it -> /* Handle PackVoltage */ },
+		"GuestModeEnabled": { it -> /* Handle GuestModeEnabled */ },
+        "ValetModeEnabled": { it -> sendEventX(name: "valet_mode", value: getValueBool(it?.value) ? "On" : "Off") }, // [value:[booleanValue:false], key:ValetModeEnabled]
+        "GpsHeading": { it -> sendEventX(name: "heading", value: getValueInt(it?.value), unit: "°") }, // [value:[stringValue:63.3255034690718], key:GpsHeading]
+        "LifetimeEnergyUsed": { it -> /* Handle LifetimeEnergyUsed */ },
+        "DCChargingPower": { it -> /* Handle DCChargingPower */ },
+        "Location": { it -> checkAltHomePresence(it); sendEventX(name: "latitude", value: it.value?.locationValue?.latitude?.toFloat(), unit: "°");  sendEventX(name: "longitude", value: it.value?.locationValue?.longitude?.toFloat(), unit: "°"); }, //  [value:[locationValue:[latitude:41.040694, longitude:-73.540426]], key:Location]
+        
+        "Soc": { it -> /* Handle Soc */ },
+        "Version": { it -> /* Handle Version */ },
+        "SpeedLimitMode": { it -> /* Handle SpeedLimitMode */ }, // [value:[stringValue:false], key:SpeedLimitMode]
+        "ScheduledChargingMode": { it -> /* Handle ScheduledChargingMode */ }, // [value:[stringValue:Off], key:ScheduledChargingMode]
+        "ModuleTempMax": { it -> /* Handle ModuleTempMax */ }, // [value:[stringValue:5], key:ModuleTempMax]
+        "SoftwareUpdateDownloadPercentComplete": { it -> /* Handle SoftwareUpdateDownloadPercentComplete */ }, // [value:[intValue:0], key:SoftwareUpdateDownloadPercentComplete]
+        "HomelinkNearby": { it -> sendEventX(name: "presence", value: getValueBool(it?.value) ? "present" : "not present") /* Handle HomelinkNearby */ }, // [value:[booleanValue:false], key:HomelinkNearby]
+        "ChargeAmps": { it -> sendEventX(name: "current_charge_amps", value: getValueInt(it?.value)) },
+        "ChargeLimitSoc": { it -> sendEventX(name: "current_charge_limit", value: getValueInt(it?.value)) },
+        "ChargeCurrentRequestMax": { it -> /* Handle ChargeCurrentRequestMax */ },
+        "ChargeCurrentRequest": { it -> /* Handle ChargeCurrentRequest */ },
+        "ChargePortLatch": { it -> /* Handle ChargePortLatch */ },
+        "ChargePortDoorOpen": { it -> /* Handle ChargePortDoorOpen */ },
+        "FastChargerPresent": { it -> /* Handle FastChargerPresent */ }, //  [value:[stringValue:false], key:FastChargerPresent]
+        "FastChargerType": { it -> /* Handle FastChargerType */ },
+        "DetailedChargeState": { it -> /* Handle DetailedChargeState */ },
+        "TimeToFullCharge": { it -> processTimeToFullCharge2(getValueFloat(it?.value)) /* Handle TimeToFullCharge */ }, // this is minutes in decimal percentage of an hour so multiple by 60.
+        "PinToDriveEnabled": { it -> /* Handle PinToDriveEnabled */ }, // [value:[stringValue:false], key:PinToDriveEnabled]
+        "DriverSeatOccupied": { it -> sendEventX(name: "user_present", value: getValueBool(it?.value)) }, //  [value:[booleanValue:false], key:DriverSeatOccupied] 
+        "DestinationName": { it -> sendEventX(name: "active_route_destination", value: it?.value?.stringValue) }, //  [value:[stringValue:Home], key:DestinationName]
+        "ChargerPhases": { it -> /* Handle ChargerPhases */ }, // [value:[intValue:1], key:ChargerPhases]
+      
+        "DoorState": { it -> // [value:[doorValue:[DriverRear:false, PassengerFront:false, TrunkFront:false, PassengerRear:false, TrunkRear:false, DriverFront:false]], key:DoorState] was [value:[stringValue:DriverFront|PassengerFront|DriverRear|PassengerRear|TrunkFront|TrunkRear], key:DoorState] or [value:[stringValue:], key:DoorState]
+            sendEventX(name: "front_drivers_door", value: it.value?.doorValue?.DriverFront?.toBoolean() ? "Open" : "Closed")
+            sendEventX(name: "front_pass_door", value: it.value?.doorValue?.PassengerFront?.toBoolean() ? "Open" : "Closed")
+            sendEventX(name: "rear_drivers_door", value: it.value?.doorValue?.DriverRear?.toBoolean() ? "Open" : "Closed")
+            sendEventX(name: "rear_pass_door", value: it.value?.doorValue?.PassengerRear?.toBoolean() ? "Open" : "Closed")
+            sendEventX(name: "frunk", value: it.value?.doorValue?.TrunkFront?.toBoolean() ? "Open" : "Closed")
+            sendEventX(name: "trunk", value: it.value?.doorValue?.TrunkRear?.toBoolean() ? "Open" : "Closed")          
+        }, 
+    ]
+
+    if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug "full Websocket fleet api data = $data"
+    
+	data?.each
+    {
+        if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug "in handler item = $it"
+        
+        if (it?.value==null || it.value?.invalid?.toBoolean()!=true)
+        { // toss any invalid data first
+        	if ((handlers.get(it.key, { 
+                if(debugLevel == "Full") log.warn("${device.displayName} webSocketProcess() did not handle item: $it")
+                return true 
+            })(it)) != true) {
+            	if(debugLevel == "Full") log.debug("${device.displayName} webSocketProcess() did not process item: $it")
+        	}
+        }
+    }
+    
+    if (data != null)
+    {
+        def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+        sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+        
+        //if (debugLevel != "None") log.info "WebsocketAPI: processing data!"
+    }
+}
+
+Boolean sendEventX(Map x)
+{
+    if ((debugLevel == "Full") || (debugWebSocketAPI)) log.debug "in sendeventx:[ ${x?.name}, ${x?.value} prior: ${device.currentValue(x?.name).toString().toLowerCase()} ]"
+   if (x?.value!=null && device.currentValue(x?.name).toString().toLowerCase() != x?.value.toString().toLowerCase() && !x?.eventDisable)
+    {
+        if ((debugLevel == "Full") || (debugWebSocketAPI)) log.debug("new value will be set")
+    	x.descriptionText = x.descriptionText ?: "${device.displayName} ${x.name.replace('_', ' ')} is $x.value${x?.unit?:""}"
+        if (x?.logLevel=="warn") log.warn (x?.descriptionText); else if (debugLevel == "Full") log.info (x?.descriptionText)
+        sendEvent(name: x?.name, value: x?.value, unit: x?.unit, descriptionText: x?.descriptionText, isStateChange: (x?.isStateChange ?: false))
+        
+    }     
+    return true
 }
