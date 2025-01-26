@@ -81,6 +81,7 @@
  * v 2.04 fixed bug.. type in settemperature when in celsius mode
  *
  * v 2.1 first integration of webstocket fleet api
+ * v 2.11 fix typo in disable fx
  *
  */
 
@@ -965,7 +966,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.1"
+    return "2.11"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
