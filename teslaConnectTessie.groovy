@@ -80,6 +80,7 @@
  * v 2.03 round miles to arrival to 1 digit past decimal.
  * v 2.04 fixed bug.. type in settemperature when in celsius mode
  *
+ * v 2.1 first integration of webstocket fleet api
  *
  */
 
@@ -355,7 +356,6 @@ def installed() {
 def updated() {
     log.info "Updated current version: ${currentVersion()}"
     
-
 	unsubscribe()
 	initialize() 
 }
@@ -965,7 +965,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.04"
+    return "2.1"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
