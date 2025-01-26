@@ -59,10 +59,10 @@
  *
  * v 2.1 many changes. first integration using the new tesla/tessia fleet streaming API. Thanks to  Bloodtick_Jones and ALAN_F for initial code stub.
  *
- * Caveats, this is a little differnt that the non official version:
+ * Caveats, this is a little different that the non official version:
  *
  * 1. There is a new input preference flag that needs to be enabled to use the web fleet websocket API. Without this it works just like it used to albeit alternate presence sensing will
- * now NOT work without the websocket API. So all the code and preference flags for reduced refresh are gone and the minimum refresh time is 1 minute. the Reason being is that
+ * now NOT work without the websocket API. So all the code and preference flags for reduced refresh are gone and the minimum refresh time is 1 minute. The Reason being is that
  * this methods works much better for frequent data updates to figure out when you are close to home to set whether you are present or not. This is also enabled with a setting.
  * As before alternate present uses your home longitude and latitude and the distance you decide it should fire.. Without all these set it will flag an error in the logs and disable it.
  *
@@ -84,7 +84,8 @@
  * Other notes: Beyond our control is that the websocket interface seems to reset every 5 minutes, and in order to fill in missing data on intial startup or when this occurs 
    (as long as the car is NOT Asleep) a normal polling refresh is fired off.  The result is that you will see normal refreshes every 3 minutes if the car is awake.
  * For this reason, normal polling probably should not be set lower than 10 minutes, 15-30 minutes is now the recommended level for the normal API polling.
-
+ *
+ * v 2.11 fix typo in disable fx
  */
 
 metadata {
@@ -363,7 +364,7 @@ def disable()
     if (useRealTimeAPI)
     {
         if (debugLevel != "None") log.info "Disabling Real Time API" 
-        webSockeClose()
+        webSocketClose()
     }
 }
 
@@ -1507,7 +1508,7 @@ def webSocketOpen() {
         try
         {
     		interfaces.webSocket.connect("wss://streaming.tessie.com/${cvin}?access_token=${tessieAccessToken}")  
-             if ((debugLevel == "FULL") || (debugWebSocketAPI))  "Websock opened!"
+             if ((debugLevel != "None") || (debugWebSocketAPI))  "Websock opened!"
         }
         catch (Exception e)
         {
