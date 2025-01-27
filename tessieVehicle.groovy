@@ -87,6 +87,7 @@
  *
  * v 2.11 fix typo in disable fx
  * v 2.12 fromtime was not disabling the websocket correctly, the status fx was reopening it.
+ * v 2.13 timetofullcharge fixes
  */
 
 metadata {
@@ -1374,38 +1375,38 @@ def processTimeToFullCharge2(perc)
 }
 
 def processTimeToFullCharge(perc)
-{   
+{       
     if (device.currentValue('chargingState') == "Charging")
      {  
        if (perc != null )  
        {  
-        def intmin = perc.toInteger()
+        def intmin = perc
         def remain = 0
         def hrs = 0
+        def hrsint = 0
+           
         
        // send minutes here are this is no longer coming through the websocket api
        sendEvent(name: "minutes_to_full_charge", value: intmin)   
-           
+        
        if (intmin >= 60)
        {
-        hrs = (intmin / 60).round(0)         
-        remain = (intmin - (hrs * 60) ).toInteger() 
+        hrs = (intmin / 60)  
+        hrsint = hrs.toInteger()
+        remain = (intmin - (hrsint * 60) ).toInteger() 
+          
        }
        else
        {
+         hrsint = hrs.toInteger()
          remain = intmin
        }
            
         // now create string
         def timestring = ""
-        if (hrs == 1)
+        if (hrsint == 1)
         {
            timestring = "1 hour"
-        }
-        else if (hrs >= 1)
-        {
-           timestring = hours.toString() + " hours"
-    
            // now handle minutes
            if (remain == 1)
              {
@@ -1416,9 +1417,20 @@ def processTimeToFullCharge(perc)
             timestring = timestring + " and " + remain.toString() + " minutes"
            }
         }
-        else if (hrs == 0)
-        { // hrs  = 0
-          // now handle minutes
+        else if (hrsint > 1)
+        {
+           timestring = hrsint.toString() + " hours"
+           if (remain == 1)
+             {
+               timestring = timestring + " and 1 minute"
+             }
+           else if (remain > 0)
+           {
+            timestring = timestring + " and " + remain.toString() + " minutes"
+           }
+        }
+        else if (hrsint == 0)
+        { 
           if (remain == 1)
             {
                timestring = timestring + "1 minute"
