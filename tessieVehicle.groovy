@@ -88,6 +88,7 @@
  * v 2.11 fix typo in disable fx
  * v 2.12 fromtime was not disabling the websocket correctly, the status fx was reopening it.
  * v 2.13 timetofullcharge fixes
+ * v 2.14 change to present not to set if already same state.
  */
 
 metadata {
@@ -286,7 +287,7 @@ def initialize()
        {
            if (useRealTimeAPI == false)
             {
-               log.error "Alternate Presence detection based on long. and lat. is enabled but useRealTimeAPI is not so it will not function correctly - Disabling it."
+               log.error "Alternate Presence detection based on long. and lat. is enabled, but useRealTimeAPI is not so it will not function correctly - Disabling it."
                useAltPresence = false
                device.updateSetting("useAltPresence",[value:"false",type:"bool"]) 
             }
@@ -642,8 +643,11 @@ private processData(data) {
           
         	if (useAltPresence != true)
             { 
-                sendEvent(name: "presence", value: data.vehicleState.presence)
-                sendEvent(name: "altPresent", value: data.vehicleState.presence)  
+                if (device.currentValue('presence') != data.vehicleState.presence)
+                  sendEvent(name: "presence", value: data.vehicleState.presence)
+                if (device.currentValue('altPresent') != data.vehicleState.presence)
+                  sendEvent(name: "altPresent", value: data.vehicleState.presence)  
+                
                // state.reducedRefresh = false
             }
             
