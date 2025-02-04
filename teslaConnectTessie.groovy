@@ -969,7 +969,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.14"
+    return "2.15"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
