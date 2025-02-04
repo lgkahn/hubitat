@@ -89,6 +89,9 @@
  * v 2.12 fromtime was not disabling the websocket correctly, the status fx was reopening it.
  * v 2.13 timetofullcharge fixes
  * v 2.14 change to present not to set if already same state.
+ * v 2.15 extra debugging in charging timestring removed, and also debugging that was supposed be info and was
+ *     coming out related to new alt presence code, changed to only come out for full debugging. 
+ *     Also removed old code for alt presence that was already commented out.
  */
 
 metadata {
@@ -539,103 +542,6 @@ private processData(data) {
         
             updateIFrame()
             
-            // alt presence is no longer done here it is now done in the fleet real time websocket api - leave code here for now eventually remove
-            
-            /*
-            if (useAltPresence == true)
-              {
-                  
-               if (homeLongitude == null || homeLatitude == null)
-                  {
-                      log.error "Error: Home longitude or latitude is null and Alternate Presence method selected, Boundry Checking disabled!"
-                  }
-                else
-                {
-
-               if (debugLevel == "Full") log.debug "Using Alternate presence detection, requested distance: $boundryCircleDistance"
-                  
-               def Double vehlog = data.driveState.longitude.toDouble()
-               def Double vehlat = data.driveState.latitude.toDouble()   
-               def Double homelog =  homeLongitude.toDouble() //-71.5996 
-               def Double homelat = homeLatitude.toDouble() // 42.908368 
-                  
-               if (debugLevel == "Full")    
-                {
-                 log.debug "current vehicle longitude,latitude = [ $vehlog, $vehlat ]"                 
-                 log.debug "User set home longitude,latitude =   [ $homelog, $homelat ]"
-                }
-                  
-                def Double dist = calculateDistanceBetweenTwoLatLongsInKm(vehlog, vehlat, homelog, homelat)
-                if (debugLevel == "Full") log.debug "Calculated distance from home: $dist"
-                  
-                if (dist <= boundryCircleDistance.toDouble())
-                { 
-                    if (debugLevel == "Full") log.debug "Vehicle in range... setting presence to true"
-                    sendEvent(name: "altPresent", value: "present")
-                    sendEvent(name: "presence", value: "present")
-                    state.reducedRefresh = false
-                    state.reducedRefreshDisabled = false
-                    unschedule(reducedRefreshKill)
-                    unschedule(reducedRefresh)
-                }
-                else 
-                {
-                    if (debugLevel == "Full") log.debug "Vehicle outside range... setting presence to false"
-                    sendEvent(name: "altPresent", value: "not present")
-                    sendEvent(name: "presence", value: "not present")
-                    
-                    // dont reenable or check outter boundry and change times if already did it and currently disabled.
-                    
-                    if (state.reducedRefreshDisabled != true)
-                    {
-                        
-                    // not in range so try outter boundry
-                    if (debugLevel == "Full") log.debug "Checking outer boundry range..."
-                    if (debugLevel == "Full") log.debug "outer refresh time: $outerRefreshTime , outer boundry distance: $outerBoundryCircleDistance, refresh override time:  $refreshOverrideTime, boundry circle dist $boundryCircleDistance"
-                    
-                   if ((outerBoundryCircleDistance == null) || (outerRefreshTime == null) || (refreshOverrideTime == null) || (outerBoundryCircleDistance.toDouble() < boundryCircleDistance.toDouble()))
-                     {
-                      log.error "Error: OuterRefreshTime, OuterBoundryDistance, refreshOverrideTime are blank, or OuterBoundryDistance is less than inner. Outer bounder check disabled!"
-                     }
-                    else
-                    {
-                        if (debugLevel == "Full") log.debug "Using Alternate presence detection, requested outer distance: $outerBoundryCircleDistance"
-                        if (dist <= outerBoundryCircleDistance.toDouble())
-                        {
-                           if (debugLevel == "Full") log.debug "We are inside outer boundry range..."
-                           // now just schedule reduced refresh time,, leave other time in place so no unschedule necessary as one extra fresh will not hurt
-                                                      
-                            runIn(outerRefreshTime, reducedRefresh)
-                            if (debugLevel == "Full") log.debug "Temporary reduced refresh time set to $outerRefreshTime seconds!"
-                            
-                            // only schedule reduced refresh kill first time
-                            if (state.reducedRefresh == false)
-                              {  
-                                  if (debugLevel == "Full") log.debug "Scheduling reduced refresh override/kill to run in $refreshOverrideTime!"
-                                  
-                                  if (refreshOverrideTime == "30-Minutes")
-                                    runIn(30*60,reducedRefreshKill)
-                                  else if (refreshOverrideTime == "15-Minutes")
-                                    runIn(15*60,reducedRefreshKill)
-                                  else if (refreshOverrideTime == "10-Minutes")
-                                   runIn(10*60,reducedRefreshKill)
-                                  else if (refreshOverrideTime == "5-Minutes")  
-                                   runIn(5*60,reducedRefreshKill)    
-                              }
-                            
-                            state.reducedRefresh = true
-                          
-                        } // in outter boundry
-                    } // outer boundry check                                 
-                } // not in inner boundry
-               
-                } // inner boundry check
-                } // not already done and disabled
-              } // do alt presence check
-            
-            
-            */
-            
         } // driver state processing
         
         if (data.vehicleState) {
@@ -651,14 +557,6 @@ private processData(data) {
                // state.reducedRefresh = false
             }
             
-           // lgk no more reduced refresh
-            /*
-           if (data.vehicleState.presence == present)
-            {
-                  unschedule(reducedRefreshKill)
-                  unschedule(reducedRefresh)
-            }
-            */
             
             sendEvent(name: "lock", value: data.vehicleState.lock)
            
@@ -810,90 +708,6 @@ def refresh()
       processVehicleState(data)
     }
 }
-
-/* no more reduce refresh
-
-def reducedRefresh() {
-	 if (debugLevel != "None") log.info "Executing 'reducedRefresh'"
-     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
-   
- // lgk if vehicle asleep just do state instead of normal refresh
-    if (state.currentVehicleState == "awake")
-    {      
-         def data = parent.refresh(device.currentValue('vin'))
-	   processData(data)
-    
-       if (enableAddress)
-        {
-          if (debugLevel != "None") log.info "Getting current Address"
-          def adata = parent.currentAddress(device.currentValue('vin'))
-          if (debugLevel == "Full") log.debug "address data = $adata"
-          if (adata?.status)
-              {
-                sendEvent(name: "currentAddress", value: adata.address, descriptionText: "Current Address: ${adata.address}")
-                sendEvent(name: "savedLocation", value: adata.savedLocation, descriptionText: "Location: ${adata.savedLocation}")
-              }
-          else 
-              {
-                sendEvent(name: "currentAddress", value: "Unknown", descriptionText: "Current Address: Unknown")
-                sendEvent(name: "savedLocation", value: "N/A", descriptionText: "Location: N/A")   
-              }   
-        }
-    }
-    else
-    {
-      def data = parent.sleepStatus(device.currentValue('vin'))
-      processVehicleState(data)
-    }      
-}
-
-def tempReducedRefresh()
-{
-     // this is called when we use the method to change the refresh temporarily to 30 20 or 10 seconds
-     // it reschedules the temp refresh until cancelled.
-    
-     if (debugLevel != "None") log.debug "Executing 'tempReducedRefresh'"
-     def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-     sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
- 
-    // lgk if vehicle asleep just do state instead of normal refresh
-    if (state.currentVehicleState == "awake")
-    {      
-      def data = parent.refresh(device.currentValue('vin'))
-	  processData(data)
-  
-     if (enableAddress)
-      {
-        if (debugLevel != "None") log.info "Getting current Address"
-        def adata = parent.currentAddress(device.currentValue('vin'))
-        if (debugLevel == "full") log.debug "address data = $adata"
-        if (adata?.status)
-          {
-            sendEvent(name: "currentAddress", value: adata.address, descriptionText: "Current Address: ${adata.address}")
-            sendEvent(name: "savedLocation", value: adata.savedLocation, descriptionText: "Location: ${adata.savedLocation}")
-          }
-         else 
-          {
-            sendEvent(name: "currentAddress", value: "Unknown", descriptionText: "Current Address: Unknown")
-            sendEvent(name: "savedLocation", value: "N/A", descriptionText: "Location: N/A")   
-          }
-      }
-    }
-      else
-    {
-      def data = parent.sleepStatus(device.currentValue('vin'))
-      processVehicleState(data)
-    } 
-    
-    // reschedule if still true
-
-    if (state.tempReducedRefresh)
-    {
-       if (state.tempReducedRefreshTime > 0) runIn(state.tempReducedRefreshTime,tempReducedRefresh)
-    }    
-}
-*/
 
 def wake() {
     def vin1= device.currentValue('vin')
@@ -1176,35 +990,6 @@ def setLastokenUpdateTime()
   return 12742 * Math.asin(Math.sqrt(a));
 }
 
-/* no more reduced refresh with real time api
-
-def tempReducedRefreshKill()
-{
-    if (debugLevel != "None") log.info "Disabled Temp reduced refresh!"
-    state.tempReducedRefresh = false
-    state.tempReducedRefreshTime = 0
-    unschedule(tempReducedRefresh)
-}
-
-def reducedRefreshKill()
-{
- if (state.reducedRefresh == true)
-    {
-        isPresent = device.currentValue("presence")
-         if (debugLevel == "Full") log.debug "Presence = $isPresent"
-        // only set override if not still present
-        if (isPresent != "present")
-        {
-             state.reducedRefreshDisabled = true
-        }
-        if (debugLevel == "Full") log.info "Disabling reduced refresh time."
-        unschedule(reducedRefresh)
-        state.reducedRefresh = false 
-       
-    }
-}
-*/
-
  def updateIFrame() {
      
         def lon = device.currentValue('longitude')
@@ -1267,44 +1052,6 @@ def setRefreshTime(String newRefreshTime)
         device.updateSetting("refreshTime",[value:"Disabled",type:"enum"])
     }
     
-    // can set less than one minute but will revert in 3 minutes back to normal automatically
-    // existing refresh is left in place.. just extra ones 30 20 or 10 secs
-    // also add wake or this doesnt really do anything if car asleep
-    /*
-    else if (newRefreshTime == "30-Seconds")
-    {
-        if (debugLevel != "None") log.info "Setting temp refresh to 30 seconds for 3 minutes!"
-        unschedule(tempReducedRefresh)
-        unschedule(tempReducedRefreshKill)
-        state.tempReducedRefresh = true
-        state.tempReducedRefreshTime = 30
-        wake()
-        runIn(180,tempReducedRefreshKill)
-        runIn(30,tempReducedRefresh)
-    }
-    else if (newRefreshTime == "20-Seconds")
-    {
-        if (debugLevel != "None") log.info "Setting temp refresh to 20 seconds for 3 minutes!"
-        unschedule(tempReducedRefresh)
-        unschedule(tempReducedRefreshKill)
-        state.tempReducedRefresh = true
-        state.tempReducedRefreshTime = 20
-        wake()
-        runIn(180,tempReducedRefreshKill)
-        runIn(20,tempReducedRefresh)
-    }
-    else if (newRefreshTime == "10-Seconds")
-    {
-        if (debugLevel != "None") log.info "Setting temp refresh to 10 seconds for 3 minutes!"
-        unschedule(tempReducedRefresh)
-        unschedule(tempReducedRefreshKill)
-        state.tempReducedRefresh = true
-        state.tempReducedRefreshTime = 10
-        wake()
-        runIn(180,tempReducedRefreshKill)
-        runIn(10,tempReducedRefresh)
-    }
-   */
     else 
       { 
           log.warn "Unknown refresh time specified.. defaulting to 15 Minutes"
@@ -1448,7 +1195,6 @@ def processTimeToFullCharge(perc)
         // finish it off
         timestring = timestring + " remaining to charge limit"
         
-        if (debugLevel != "None") log.debug "charging timestring = $timestring"
         sendEvent(name: "timeToFullCharge", value: timestring)
             
        } 
@@ -1477,20 +1223,20 @@ def checkAltHomePresence(it) {
 		def Float homelong =  homeLongitude.toFloat() //-71.5996 
     	def Float homelat = homeLatitude.toFloat() // 42.908368 
 		
-        if (debugLevel != "None")    
+        if (debugLevel == "Full")    
         	{
             log.debug "current vehicle longitude,latitude = [ $vehlong, $vehlat ]"                 
             log.debug "User set home longitude,latitude =   [ $homelong, $homelat ]"
             }
         
         def Double dist = calculateDistanceBetweenTwoLatLongsInKm(vehlong, vehlat, homelong, homelat)
-        if (debugLevel != "None") log.debug "Calculated distance from home: $dist"
+        if (debugLevel != "None") log.info "Calculated distance from home: $dist"
          
         if (dist <= boundryCircleDistance.toDouble())
         	{ 
                 if (device.currentValue('altPresent') == 'not present')
                 {
-                    if (debugLevel != "None") log.debug "Vehicle in range... setting presence to true"
+                    if (debugLevel != "None") log.info "Vehicle in range... setting presence to true"
                     sendEvent(name: "altPresent", value: "present")
                     sendEvent(name: "presence", value: "present")
                 }
@@ -1499,7 +1245,7 @@ def checkAltHomePresence(it) {
             {
             	if (device.currentValue('altPresent') == 'present')
                 {
-                	if (debugLevel != "None") log.debug "Vehicle outside range... setting presence to false"
+                	if (debugLevel == "Full") log.debug "Vehicle outside range... setting presence to false"
                     sendEvent(name: "altPresent", value: "not present")
                     sendEvent(name: "presence", value: "not present")
         		}
