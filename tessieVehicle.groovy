@@ -92,6 +92,7 @@
  * v 2.15 extra debugging in charging timestring removed, and also debugging that was supposed be info and was
  *     coming out related to new alt presence code, changed to only come out for full debugging. 
  *     Also removed old code for alt presence that was already commented out.
+ *  v 2.16 fix set_temp
  */
 
 metadata {
