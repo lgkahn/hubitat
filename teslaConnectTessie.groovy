@@ -84,6 +84,7 @@
  * v 2.11 fix typo in disable fx
  * v 2.12 fromtime was not disabling the websocket correctly, the status fx was reopening it.
  * v 2.13 fix for timetofullcharge attr
+ * v 2.16 fix set temps
  *
  *
  */
@@ -715,7 +716,7 @@ def setThermostatSetpointC(child, Number setpoint) {
       wake(child)
       pause((pauseTime.toInteger() * 1000))
     }
-    return executeApiCommand(child, "command/set_temperature?temperature=${setpointCelcius}")
+    return executeApiCommand(child, "command/set_temperatures?temperature=${setpointCelcius}")
 }
 
 
@@ -727,7 +728,7 @@ def setThermostatSetpointF(child, Number setpoint) {
       pause((pauseTime.toInteger() * 1000))
     }
     log.debug "setting tesla temp to $setpointCelcius input = $setpoint"
-    return executeApiCommand(child, "command/set_temperature?temperature=${setpointCelcius}")
+    return executeApiCommand(child, "command/set_temperatures?temperature=${setpointCelcius}")
 }
 
 def startCharge(child) {
@@ -969,7 +970,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.15"
+    return "2.16"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
