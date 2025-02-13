@@ -174,6 +174,7 @@ metadata {
     if (calcWindChill != null) {
       input(name: "calcWindChill", type: "bool", title: "<font style='font-size:12px; color:#1a77c9'>Calculate Wind-chill Factor</font>", description: "<font style='font-size:12px; font-style: italic'>Lowering of body temperature due to the passing-flow of lower-temperature air</font>", defaultValue: false);
     }
+      
   }
 }
 
@@ -1302,7 +1303,8 @@ Boolean attributeUpdate(String key, String val) {
     state.sensor = 1
     if (val == "1")
       updated = attributeUpdateString("true","raining");
-    else updated = attributeUpdateString("false","raining");    
+    else updated = attributeUpdateString("false","raining"); 
+    break;
       
   case ~/eventrainin_wf[1-8]/:
   case "eventrainin":
