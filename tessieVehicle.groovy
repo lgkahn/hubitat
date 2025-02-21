@@ -93,6 +93,8 @@
  *     coming out related to new alt presence code, changed to only come out for full debugging. 
  *     Also removed old code for alt presence that was already commented out.
  *  v 2.16 fix set_temp
+ *  v 2.17 change of debug to say when we set presence to false, also dont reset presence to either true or false 
+ *    from the websocket api when useAltPresence is true.
  */
 
 metadata {
@@ -1205,8 +1207,8 @@ def processTimeToFullCharge(perc)
        // not charge reset charge to time as for some reason the websocket still sends times here when the car is NOT charging but power is on say for conditioning.
        sendEvent(name: "timeToFullCharge", value: "Not Charging")
    }
-}
-
+}  
+    
 def checkAltHomePresence(it) {
   if (useAltPresence == true)
     {
@@ -1246,7 +1248,7 @@ def checkAltHomePresence(it) {
             {
             	if (device.currentValue('altPresent') == 'present')
                 {
-                	if (debugLevel == "Full") log.debug "Vehicle outside range... setting presence to false"
+                	if (debugLevel != "None") log.debug "Vehicle outside range... setting presence to false"
                     sendEvent(name: "altPresent", value: "not present")
                     sendEvent(name: "presence", value: "not present")
         		}
@@ -1442,7 +1444,7 @@ void webSocketProcess(data) {
         "ScheduledChargingMode": { it -> /* Handle ScheduledChargingMode */ }, // [value:[stringValue:Off], key:ScheduledChargingMode]
         "ModuleTempMax": { it -> /* Handle ModuleTempMax */ }, // [value:[stringValue:5], key:ModuleTempMax]
         "SoftwareUpdateDownloadPercentComplete": { it -> /* Handle SoftwareUpdateDownloadPercentComplete */ }, // [value:[intValue:0], key:SoftwareUpdateDownloadPercentComplete]
-        "HomelinkNearby": { it -> sendEventX(name: "presence", value: getValueBool(it?.value) ? "present" : "not present") /* Handle HomelinkNearby */ }, // [value:[booleanValue:false], key:HomelinkNearby]
+        "HomelinkNearby": { it -> if (useAltPresence != true) { sendEventX(name: "presence", value: getValueBool(it?.value) ? "present" : "not present")  }/* Handle HomelinkNearby */ }, // [value:[booleanValue:false], key:HomelinkNearby]
         "ChargeAmps": { it -> sendEventX(name: "current_charge_amps", value: getValueInt(it?.value)) },
         "ChargeLimitSoc": { it -> sendEventX(name: "current_charge_limit", value: getValueInt(it?.value)) },
         "ChargeCurrentRequestMax": { it -> /* Handle ChargeCurrentRequestMax */ },
