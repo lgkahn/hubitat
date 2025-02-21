@@ -85,7 +85,8 @@
  * v 2.12 fromtime was not disabling the websocket correctly, the status fx was reopening it.
  * v 2.13 fix for timetofullcharge attr
  * v 2.16 fix set temps
- *
+ * v 2.17 change of debug to say when we set presence to false, also dont reset presence to either true or false 
+ *    from the websocket api when useAltPresence is true.
  *
  */
 
@@ -487,7 +488,8 @@ def refresh(child) {
                 lastUpdateTime: convertEpochSecondsToDate(driveState.gps_as_of)
             ]
             
-            if (debug) log.debug "vehicle state = $vehicleState"
+              
+           if (debug)  log.debug "vehicle state = $vehicleState"
             data["vehicleState"] = [
             	presence: vehicleState.homelink_nearby ? "present" : "not present",
                 lock: vehicleState.locked ? "locked" : "unlocked",
@@ -970,7 +972,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.16"
+    return "2.17"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
