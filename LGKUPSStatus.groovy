@@ -87,8 +87,39 @@ attribute "firmwareVersion", "string"
 attribute "batteryType", "string"
 attribute "outputWatts", "number"
 attribute "SKU", "string"
+attribute "lastCommandResult", "string"
 
 command "refresh"
+command "UPS_Reboot"
+command "UPS_Sleep"
+command "UPS_RuntimeCalibrate"
+
+command ("UPS_SetOutletGroup", [
+                [ "name": "outletGroup",
+                  "description": "Outlet Group 0 or 1",
+                  "type": "ENUM",
+                  "constraints": ["1","2"],
+                 "required": true,
+                      "default": "1"
+                 ],
+     
+                [
+                "name": "command",
+                "description": "Command?",
+                "type": "ENUM",
+                "constraints": ["Off","On","DelayOff","DelayOn","Reboot","DelayReboot", "Shutdown","DelayShutdown","Cancel"],
+                  "required": true
+            
+                ],
+     
+                 [
+                 "name": "seconds",
+                 "description": "Delay in seconds?",
+                 "type": "ENUM",
+                     "constraints": ["1","2","3","4","5","10","20","30","60","120","180","240","300","600"],
+                     "required": true
+                ]
+                ]  )
 
 preferences {
     input("UPSIP", "text", title: "Smart UPS (APC only) IP Address?", description: "Enter Smart UPS IP Address?", required: true)
@@ -114,7 +145,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "4.3"
+	state.version = "4.4"
 }
 
 def installed() {
@@ -162,6 +193,7 @@ def initialize() {
     sendEvent(name: "CTemp", value: 0.0)
     sendEvent(name: "telnet", value: "Ok")
     sendEvent(name: "connectStatus", value: "Initialized")
+    sendEvent(name: "lastCommandResult", value: "NA")
  
     if ((tempUnits == null) || (tempUnits == ""))
       device.tempUnits = "F"
@@ -253,6 +285,141 @@ def initialize() {
     
  }
 
+def UPS_Reboot() 
+{
+   sendEvent(name: "lastCommandResult", value: "NA")
+ 
+     
+    if (getloglevel() > 0) log.info "Reboot called!"
+  
+    if (!disable)
+    {
+     
+     if (getloglevel() > 0) log.debug "lgk SmartUPS Status Version ($state.version)"
+      sendEvent(name: "lastCommand", value: "RebootConnect")
+      sendEvent(name: "connectStatus", value: "Trying")
+ 
+   
+     if (getloglevel() > 0) log.debug "Connecting to ${UPSIP}:${UPSPort}"
+	
+	telnetClose()
+	telnetConnect(UPSIP, UPSPort.toInteger(), null, null)
+    }
+  else
+  { 
+     log.debug "Reboot called but App is disabled. Will Not Run!"
+  }
+}
+
+def UPS_Sleep()
+{
+   
+     sendEvent(name: "lastCommandResult", value: "NA")
+ 
+   
+  if (getloglevel() > 0) log.info "Sleep called!"
+
+  if (!disable)
+    {
+     
+     if (getloglevel() > 0) log.debug "lgk SmartUPS Status Version ($state.version)"
+      sendEvent(name: "lastCommand", value: "SleepConnect")
+      sendEvent(name: "connectStatus", value: "Trying")
+ 
+   
+     if (getloglevel() > 0) log.debug "Connecting to ${UPSIP}:${UPSPort}"
+	
+	telnetClose()
+	telnetConnect(UPSIP, UPSPort.toInteger(), null, null)
+    }
+  else
+  { 
+     log.debug "Sleep called but App is disabled. Will Not Run!"
+  }
+}  
+
+def UPS_RuntimeCalibrate()
+{
+     sendEvent(name: "lastCommandResult", value: "NA") 
+    
+  if (getloglevel() > 0) log.info "Runtime Calibrate called!"
+
+  if (!disable)
+    {
+     
+     if (getloglevel() > 0) log.debug "lgk SmartUPS Status Version ($state.version)"
+      sendEvent(name: "lastCommand", value: "CalibrateConnect")
+      sendEvent(name: "connectStatus", value: "Trying")
+ 
+   
+     if (getloglevel() > 0) log.debug "Connecting to ${UPSIP}:${UPSPort}"
+	
+	telnetClose()
+	telnetConnect(UPSIP, UPSPort.toInteger(), null, null)
+    }
+  else
+  { 
+     log.debug "Calibrate called but App is disabled. Will Not Run!"
+  }
+}  
+
+def UPS_SetOutletGroup(p1, p2, p3)
+{
+    def goOn = true
+    state.outlet = ""
+    state.commmand = ""
+    state.seconds = ""
+ 
+   sendEvent(name: "lastCommandResult", value: "NA")   
+    
+    log.info "Set Outlet Group called! [$p1 $p2 $p3]"
+
+    if (p1 == null)
+    { 
+        log.error "Outlet is required"
+        goOn = false
+    }
+   else state.outlet = p1
+  
+   if (p2 == null)
+     {
+       log.error "Command is required!"
+       goOn = false
+     }
+   else state.command = p2
+       
+   if (p3 == null)
+     {
+      // default delay to 0 if null
+      state.seconds = "0"
+     }
+    else state.seconds = p3
+  
+    if (goOn)
+    {  
+        
+    if (!disable)
+    {
+     if (getloglevel() > 0) log.debug "lgk SmartUPS Status Version ($state.version)"
+      sendEvent(name: "lastCommand", value: "SetOutletGroupConnect")
+      sendEvent(name: "connectStatus", value: "Trying")
+ 
+     if (getloglevel() > 0) log.debug "Connecting to ${UPSIP}:${UPSPort}"
+	
+	telnetClose()
+	telnetConnect(UPSIP, UPSPort.toInteger(), null, null)
+    } // not disable
+        
+    
+  else
+  { 
+     log.debug "SetOutletGroup called but App is disabled. Will Not Run!"
+  } // disable
+    } //go on
+ }
+       
+
+
 def refresh() {
    
     if (!disable)
@@ -306,7 +473,64 @@ def parse(String msg) {
         log.debug ""
     }
     
-   if (lastCommand == "initialConnect")
+   if (lastCommand == "RebootConnect") 
+    
+    {
+      sendEvent(name: "connectStatus", value: "Connected")     
+      sendEvent(name: "lastCommand", value: "Reboot")     
+	        def sndMsg =[
+	        		"$Username"
+	        		, "$Password"
+	        	    , "UPS -c reboot"
+	            ]  
+             def res1 = seqSend(sndMsg,500)
+         }
+    
+    else if (lastCommand == "SleepConnect") 
+    
+    {
+      sendEvent(name: "connectStatus", value: "Connected")     
+      sendEvent(name: "lastCommand", value: "Sleep")     
+	        def sndMsg =[
+	        		"$Username"
+	        		, "$Password"
+	        	    , "UPS -c sleep"
+	            ]  
+             def res1 = seqSend(sndMsg,500)
+         }
+    
+    else if (lastCommand == "CalibrateConnect") 
+    
+    {
+      sendEvent(name: "connectStatus", value: "Connected")     
+      sendEvent(name: "lastCommand", value: "RuntimeCalibrate")     
+	        def sndMsg =[
+	        		"$Username"
+	        		, "$Password"
+	        	    , "UPS -r start"
+	            ]  
+             def res1 = seqSend(sndMsg,500)
+         }
+    
+   else if (lastCommand == "SetOutletGroupConnect") 
+    
+    {
+      sendEvent(name: "connectStatus", value: "Connected")     
+      sendEvent(name: "lastCommand", value: "SetOutletGroup")  
+        
+        if (getloglevel() > 1) log.debug "in set outlet group"
+        if (getloglevel() > 1) log.debug "outlet = ${state.outlet}, command = ${state.command}, seconds = ${state.seconds}"
+        
+	     def sndMsg =[
+	        		"$Username"
+	        		, "$Password"
+                    , "UPS -o ${state.outlet} ${state.command} ${state.seconds}"
+	            ]  
+           
+             def res1 = seqSend(sndMsg,500)
+         }
+    
+    else if (lastCommand == "initialConnect")
     
     {
       sendEvent(name: "connectStatus", value: "Connected")     
@@ -323,8 +547,7 @@ def parse(String msg) {
                    
 	            ]  
              def res1 = seqSend(sndMsg,500)
-         }
-        
+         }     
    
        else if (lastCommand == "quit")//  , "quit"
         { 
@@ -384,9 +607,32 @@ def parse(String msg) {
                def p0 = pair[0]
                def p1 = pair[1] 
                 
-               if (getloglevel() > 1) log.debug "p1 = $p0 p1 = $p1"
+               //if (getloglevel() > 1)
+                log.debug "p1 = $p0 p1 = $p1"
                 
-                if (p0 == "SKU:")
+                if ( ((p0 == "E000:") || (p1 = "E001:")) && (p1 == "Success"))
+                    {
+                        if ((lastcommand == "Reboot") || (lastCommand == "Sleep") || (lastCommand = "RuntimeCalibrate") || (lastCommand == "SetOutletGroup"))
+                        {
+                          log.info "Command Sucessfully executed. [$p0, $p1]"
+                          sendEvent(name: "lastCommandResult", value: "Success")
+ 
+                          closeConnection()
+                          sendEvent([name: "telnet", value: "Ok"])
+
+                        }
+                    }
+                
+                    else if ( (p0 == "E002:") || (p0 == "E100:") || (p0 == "E101:") || (p0 == "E102:") || (p0 == "E103:") || (p0 == "E107:") || (p0 == "E108:") )
+                    {
+                      log.error "Error: Command Returned [$p0, $p1]"
+                      sendEvent(name: "lastCommandResult", value: "Failure")
+   
+                      closeConnection()
+                      sendEvent([name: "telnet", value: "Ok"])
+                    }
+                    
+                else if (p0 == "SKU:")
                   {
                     sendEvent(name: "SKU", value: p1)
                     if (getloglevel() > 0) log.debug "Got SKU: $p1"
@@ -402,8 +648,18 @@ def parse(String msg) {
              def model
             
              if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2"
-           
-              if ((p0 == "Self-Test") && (p1 == "Date:"))
+          
+                
+             if ( (p0 == "E002:") || (p0 == "E100:") || (p0 == "E101:") || (p0 == "E102:") || (p0 == "E103:") || (p0 == "E107:") || (p0 == "E108:") )
+                    {
+                      log.error "Error: Command Returned [$p0, $p1 $p2]"
+                       sendEvent(name: "lastCommandResult", value: "Failure") 
+  
+                      closeConnection()
+                      sendEvent([name: "telnet", value: "Ok"])
+                    }  
+                
+              else if ((p0 == "Self-Test") && (p1 == "Date:"))
                 {
                          sendEvent(name: "lastSelfTestDate", value: p2) 
                          if (getloglevel() > 0) log.debug "Last Self Test Date: $p2"
@@ -445,8 +701,18 @@ def parse(String msg) {
              def p3 = pair[3]
                 
              if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3"
-           
-              if (p0 == "Output")
+             
+             if ( (p0 == "E002:") || (p0 == "E100:") || (p0 == "E101:") || (p0 == "E102:") || (p0 == "E103:") || (p0 == "E107:") || (p0 == "E108:") )
+                    {
+                      log.error "Error: Command Returned [$p0, $p1 $p2 $p3]"
+                      sendEvent(name: "lastCommandResult", value: "Failure")
+ 
+  
+                      closeConnection()
+                      sendEvent([name: "telnet", value: "Ok"])
+                    }
+                
+             else if (p0 == "Output")
                  {
                     if (p1 == "Voltage:")
                      {
@@ -559,9 +825,17 @@ def parse(String msg) {
            def p2 = pair[2]
            def p3 = pair[3]
            def p4 = pair[4]
-           
+         
+             if ( (p0 == "E002:") || (p0 == "E100:") || (p0 == "E101:") || (p0 == "E102:") || (p0 == "E103:") || (p0 == "E107:") || (p0 == "E108:") )
+                    {
+                      log.error "Error: Command Returned [$p0, $p1 $p2 $p3 $p4 $p5 $p6]"
+                      sendEvent(name: "lastCommandResult", value: "Failure")
+                        
+                      closeConnection()
+                      sendEvent([name: "telnet", value: "Ok"])
+                    }     
     
-             if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
+             else if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
                  {
                     def thestatus = p3
                    if (getloglevel() > 1) log.debug ""
@@ -624,7 +898,16 @@ def parse(String msg) {
            def p5 = pair[5]
              
                if (getloglevel() > 1) log.debug "p0 = $p0 p1 = $p1 p2 = $p2 p3 = $p3 p4 = $p4 p5 = $p5"
-                  
+                if ( (p0 == "E002:") || (p0 == "E100:") || (p0 == "E101:") || (p0 == "E102:") || (p0 == "E103:") || (p0 == "E107:") || (p0 == "E108:") )
+                    {
+                      log.error "Error: Command Returned [$p0, $p1 $p2 $p3 $p4 $p5]"
+                       sendEvent(name: "lastCommandResult", value: "Failure")
+    
+                      closeConnection()
+                      sendEvent([name: "telnet", value: "Ok"])
+                    }  
+             else 
+             {
                if ((p0 == "Self-Test") && (p1 == "Result:"))
                   {
                     def theResult = p2 + " " +p3 + " " + p4 + " " + p5
@@ -664,6 +947,8 @@ def parse(String msg) {
                       sendEvent(name: "temperature", value: p2, unit: tempUnits)
                  }
    
+             }
+             
             } // length = 6
             
        if ((pair.length == 8) || (pair.length == 6))
