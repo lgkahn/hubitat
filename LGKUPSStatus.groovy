@@ -607,8 +607,7 @@ def parse(String msg) {
                def p0 = pair[0]
                def p1 = pair[1] 
                 
-               //if (getloglevel() > 1)
-                log.debug "p1 = $p0 p1 = $p1"
+               if (getloglevel() > 1) log.debug "p1 = $p0 p1 = $p1"
                 
                 if ( ((p0 == "E000:") || (p1 = "E001:")) && (p1 == "Success"))
                     {
