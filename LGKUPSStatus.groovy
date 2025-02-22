@@ -612,7 +612,7 @@ def parse(String msg) {
                 
                 if ( ((p0 == "E000:") || (p1 = "E001:")) && (p1 == "Success"))
                     {
-                        if ((lastcommand == "Reboot") || (lastCommand == "Sleep") || (lastCommand = "RuntimeCalibrate") || (lastCommand == "SetOutletGroup"))
+                        if ((lastcommand == "Reboot") || (lastCommand == "Sleep") || (lastCommand == "RuntimeCalibrate") || (lastCommand == "SetOutletGroup"))
                         {
                           log.info "Command Sucessfully executed. [$p0, $p1]"
                           sendEvent(name: "lastCommandResult", value: "Success")
