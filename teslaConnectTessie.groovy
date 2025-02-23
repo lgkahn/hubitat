@@ -99,6 +99,8 @@
  *
  *   Also add back altpresence setting of present in legacy code processing without reducded refresh as some legacy cards cannot
  *   use websocket telemetry. To use this there is a new input preference that needs toi be enabled:useAltPresenceWithLegacyAPI. 
+ *
+ * v 2.19 ignore speed if at home or charging.
  */
 
 import groovy.transform.Field
@@ -447,7 +449,7 @@ def refresh(child) {
     
     	authorizedHttpRequestWithTimeout(child,"/${id}/state", "GET", 20, 1, { resp ->
             
-         if (debug) log.debug "In refresh data = ${resp.data}"
+          if (debug) log.debug "In refresh data = ${resp.data}"
           if (resp.data.state != "online")
             {
                 data.state = resp.data.state
@@ -984,7 +986,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.18"
+    return "2.19"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
