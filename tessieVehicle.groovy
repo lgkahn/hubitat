@@ -645,7 +645,7 @@ private processData(data) {
             def current_presence = device.currentValue("presence")
             if (debugLevel == "Full") log.info "current presence = ${current_presence} , current chargingState = ${current_chargestate}."
             
-            if ((current_chargestate != "Disconnected") || (current_presence = "present"))
+            if ((current_chargestate != "Disconnected") || (current_presence == "present"))
               {
                 if ((data.speed) && (data.speed.toInteger() >  0))
                   {
