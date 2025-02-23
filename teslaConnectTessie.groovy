@@ -100,7 +100,9 @@
  *   Also add back altpresence setting of present in legacy code processing without reducded refresh as some legacy cards cannot
  *   use websocket telemetry. To use this there is a new input preference that needs toi be enabled:useAltPresenceWithLegacyAPI. 
  *
- * v 2.19 ignore speed if at home or charging.
+ * v 2.20 ignore speed/motion if websocket is enabled and we get a valid speed from the websocket api. (reset on saving preference)
+ * 
+ *
  */
 
 import groovy.transform.Field
@@ -986,7 +988,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.19"
+    return "2.20"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
