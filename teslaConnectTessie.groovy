@@ -88,6 +88,17 @@
  * v 2.17 change of debug to say when we set presence to false, also dont reset presence to either true or false 
  *    from the websocket api when useAltPresence is true.
  *
+ * v 2.18 bug in temperatures from websocket.. zero coming back and was not getting converted correctly to 32 degress
+ *   as apperently wherever the function celsiusToFahrenheit 
+ *   has a bug and just returns 0 (probably a check for null = 0 issue, i had to hard code to 32 in this case.
+ *   the prior result was when temp was coming back in websock as 0 it was getting set to fahrenheit 0 instead of 32.
+ *   
+ *   Also a second issue/special case.. vehicle speed comes back as invalid:true if car is not moving and sometimes the speed gets left set to the previous value
+ *   in this case if if is invalid assume it is also 0 and set it to that as well as set motion to false.
+ *   I have reported this to tessie and if they fix this in the legacy code I can then remove this hack.
+ *
+ *   Also add back altpresence setting of present in legacy code processing without reducded refresh as some legacy cards cannot
+ *   use websocket telemetry. To use this there is a new input preference that needs toi be enabled:useAltPresenceWithLegacyAPI. 
  */
 
 import groovy.transform.Field
@@ -452,8 +463,10 @@ def refresh(child) {
             
             data.state = resp.data.state
             data.vin = resp.data.vin
+           // log.warn "drive state speed = ${driveState.speed}"
+                
             data.speed = driveState.speed ? driveState.speed : 0
-            data.motion = data.speed > 0 ? "active" : "inactive"            
+            data.motion = data.speed > 0 ? "active" : "inactive"   
             data.thermostatMode = climateState.is_climate_on ? "auto" : "off"      
             data.active_route_destination = driveState.active_route_destination ? driveState.active_route_destination : "none"
             data.active_route_minutes_to_arrival = driveState.active_route_minutes_to_arrival ? driveState.active_route_minutes_to_arrival : 0
@@ -561,15 +574,14 @@ private celciusToFarenhiet(dC) {
 }
 
 private farenhietToCelcius(dF) {
+    // 0 = null = -17 probably never come up so dont worry about it lgk
     if (dF)
 	return (dF - 32) * 5/9
     else return 0
 }
 
 def wake(child) {
-    
-    if (descLog) log.debug "in wake"
-    
+     
     def id = child
     def data = [:]
  
@@ -972,7 +984,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.17"
+    return "2.18"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
