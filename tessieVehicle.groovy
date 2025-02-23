@@ -95,13 +95,24 @@
  *  v 2.16 fix set_temp
  *  v 2.17 change of debug to say when we set presence to false, also dont reset presence to either true or false 
  *    from the websocket api when useAltPresence is true.
+ *
+ * v 2.18 bug in temperatures from websocket.. zero coming back and was not getting converted correctly to 32 degress
+ *   as apperently wherever the function celsiusToFahrenheit 
+ *   has a bug and just returns 0 (probably a check for null = 0 issue, i had to hard code to 32 in this case.
+ *   the prior result was when temp was coming back in websock as 0 it was getting set to fahrenheit 0 instead of 32.
+ *   
+ *   Also a second issue/special case.. vehicle speed comes back as invalid:true if car is not moving and sometimes the speed gets left set to the previous value
+ *   in this case if if is invalid assume it is also 0 and set it to that as well as set motion to false.
+ *   I have reported this to tessie and if they fix this in the legacy code I can then remove this hack.
+ *
+ *   Also add back altpresence setting of present in legacy code processing without reducded refresh as some legacy cards cannot
+ *   use websocket telemetry. To use this there is a new input preference that needs toi be enabled:useAltPresenceWithLegacyAPI. 
  */
 
 metadata {
 	definition (name: "tessieVehicle", namespace: "lgkahn", author: "Larry Kahn") {
 		capability "Actuator"
 		capability "Battery"
-        // not supported	capability "Geolocation"
 		capability "Lock"
 		capability "Motion Sensor"
 		capability "Presence Sensor"
@@ -249,6 +260,7 @@ metadata {
        input "debugWebSocketAPI", "bool", title: "Debug the Websocket realtime api (this is independent of the overall debug level)? This automatically disable after an hour.", required: true, defaultValue: false
        input "useRealTimeAPI", "bool", title: "Use fleet Real Time API (note: if using this the refresh time should be set higher to fill in attributes missing in the Real Time API.) This needs to be enabled to use Alternate Presence sensing based on long. and lat.", required: true, defaultValue: false    
        input "useAltPresence", "bool", title: "Use alternate presence method based on distance from home based on longitude and latitude?", required: true, defaultValue: false    
+       input "useAltPresenceWithLegacyAPI", "bool", title: "Use alternate presence with LEGACY api only as older vehicle cannot use Websocket telemetry?", required: true, defaultValue: false    
        input "homeLongitude", "Double", title: "Home longitude value?", required: false
        input "homeLatitude", "Double", title: "Home latitude value?", required: false
        input "enableAddress", "bool", title: "Enable an extra query on every refresh to fill in current address?", required:false, defaultValue:false
@@ -273,7 +285,7 @@ def initialize()
      log.info "'initialize - Current Version: ${parent.currentVersion()}'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "zzziFrame", value: "")
- 
+    
     sendEvent(name: "supportedThermostatModes", value: ["auto", "off"])
     log.info "Refresh time currently set to: $refreshTime"
     unschedule()
@@ -293,9 +305,13 @@ def initialize()
        {
            if (useRealTimeAPI == false)
             {
-               log.error "Alternate Presence detection based on long. and lat. is enabled, but useRealTimeAPI is not so it will not function correctly - Disabling it."
-               useAltPresence = false
-               device.updateSetting("useAltPresence",[value:"false",type:"bool"]) 
+               if (useAltPresenceWithLegacyAPI == false)
+                {
+                 log.error "Alternate Presence detection based on long. and lat. is enabled, but useRealTimeAPI is not so it will not function correctly - Disabling it."
+                 log.error "If you want to use it with the older Legacy API Enable that option."
+                 useAltPresence = false
+                 device.updateSetting("useAltPresence",[value:"false",type:"bool"]) 
+                }
             }
             else if (homeLongitude == null || homeLatitude == null)
              {
@@ -310,10 +326,10 @@ def initialize()
        }
                    
     // remove no longer used reduce refresh states
-    state.remove('reducedRefresh')
-    state.remove('reducedRefreshDisabled')    
-    state.remove('tempReducedRefresh')
-    state.remove('tempReducedRefreshTime')
+   // state.remove('reducedRefresh')
+    //state.remove('reducedRefreshDisabled')    
+    //state.remove('tempReducedRefresh')
+    //state.remove('tempReducedRefreshTime')
     
     if (refreshTime == "1-Hour")
       runEvery1Hour(refresh)
@@ -544,6 +560,53 @@ private processData(data) {
             }
         
             updateIFrame()
+      
+            // legacy alt presence code without reduced refresh added back as some legacy vehicles s/x do not have telemetry data via websocket
+            
+            if ((useAltPresence == true) && (useAltPresenceWithLegacyAPI == true))
+              {
+               if ((homeLongitude == null) || (homeLatitude == null))
+                  {
+                   log.error "Error: Home longitude or latitude is null and Alternate Presence method selected, Boundry Checking disabled!"
+                  }
+                else
+                {   
+                  if (debugLevel == "Full") log.debug "Using Legacy Alternate presence detection, requested distance: $boundryCircleDistance"
+                 
+                  def double homelog =  homeLongitude.toDouble() //-71.5996 
+    	          def double homelat = homeLatitude.toDouble() // 42.908368 
+                  def double vehlat  = data.driveState.latitude.toDouble()
+                  def double vehlog = data.driveState.longitude.toDouble()
+                    
+                  if (debugLevel == "Full")    
+                    {
+                     log.debug "current vehicle longitude,latitude = [ $vehlog, $vehlat ]"                 
+                     log.debug "User set home longitude,latitude =   [ $homelog, $homelat ]"
+                    }
+                  
+                  def Double dist = calculateDistanceBetweenTwoLatLongsInKm(vehlog, vehlat, homelog, homelat)
+                  if (debugLevel != "None") log.debug "Calculated distance from home: $dist"
+                  
+                  if (dist <= boundryCircleDistance.toDouble())
+                   { 
+                     if (device.currentValue('altPresent') == 'not present')
+                       {
+                        if (debugLevel != "None") log.debug "Vehicle in range... setting presence to true"
+                        sendEvent(name: "altPresent", value: "present")
+                        sendEvent(name: "presence", value: "present")
+                       }
+                   }
+                  else 
+                   {
+                     if (device.currentValue('altPresent') == 'present')
+                       {
+                        if (debugLevel != "None")  log.debug "Vehicle outside range... setting presence to false"
+                        sendEvent(name: "altPresent", value: "not present")
+                        sendEvent(name: "presence", value: "not present")
+                       }
+                   } // inner boundry check
+                } // not already done and disabled
+              } // do alt presence check       
             
         } // driver state processing
         
@@ -556,11 +619,8 @@ private processData(data) {
                   sendEvent(name: "presence", value: data.vehicleState.presence)
                 if (device.currentValue('altPresent') != data.vehicleState.presence)
                   sendEvent(name: "altPresent", value: data.vehicleState.presence)  
-                
-               // state.reducedRefresh = false
             }
-            
-            
+                       
             sendEvent(name: "lock", value: data.vehicleState.lock)
            
             if (mileageScale == "M")
@@ -1208,7 +1268,7 @@ def processTimeToFullCharge(perc)
        sendEvent(name: "timeToFullCharge", value: "Not Charging")
    }
 }  
-    
+
 def checkAltHomePresence(it) {
   if (useAltPresence == true)
     {
@@ -1363,7 +1423,33 @@ def webSocketParse(String message) {
 // The api was changing, so not sure how long term these functions are needed. But for now, they work. 
 // [value:[stringValue:6.700000695884228], key:InsideTemp] but sometimes [value:[doubleValue:6.700000695884228], key:InsideTemp]
 float getValueFloat(Map value) { return (value?.doubleValue ?: value?.stringValue ?: value?.intValue ?: 0.0).toFloat() }
-float getValueTemp(Map value) { return (tempScale == "C") ? getValueFloat(value) : celsiusToFahrenheit(getValueFloat(value)) }
+float getValueTemp(Map value) 
+{     
+   // lgk special case here celsius to fahrenheit not working when the value = 0 which is realy 32
+    def fval = getValueFloat(value)
+    //if (debugWebSocketAPI) log.debug " input = ${value.toString()}  fval = ${value.toString()}"
+ 
+    if ((fval = 0.0) && (tempScale != "C")) return 32
+    else
+    { 
+        def res = (tempScale == "C") ? getValueFloat(value) : celsiusToFahrenheit(getValueFloat(value))
+        //if (debugWebSocketAPI) log.debug "result = ${res.toFloat().toString()}"
+        return res.toFloat()
+    }
+}
+
+def handleInvalidSpeed(it)
+{ 
+   // assume invalid means stopped to work around a bug in api missing the 0 case or interpretting it as null when we first stop\
+   // if speed is invalid and we have a speed > 0 reset it
+    if (debugWebSocketAPI) log.warn "in vehicle speed case"
+    if (it.value?.invalid?.toBoolean() == true)
+       {
+          sendEventX(name: "speed", value: 1, unit: (mileageScale == "M") ? "mph" : "kph" );  
+          sendEventX(name: "motion", value: "inactive")
+        }
+}
+
 float getValueMile(Map value) { return (mileageScale == "M") ? getValueFloat(value) : getValueFloat(value)*1.609344 }
 Integer getValueInt(Map value) { return Math.round(getValueFloat(value)) as Integer}
 Boolean getValueBool(Map value) { return (value?.stringValue ?: value?.booleanValue).toBoolean() }
@@ -1475,14 +1561,21 @@ void webSocketProcess(data) {
 	data?.each
     {
         if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug "in handler item = $it"
+        // special case spped invalid
+        //log.warn "key = ${it.key}"
+        
+        if (it.key == "VehicleSpeed")
+        {
+            handleInvalidSpeed(it)
+        }
         
         if (it?.value==null || it.value?.invalid?.toBoolean()!=true)
         { // toss any invalid data first
         	if ((handlers.get(it.key, { 
-                if(debugLevel == "Full") log.warn("${device.displayName} webSocketProcess() did not handle item: $it")
+                if (debugLevel == "Full") log.warn("${device.displayName} webSocketProcess() did not handle item: $it")
                 return true 
             })(it)) != true) {
-            	if(debugLevel == "Full") log.debug("${device.displayName} webSocketProcess() did not process item: $it")
+            	if (debugLevel == "Full") log.debug("${device.displayName} webSocketProcess() did not process item: $it")
         	}
         }
     }
