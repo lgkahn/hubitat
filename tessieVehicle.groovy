@@ -107,6 +107,12 @@
  *
  *   Also add back altpresence setting of present in legacy code processing without reducded refresh as some legacy cards cannot
  *   use websocket telemetry. To use this there is a new input preference that needs toi be enabled:useAltPresenceWithLegacyAPI. 
+ *
+ *   v 2.19 apparently tessie cannot or will not fix the issue with the legacy api at times incorrectly sending a speed > 0
+ *   the websocket api correctly either says 0 or invalid, but unfortunately everytime the legacy refresh it will reset the speed and motion to true, due to a speed coming
+ *   in. As a second workaround i will ignore the speed and reset it to 0 and motion to inactive whenever the charge state is not disconnected or the presesence is true.
+ *   For this reason i had to move the presence code above the speed/motion.
+ *
  */
 
 metadata {
@@ -445,8 +451,12 @@ private processData(data) {
         }
         else
         {
+            
+        // lgk new code to ignore speed and motion if charge state != disconnected or presence is true
+        // code moved to the end so charge and presence already set.
+            
     	sendEvent(name: "state", value: data.state)
-        sendEvent(name: "motion", value: data.motion)
+        // sendEvent(name: "motion", value: data.motion) moved below
         sendEvent(name: "active_route_destination", value: data.active_route_destination)
       
         def Float minToArrivalFloat = data.active_route_minutes_to_arrival
@@ -458,6 +468,7 @@ private processData(data) {
         sendEvent(name: "active_route_miles_to_arrival", value: milesToArrival)
         sendEvent(name: "active_route_energy_at_arrival", value: data.active_route_energy_at_arrival)
         
+      /* movaed below
         if (mileageScale == "M")
           {
            sendEvent(name: "speed", value: data.speed, unit: "mph")
@@ -472,7 +483,8 @@ private processData(data) {
               }
              else sendEvent(name: "speed", value: 0, unit: "kph")
           }
-          
+        */
+            
         sendEvent(name: "vin", value: data.vin)
         sendEvent(name: "thermostatMode", value: data.thermostatMode)
         
@@ -610,7 +622,8 @@ private processData(data) {
             
         } // driver state processing
         
-        if (data.vehicleState) {
+        if (data.vehicleState) 
+          {
             if (debugLevel == "Full") log.debug "vehicle state = ${data.vehicleState}"
           
         	if (useAltPresence != true)
@@ -620,8 +633,62 @@ private processData(data) {
                 if (device.currentValue('altPresent') != data.vehicleState.presence)
                   sendEvent(name: "altPresent", value: data.vehicleState.presence)  
             }
-                       
+          }
+            
             sendEvent(name: "lock", value: data.vehicleState.lock)
+           
+            // if charging or present set motion to inactive and speed to 0 regardless of what we get passed in
+            // to get around bug of legacy api periodically sending a non zero speed when we are sitting in the
+            // garage
+            
+            def current_chargestate =  device.currentValue("chargingState")
+            def current_presence = device.currentValue("presence")
+            if (debugLevel == "Full") log.info "current presence = ${current_presence} , current chargingState = ${current_chargestate}."
+            
+            if ((current_chargestate != "Disconnected") || (current_presence = "present"))
+              {
+                if ((data.speed) && (data.speed.toInteger() >  0))
+                  {
+                    if (debugLevel != "None") log.info "Ignoring speed > 0 (${data.speed}) when we are plugged in or at home!"
+                    
+                    // now if current speed > 0 reset it
+                    if (device.currentValue("speed") != 0)
+                      {
+                        if (debugLevel != "None")  log.warn "Resetting speed to 0 and motion to inactive!"
+                        
+                        if (mileageScale == "M") sendEvent(name: "speed", value: "0", unit: "mph")
+                        else sendEvent(name: "speed", value: "0", unit: "kph")
+                        
+                        sendEvent(name: "motion", value: "inactive")
+                       
+                        if (device.currentValue("motion") == "active") sendEvent(name: "motion", value: "inactive")
+                      } 
+                  } // have speed >0
+              } // connected to charger or present
+            
+             else
+             {    
+              sendEvent(name: "motion", value: data.motion) 
+                 
+              if (mileageScale == "M")
+                {
+                    log.error "setting speed here"
+                 sendEvent(name: "speed", value: data.speed, unit: "mph")
+                }   
+              else
+               {
+                 // handle speed of 0 which is interpreted as null
+                 if (data.speed)
+                   {
+                    double kspd = (data.speed) *  1.609344   
+                    sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
+                   }
+                 else sendEvent(name: "speed", value: 0, unit: "kph")
+               }
+                 
+             } // not connected to charger or present so seed speed and motion normally
+            
+          if (data.vehicleState) { 
            
             if (mileageScale == "M")
             {
@@ -680,7 +747,7 @@ private processData(data) {
               }
             else sendEvent(name: "tire_pressure_rear_right", value: "n/a")
 
-        }
+        } // end vehicle state
         
         if (data.climateState) {
             if (debugLevel == "Full") log.debug "climateState = ${data.climateState}"
@@ -1440,12 +1507,12 @@ float getValueTemp(Map value)
 
 def handleInvalidSpeed(it)
 { 
-   // assume invalid means stopped to work around a bug in api missing the 0 case or interpretting it as null when we first stop\
+   // assume invalid means stopped to work around a bug in api missing the 0 case or interpretting it as null when we first stop
    // if speed is invalid and we have a speed > 0 reset it
     if (debugWebSocketAPI) log.warn "in vehicle speed case"
     if (it.value?.invalid?.toBoolean() == true)
-       {
-          sendEventX(name: "speed", value: 1, unit: (mileageScale == "M") ? "mph" : "kph" );  
+        {
+          sendEventX(name: "speed", value: 0, unit: (mileageScale == "M") ? "mph" : "kph" );  
           sendEventX(name: "motion", value: "inactive")
         }
 }
@@ -1591,7 +1658,7 @@ void webSocketProcess(data) {
 
 Boolean sendEventX(Map x)
 {
-    if ((debugLevel == "Full") || (debugWebSocketAPI)) log.debug "in sendeventx:[ ${x?.name}, ${x?.value} prior: ${device.currentValue(x?.name).toString().toLowerCase()} ]"
+   if ((debugLevel == "Full") || (debugWebSocketAPI)) log.debug "in sendeventx:[ ${x?.name}, ${x?.value} prior: ${device.currentValue(x?.name).toString().toLowerCase()} ]"
    if (x?.value!=null && device.currentValue(x?.name).toString().toLowerCase() != x?.value.toString().toLowerCase() && !x?.eventDisable)
     {
         if ((debugLevel == "Full") || (debugWebSocketAPI)) log.debug("new value will be set")
