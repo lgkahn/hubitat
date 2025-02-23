@@ -113,6 +113,10 @@
  *   in. As a second workaround i will ignore the speed and reset it to 0 and motion to inactive whenever the charge state is not disconnected or the presesence is true.
  *   For this reason i had to move the presence code above the speed/motion.
  *
+ *  v 2.20 back out 2.19 code changes and instead set an state variable (reset at startup./initalize) if we get a speed report from the websocket.
+ *  if so it means the telemetry is working via websocket and therefore ignore any speed/motion reports from the legacy api/refresh (assuming the preference to use
+ *  the websocket api is still enabled).
+ *
  */
 
 metadata {
@@ -337,6 +341,9 @@ def initialize()
     //state.remove('tempReducedRefresh')
     //state.remove('tempReducedRefreshTime')
     
+    // new websock api speed state
+    state.haveWebSocketSpeedReport = "false"
+    
     if (refreshTime == "1-Hour")
       runEvery1Hour(refresh)
       else if (refreshTime == "30-Minutes")
@@ -456,7 +463,7 @@ private processData(data) {
         // code moved to the end so charge and presence already set.
             
     	sendEvent(name: "state", value: data.state)
-        // sendEvent(name: "motion", value: data.motion) moved below
+               
         sendEvent(name: "active_route_destination", value: data.active_route_destination)
       
         def Float minToArrivalFloat = data.active_route_minutes_to_arrival
@@ -468,22 +475,25 @@ private processData(data) {
         sendEvent(name: "active_route_miles_to_arrival", value: milesToArrival)
         sendEvent(name: "active_route_energy_at_arrival", value: data.active_route_energy_at_arrival)
         
-      /* movaed below
-        if (mileageScale == "M")
+        if ((useRealTimeAPI == false) || (state.haveWebSocketSpeedReport != "true"))    
           {
-           sendEvent(name: "speed", value: data.speed, unit: "mph")
-          }   
-         else
-          {
-           // handle speed of 0 which is interpreted as null
-            if (data.speed)
-              {
-               double kspd = (data.speed) *  1.609344   
-               sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
-              }
-             else sendEvent(name: "speed", value: 0, unit: "kph")
-          }
-        */
+           sendEvent(name: "motion", value: data.motion)
+                    
+           if (mileageScale == "M")
+             {
+              sendEvent(name: "speed", value: data.speed, unit: "mph")
+             }  
+           else
+            {
+              // handle speed of 0 which is interpreted as null
+              if (data.speed)
+                {
+                 double kspd = (data.speed) *  1.609344   
+                 sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
+                }
+               else sendEvent(name: "speed", value: 0, unit: "kph")
+            }
+          } // ignore speed and motion as getting from websocket
             
         sendEvent(name: "vin", value: data.vin)
         sendEvent(name: "thermostatMode", value: data.thermostatMode)
@@ -633,63 +643,9 @@ private processData(data) {
                 if (device.currentValue('altPresent') != data.vehicleState.presence)
                   sendEvent(name: "altPresent", value: data.vehicleState.presence)  
             }
-          }
             
-            sendEvent(name: "lock", value: data.vehicleState.lock)
-           
-            // if charging or present set motion to inactive and speed to 0 regardless of what we get passed in
-            // to get around bug of legacy api periodically sending a non zero speed when we are sitting in the
-            // garage
-            
-            def current_chargestate =  device.currentValue("chargingState")
-            def current_presence = device.currentValue("presence")
-            if (debugLevel == "Full") log.info "current presence = ${current_presence} , current chargingState = ${current_chargestate}."
-            
-            if ((current_chargestate != "Disconnected") || (current_presence == "present"))
-              {
-                if ((data.speed) && (data.speed.toInteger() >  0))
-                  {
-                    if (debugLevel != "None") log.info "Ignoring speed > 0 (${data.speed}) when we are plugged in or at home!"
-                    
-                    // now if current speed > 0 reset it
-                    if (device.currentValue("speed") != 0)
-                      {
-                        if (debugLevel != "None")  log.warn "Resetting speed to 0 and motion to inactive!"
-                        
-                        if (mileageScale == "M") sendEvent(name: "speed", value: "0", unit: "mph")
-                        else sendEvent(name: "speed", value: "0", unit: "kph")
-                        
-                        sendEvent(name: "motion", value: "inactive")
-                       
-                        if (device.currentValue("motion") == "active") sendEvent(name: "motion", value: "inactive")
-                      } 
-                  } // have speed >0
-              } // connected to charger or present
-            
-             else
-             {    
-              sendEvent(name: "motion", value: data.motion) 
-                 
-              if (mileageScale == "M")
-                {
-                    log.error "setting speed here"
-                 sendEvent(name: "speed", value: data.speed, unit: "mph")
-                }   
-              else
-               {
-                 // handle speed of 0 which is interpreted as null
-                 if (data.speed)
-                   {
-                    double kspd = (data.speed) *  1.609344   
-                    sendEvent(name: "speed", value: kspd.toInteger(), unit: "kph") 
-                   }
-                 else sendEvent(name: "speed", value: 0, unit: "kph")
-               }
-                 
-             } // not connected to charger or present so seed speed and motion normally
-            
-          if (data.vehicleState) { 
-           
+           sendEvent(name: "lock", value: data.vehicleState.lock)
+
             if (mileageScale == "M")
             {
               sendEvent(name: "odometer", value: data.vehicleState.odometer.toInteger())
@@ -1515,6 +1471,14 @@ def handleInvalidSpeed(it)
           sendEventX(name: "speed", value: 0, unit: (mileageScale == "M") ? "mph" : "kph" );  
           sendEventX(name: "motion", value: "inactive")
         }
+     else // set new websocket speed report state
+     {
+         if ((debugLevel != "None") && (state.haveWebSocketSpeedReport != "true")) // check so only get message once after startup
+           {
+            log.info "Have Telemetry data via WebSocket. Disabling Speed and Motion reports via legacy API."
+           }      
+         state.haveWebSocketSpeedReport = "true"      
+     }
 }
 
 float getValueMile(Map value) { return (mileageScale == "M") ? getValueFloat(value) : getValueFloat(value)*1.609344 }
