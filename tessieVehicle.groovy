@@ -197,6 +197,19 @@ metadata {
         attribute "active_route_miles_to_arrival", "number"
         attribute "active_route_energy_at_arrival", "number"
         attribute "timeToFullCharge", "string"
+
+        //attribute "weatherCloudiness", "number"
+        attribute "weatherCondition", "string"
+        attribute "weatherFeelsLike", "number"
+        //attribute "weatherHumidity", "number"
+        attribute "weatherLocation", "string"
+        //attribute "weatherPressure", "number"
+        //attribute "weatherSunrise", "number"
+        //attribute "weatherSunset", "number"
+        attribute "weatherTemperature", "number"
+        //attribute "weatherVisibility", "number"
+        //attribute "weatherWindDirection", "number"
+        //attribute "weatherWindSpeed", "number"        
       
         attribute "zzziFrame", "text"
        
@@ -274,6 +287,7 @@ metadata {
        input "homeLongitude", "Double", title: "Home longitude value?", required: false
        input "homeLatitude", "Double", title: "Home latitude value?", required: false
        input "enableAddress", "bool", title: "Enable an extra query on every refresh to fill in current address?", required:false, defaultValue:false
+       input "enableWeather", "bool", title: "Enable an extra query on every refresh to fetch the current weather conditions?", required:false, defaultValue:false
        input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
       // input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
       // input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
@@ -781,6 +795,51 @@ def refresh()
           }
       }
         
+      if (enableWeather)
+      {
+        if (debugLevel != "None") log.info "Getting current Weather Conditions"
+        def adata = parent.getWeather(device.currentValue('vin'))
+        if (debugLevel == "Full") log.debug "weather data = $adata"
+        if (adata?.status)
+          {
+             //sendEvent(name: "weatherCloudiness", value: adata.cloudiness, descriptionText: "Weather Cloudiness: ${adata.cloudiness}", unit: "%")
+             sendEvent(name: "weatherCondition", value: adata.condition, descriptionText: "Weather Condition: ${adata.condition}")
+             //sendEvent(name: "weatherHumidity", value: adata.humidity, descriptionText: "Weather Humidity: ${adata.humidity}", unit: "%RH")
+             sendEvent(name: "weatherLocation", value: adata.location, descriptionText: "Weather Location City: ${adata.location}")
+             //sendEvent(name: "weatherPressure", value: adata.pressure, descriptionText: "Weather Pressure: ${adata.pressure}", unit: "millibar")
+             //sendEvent(name: "weatherSunrise", value: adata.sunrise, descriptionText: "Weather Sunrise: ${adata.sunrise}")
+             //sendEvent(name: "weatherSunset", value: adata.sunset, descriptionText: "Weather Sunset: ${adata.sunset}")
+             //sendEvent(name: "weatherVisibility", value: adata.visibility, descriptionText: "Weather Visibility: ${adata.visibility}", unit: "feet")
+             //sendEvent(name: "weatherWindDirection", value: adata.wind_direction, descriptionText: "Weather Wind Direction Heading: ${adata.wind_direction}", unit: "degrees")
+             //sendEvent(name: "weatherWindSpeed", value: adata.wind_speed, descriptionText: "Weather Wind Speed: ${adata.wind_speed}", unit: "knots?")
+            if (tempScale == "F")
+            {
+              sendEvent(name: "weatherTemperature", value: adata.temperature.toInteger(), unit: "F")
+              sendEvent(name: "weatherFeelsLike", value: adata.feels_like.toInteger(), unit: "F")          
+            }
+            else  
+            {
+              sendEvent(name: "weatherTemperature", value: farenhietToCelcius(adata.temperature).toInteger(), unit: "C")
+              sendEvent(name: "weatherFeelsLike", value: farenhietToCelcius(adata.feels_like).toInteger(), unit: "C") 
+            }
+          }
+          else 
+          {
+             //sendEvent(name: "weatherCloudiness", value: -0, descriptionText: "Weather Cloudiness: Unknown", unit: "%")
+             sendEvent(name: "weatherCondition", value: "Unknown", descriptionText: "Weather Condition: Unknown")
+             //sendEvent(name: "weatherHumidity", value: -0, descriptionText: "Weather Humidity: Unknown", unit: "%RH")
+             sendEvent(name: "weatherLocation", value: "Unknown", descriptionText: "Weather Location City: Unknown")
+             //sendEvent(name: "weatherPressure", value: -0, descriptionText: "Weather Pressure: Unknown", unit: "millibar")
+             //sendEvent(name: "weatherSunrise", value: 0, descriptionText: "Weather Sunrise: Unknown")
+             //sendEvent(name: "weatherSunset", value: 0, descriptionText: "Weather Sunset: Unknown")
+             //sendEvent(name: "weatherVisibility", value: -0, descriptionText: "Weather Visibility: Unknown", unit: "feet")
+             //sendEvent(name: "weatherWindDirection", value: -0, descriptionText: "Weather Wind Direction Heading: Unknown", unit: "degrees")
+             //sendEvent(name: "weatherWindSpeed", value: -0, descriptionText: "Weather Wind Speed: Unknown", unit: "knots?")
+             sendEvent(name: "weatherTemperature", value: -100)
+             sendEvent(name: "weatherFeelsLike", value: -100) 
+           }                     
+      }
+
       if (enableBatteryHealth == "on-every-refresh")
         {
           if (debugLevel != "None") log.info "Getting Battery Health Status"

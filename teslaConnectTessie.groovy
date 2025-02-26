@@ -631,6 +631,38 @@ private executeApiCommandForAddress(Map options = [:], child, String command) {
     return result
 }
 
+ private executeApiCommandForWeather(Map options = [:], child, String command) {
+    def result = [:]
+    
+   if (descLog) log.info "executeApiCommandForWeather"
+    
+    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
+        if (debug) log.debug "resp data = ${resp.data}"       
+    
+        if (resp.data.condition)
+        {
+          result.location = resp.data.location
+          result.condition = resp.data.condition
+          result.feels_like = celciusToFarenhiet(resp.data.feels_like)
+          result.temperature = celciusToFarenhiet(resp.data.temperature)
+          result.cloudiness = resp.data.cloudiness
+          result.humidity = resp.data.humidity
+          result.pressure = resp.data.pressure
+          result.sunrise = resp.data.sunrise
+          result.sunset = resp.data.sunset
+          result.visibility = resp.data.visibility
+          result.wind_direction = resp.data.wind_direction
+          result.wind_speed = resp.data.wind_speed
+          result.status = true
+       }
+       else
+       {
+          result.status = false
+       }
+    })
+    return result
+}
+
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
     
@@ -958,6 +990,14 @@ def currentAddress(child) {
 	return executeApiCommandForAddress(child, "location")
 }
 
+def getWeather(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }  
+    return executeApiCommandForWeather(child, "weather")   
+}
 
 def getBatteryHealth(child) {
    if (wakeOnInitialTry)
