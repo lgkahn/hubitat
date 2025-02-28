@@ -405,9 +405,7 @@ def baseInitialize()
     
     // remove attributes is not using optional queries
     if (enableWeather == false)
-    {
-        log.warn "clearing attrs"
-        
+    {  
         device.deleteCurrentState('weatherCondition')
         device.deleteCurrentState('weatherFeelsLike')
         device.deleteCurrentState('weatherHumidity')
