@@ -117,6 +117,11 @@
  *  if so it means the telemetry is working via websocket and therefore ignore any speed/motion reports from the legacy api/refresh (assuming the preference to use
  *  the websocket api is still enabled).
  *
+ * v 2.21 pull out the websocketspeed state that was getting set to false every morning or whenever you schedule to reenable.. It still gets set to false
+ * if you manually save preferences.
+ *
+ * Also, add in a modified version of the outside implemented weather api call and associated attributes,.
+ *
  */
 
 metadata {
@@ -198,6 +203,20 @@ metadata {
         attribute "active_route_energy_at_arrival", "number"
         attribute "timeToFullCharge", "string"
       
+        // most weather attributes commented out.
+        //attribute "weatherCloudiness", "number"
+        attribute "weatherCondition", "string"
+        attribute "weatherFeelsLike", "number"
+        attribute "weatherHumidity", "number"
+        attribute "weatherLocation", "string"
+        //attribute "weatherPressure", "number"
+        //attribute "weatherSunrise", "number"
+        //attribute "weatherSunset", "number"
+        attribute "weatherTemperature", "number"
+        //attribute "weatherVisibility", "number"
+        //attribute "weatherWindDirection", "number"
+        attribute "weatherWindSpeed", "number"
+        
         attribute "zzziFrame", "text"
        
 		command "wake"
@@ -274,6 +293,7 @@ metadata {
        input "homeLongitude", "Double", title: "Home longitude value?", required: false
        input "homeLatitude", "Double", title: "Home latitude value?", required: false
        input "enableAddress", "bool", title: "Enable an extra query on every refresh to fill in current address?", required:false, defaultValue:false
+       input "enableWeather", "bool", title: "Enable an extra query on every refresh to fetch the current weather conditions at or near the vehicle?", required:false, defaultValue:false     
        input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
       // input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
       // input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
@@ -290,9 +310,10 @@ def logsOff()
     device.updateSetting("debugWebSocketAPI",[value:"false",type:"bool"])
 }
 
-def initialize() 
+def baseInitialize()
+// bulk of initialize so as not to repeat code
 {
-     log.info "'initialize - Current Version: ${parent.currentVersion()}'"
+  log.info "'initialize - Current Version: ${parent.currentVersion()}'"
      def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
      sendEvent(name: "zzziFrame", value: "")
     
@@ -334,16 +355,7 @@ def initialize()
               if (debugLevel != "None") log.info "Using Alternate presence detection, requested distance: $boundryCircleDistance"
             }
        }
-                   
-    // remove no longer used reduce refresh states
-   // state.remove('reducedRefresh')
-    //state.remove('reducedRefreshDisabled')    
-    //state.remove('tempReducedRefresh')
-    //state.remove('tempReducedRefreshTime')
-    
-    // new websock api speed state
-    state.haveWebSocketSpeedReport = "false"
-    
+                       
     if (refreshTime == "1-Hour")
       runEvery1Hour(refresh)
       else if (refreshTime == "30-Minutes")
@@ -388,10 +400,22 @@ def initialize()
     {
       log.info "Disabling Real Time Fleet API!"
       webSocketClose()
-    }
-    
+    }    
 }
 
+def initializeAfterReenable()
+// different version that does NOT Reset the have websocket stat.
+{  
+  baseInitialize()         
+}
+
+def initialize() 
+{
+    // new websock api speed state
+    state.haveWebSocketSpeedReport = "false" 
+    baseInitialize()    
+}
+   
 def disable()
 {
     if (debugLevel != "None") log.info "Disabling to allow sleep!"
@@ -415,7 +439,7 @@ def reenable()
     // pause for 3 secs so when we reschedule it wont run again immediately
     pauseExecution(3000)
     state.disabled = false
-    initialize() 
+    initializeAfterReenable() 
     wake()
     
     if (enableBatteryHealth == "only-on-reenable")
@@ -752,6 +776,22 @@ private processData(data) {
     }
 }
 
+float getValueMile(value) { return (mileageScale == "M") ? value.toFloat() : value.toFloat()*1.609344 }
+float getValueTemp(value) 
+{     
+   // lgk special case here celsius to fahrenheit not working when the value = 0 which is realy 32
+    def fval = value.toFloat()
+    //if (debugWebSocketAPI) log.debug " input = ${value.toString()}  fval = ${value.toString()}"
+ 
+    if ((fval == 0.0) && (tempScale != "C")) return 32
+    else
+    { 
+        def res = (tempScale == "C") ? fval : celsiusToFahrenheit(fval)
+        //if (debugWebSocketAPI) log.debug "result = ${res.toFloat().toString()}"
+        return res.toFloat()
+    }
+}
+
 def refresh()
 {
 	if (debugLevel != "None") log.info "Executing 'refresh'"
@@ -786,7 +826,54 @@ def refresh()
           if (debugLevel != "None") log.info "Getting Battery Health Status"
             getBatteryHealth()
         }
-                                  
+      
+      if (enableWeather)
+        {
+         if (debugLevel != "None") log.info "Getting current Weather Conditions"
+         def adata = parent.getWeather(device.currentValue('vin'))
+         if (debugLevel == "Full") log.debug "weather data = $adata"
+  
+         if (adata?.status)
+           {
+             //sendEvent(name: "weatherCloudiness", value: adata.cloudiness, descriptionText: "Weather Cloudiness: ${adata.cloudiness}", unit: "%")
+             sendEvent(name: "weatherCondition", value: adata.condition, descriptionText: "Weather Condition: ${adata.condition}")
+             sendEvent(name: "weatherHumidity", value: adata.humidity, descriptionText: "Weather Humidity: ${adata.humidity}", unit: "%RH")
+             sendEvent(name: "weatherLocation", value: adata.location, descriptionText: "Weather Location City: ${adata.location}")
+             //sendEvent(name: "weatherPressure", value: adata.pressure, descriptionText: "Weather Pressure: ${adata.pressure}", unit: "millibar")
+             //sendEvent(name: "weatherSunrise", value: adata.sunrise, descriptionText: "Weather Sunrise: ${adata.sunrise}")
+             //sendEvent(name: "weatherSunset", value: adata.sunset, descriptionText: "Weather Sunset: ${adata.sunset}")
+             //sendEvent(name: "weatherVisibility", value: adata.visibility, descriptionText: "Weather Visibility: ${adata.visibility}", unit: "feet")
+             //sendEvent(name: "weatherWindDirection", value: adata.wind_direction, descriptionText: "Weather Wind Direction Heading: ${adata.wind_direction}", unit: "degrees")
+            
+             def weatherTemp = getValueTemp(adata.temperature)
+             def weatherFeelsLikeTemp = getValueTemp(adata.feels_like)
+             def weatherWindSpeed = getValueMile(adata.wind_speed)
+                  
+             sendEvent(name: "weatherTemperature", value: weatherTemp.toInteger(), unit: tempScale)
+             sendEvent(name: "weatherFeelsLike", value:   weatherFeelsLikeTemp.toInteger(), unit: tempscale)         
+             
+             if (mileageScale == "M")
+               sendEvent(name: "weatherWindSpeed", value: weatherWindSpeed, unit: "kph")
+              else sendEvent(name: "weatherWindSpeed", value: weatherWindSpeed, unit: "mph")         
+             
+           }
+          else 
+           {
+             //sendEvent(name: "weatherCloudiness", value: -0, descriptionText: "Weather Cloudiness: Unknown", unit: "%")
+             sendEvent(name: "weatherCondition", value: "Unknown", descriptionText: "Weather Condition: Unknown")
+             sendEvent(name: "weatherHumidity", value: -0, descriptionText: "Weather Humidity: Unknown", unit: "%RH")
+             sendEvent(name: "weatherLocation", value: "Unknown", descriptionText: "Weather Location City: Unknown")
+             //sendEvent(name: "weatherPressure", value: -0, descriptionText: "Weather Pressure: Unknown", unit: "millibar")
+             //sendEvent(name: "weatherSunrise", value: 0, descriptionText: "Weather Sunrise: Unknown")
+             //sendEvent(name: "weatherSunset", value: 0, descriptionText: "Weather Sunset: Unknown")
+             //sendEvent(name: "weatherVisibility", value: -0, descriptionText: "Weather Visibility: Unknown", unit: "feet")
+             //sendEvent(name: "weatherWindDirection", value: -0, descriptionText: "Weather Wind Direction Heading: Unknown", unit: "degrees")
+             sendEvent(name: "weatherWindSpeed", value: 0, descriptionText: "Weather Wind Speed: Unknown")
+             sendEvent(name: "weatherTemperature", value: -100, descriptionText: "Weather Temp N/A")
+             sendEvent(name: "weatherFeelsLike", value: -100, desscriptionText: "Weather Feels Like N/A") 
+           }                     
+        }
+        
     }
     else
     {
@@ -1452,7 +1539,7 @@ float getValueTemp(Map value)
     def fval = getValueFloat(value)
     //if (debugWebSocketAPI) log.debug " input = ${value.toString()}  fval = ${value.toString()}"
  
-    if ((fval = 0.0) && (tempScale != "C")) return 32
+    if ((fval == 0.0) && (tempScale != "C")) return 32
     else
     { 
         def res = (tempScale == "C") ? getValueFloat(value) : celsiusToFahrenheit(getValueFloat(value))
