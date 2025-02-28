@@ -102,6 +102,10 @@
  *
  * v 2.20 ignore speed/motion if websocket is enabled and we get a valid speed from the websocket api. (reset on saving preference)
  * 
+ * v 2.21 pull out the websocketspeed state that was getting set to false every morning or whenever you schedule to reenable.. It still gets set to false
+ * if you manually save preferences.
+ *
+ * Also, add in a modified version of the outside implemented weather api call and associated attributes,.
  *
  */
 
@@ -631,6 +635,38 @@ private executeApiCommandForAddress(Map options = [:], child, String command) {
     return result
 }
 
+private executeApiCommandForWeather(Map options = [:], child, String command) {
+    def result = [:]
+
+   if (descLog) log.info "executeApiCommandForWeather"
+
+    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
+        if (debug) log.debug "resp data = ${resp.data}"       
+
+        if (resp.data.condition)
+        {
+          result.location = resp.data.location
+          result.condition = resp.data.condition
+          result.feels_like = resp.data.feels_like
+          result.temperature = resp.data.temperature
+          result.cloudiness = resp.data.cloudiness
+          result.humidity = resp.data.humidity
+          result.pressure = resp.data.pressure
+          result.sunrise = resp.data.sunrise
+          result.sunset = resp.data.sunset
+          result.visibility = resp.data.visibility
+          result.wind_direction = resp.data.wind_direction
+          result.wind_speed = resp.data.wind_speed
+          result.status = true
+       }
+       else
+       {
+          result.status = false
+       }
+    })
+    return result
+}
+
 private executeApiCommand(Map options = [:], child, String command) {
     def result = false
     
@@ -958,6 +994,14 @@ def currentAddress(child) {
 	return executeApiCommandForAddress(child, "location")
 }
 
+def getWeather(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }  
+    return executeApiCommandForWeather(child, "weather")   
+}
 
 def getBatteryHealth(child) {
    if (wakeOnInitialTry)
@@ -988,7 +1032,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.20"
+    return "2.21"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
