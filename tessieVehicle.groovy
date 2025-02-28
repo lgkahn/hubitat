@@ -120,7 +120,8 @@
  * v 2.21 pull out the websocketspeed state that was getting set to false every morning or whenever you schedule to reenable.. It still gets set to false
  * if you manually save preferences.
  *
- * Also, add in a modified version of the outside implemented weather api call and associated attributes,.
+ * Also, add in a modified version of the outside implemented weather api call and associated attributes.
+ * Also add code to clear out address and weather attributes if you disable those options so stale attrs dont hang around,.
  *
  */
 
@@ -401,6 +402,24 @@ def baseInitialize()
       log.info "Disabling Real Time Fleet API!"
       webSocketClose()
     }    
+    
+    // remove attributes is not using optional queries
+    if (enableWeather == false)
+    {
+        log.warn "clearing attrs"
+        
+        device.deleteCurrentState('weatherCondition')
+        device.deleteCurrentState('weatherFeelsLike')
+        device.deleteCurrentState('weatherHumidity')
+        device.deleteCurrentState('weatherLocation')
+        device.deleteCurrentState('weatherTemperature')
+        device.deleteCurrentState('weatherWindSpeed')
+    }
+    
+   if (enableAddress == false)
+    {
+       device.deleteCurrentState('currentAddress')  
+    }
 }
 
 def initializeAfterReenable()
