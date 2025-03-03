@@ -124,6 +124,8 @@
  * Also add code to clear out address and weather attributes if you disable those options so stale attrs dont hang around,.
  *
  * version 2.22 get firmware alert api added and attribute and command. Only show last 5 alerts. Also option to call getfirmware alerts on wakeup once a day.
+ *
+ * version 2.23 reformat firmware alerts into a table and shorten date format.
  */
 
 metadata {
@@ -490,7 +492,8 @@ def convertEpochToSpecificTimezone(long timeEpoch, offset)
     def d = new Date(bt);
     def long utc = d.getTime() + (d.getTimezoneOffset() * 60000);  //This converts to UTC 00:00
     def nd = new Date(utc + (3600000*offset));
-    return nd.toString()
+    def returndate = nd.format('MM/dd/yyyy h:mm a',location.timeZone)
+    return returndate.toString()
 }  
 
 private processFirmwareAlerts(data)
