@@ -499,7 +499,7 @@ private processFirmwareAlerts(data)
        
     def myOffset = location.timeZone.rawOffset / (60*60*1000)  
     def ctr = 0
-    def myresults = ""
+    def myresults = "<table>"
    
    	data?.each
     {
@@ -513,11 +513,16 @@ private processFirmwareAlerts(data)
           if (timestamp)
             {     
              def df = convertEpochToSpecificTimezone(timestamp.toInteger(), myOffset.toInteger()) 
-             myresults = myresults + "${name} ${df} <BR>"     
+             myresults = myresults + "<tr><td>${name}</td><td>${df}</td></tr>"     
             }
         }   
     }
-    sendEvent(name: "firmwareAlerts", value: myresults)
+    if (ctr > 0)
+    {
+      myrsults = myresults + "</table>"
+      sendEvent(name: "firmwareAlerts", value: myresults)
+    }
+  else device.deleteCurrentState('firmwareAlerts')
 }
 
 private processVehicleState(data)
