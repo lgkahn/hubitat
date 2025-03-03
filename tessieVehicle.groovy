@@ -301,7 +301,7 @@ metadata {
        input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
        input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 300)?",resuired:true, defaultValue:300
        input "enableBatteryHealth", "enum", title: "Enable an extra query on every refresh to get battery health?", options: ["disabled", "on-every-refresh", "only-on-reenable"], required: false, defaultValue: "disabled" 
-       input "enableFirmwareAlerts", "bool", title: "Enable an extra query on re-enable to get the last few fimrware alert warnings?", required:false, defaultValue:false     
+       input "enableFirmwareAlerts", "bool", title: "Enable an extra query on re-enable to get the last few firmware alert warnings?", required:false, defaultValue:false     
 
     }
 }
