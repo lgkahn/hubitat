@@ -123,6 +123,7 @@
  * Also, add in a modified version of the outside implemented weather api call and associated attributes.
  * Also add code to clear out address and weather attributes if you disable those options so stale attrs dont hang around,.
  *
+ * version 2.22 get firmware alert api added and attribute and command. Only show last 5 alerts. Also option to call getfirmware alerts on wakeup once a day.
  */
 
 metadata {
@@ -203,6 +204,7 @@ metadata {
         attribute "active_route_miles_to_arrival", "number"
         attribute "active_route_energy_at_arrival", "number"
         attribute "timeToFullCharge", "string"
+        attribute "firmwareAlerts", "string"
       
         // most weather attributes commented out.
         //attribute "weatherCloudiness", "number"
@@ -217,7 +219,7 @@ metadata {
         //attribute "weatherVisibility", "number"
         //attribute "weatherWindDirection", "number"
         attribute "weatherWindSpeed", "number"
-        
+      
         attribute "zzziFrame", "text"
        
 		command "wake"
@@ -275,6 +277,7 @@ metadata {
         command "closeSunroof"
         command "listDrivers"
         command "getBatteryHealth"
+        command "getFirmwareAlerts"
       
 	}
 
@@ -296,11 +299,10 @@ metadata {
        input "enableAddress", "bool", title: "Enable an extra query on every refresh to fill in current address?", required:false, defaultValue:false
        input "enableWeather", "bool", title: "Enable an extra query on every refresh to fetch the current weather conditions at or near the vehicle?", required:false, defaultValue:false     
        input "boundryCircleDistance", "Double", title: "Distance in KM from home to be considered as Present?", required: false, defaultValue: 1.0
-      // input "outerBoundryCircleDistance", "Double", title: "Outer distance in KM from home where refresh time is reduced?", required: false, defaultValue: 5.0     
-      // input "outerRefreshTime", "Number", title: "Reduced refresh time when location hit outer boundry (in seconds)?",  required: false, defaultValue: 30
-       //input "refreshOverrideTime", "enum", title: "How long to allow reduced refresh before giving up and go back to default (Also resets when you arrive)?",options: ["30-Minutes", "15-Minutes", "10-Minutes", "5-Minutes"],  required: false, defaultValue: "5-Minutes"     
        input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 300)?",resuired:true, defaultValue:300
        input "enableBatteryHealth", "enum", title: "Enable an extra query on every refresh to get battery health?", options: ["disabled", "on-every-refresh", "only-on-reenable"], required: false, defaultValue: "disabled" 
+       input "enableFirmwareAlerts", "bool", title: "Enable an extra query on re-enable to get the last few fimrware alert warnings?", required:false, defaultValue:false     
+
     }
 }
 
@@ -461,9 +463,17 @@ def reenable()
     
     if (enableBatteryHealth == "only-on-reenable")
        {
-          if (debugLevel != "None") log.info "Getting Battery Health Status"
+          if (debugLevel != "None") log.info "Getting Battery Health Status on re-enable."
             getBatteryHealth()
        } 
+    
+     if (enableFirmwareAlerts == true)
+       {
+          if (debugLevel != "None") log.info "Getting Firmware Alerts on re-enable."
+          getFirmwareAlerts()
+       } 
+    
+    
     // lgk no need to reenable websocket here as it is done above in initialize.
 }
 
@@ -471,6 +481,43 @@ def reenable()
 def parse(String description) {
 	if (debugLevel == "Full") log.debug "Parsing '${description}'"
     webSocketParse(description)
+}
+
+def convertEpochToSpecificTimezone(long timeEpoch, offset)
+{
+    def long mult = 1000
+    def long bt = timeEpoch * mult
+    def d = new Date(bt);
+    def long utc = d.getTime() + (d.getTimezoneOffset() * 60000);  //This converts to UTC 00:00
+    def nd = new Date(utc + (3600000*offset));
+    return nd.toString()
+}  
+
+private processFirmwareAlerts(data)
+{    
+    if (debugLevel == "FULL") log.debug "Processing Firmware Alert Data"
+       
+    def myOffset = location.timeZone.rawOffset / (60*60*1000)  
+    def ctr = 0
+    def myresults = ""
+   
+   	data?.each
+    {
+        if  (ctr < 5)
+        {
+          ++ctr
+       
+          def name = it.name
+          def timestamp = it.timestamp
+      
+          if (timestamp)
+            {     
+             def df = convertEpochToSpecificTimezone(timestamp.toInteger(), myOffset.toInteger()) 
+             myresults = myresults + "${name} ${df} <BR>"     
+            }
+        }   
+    }
+    sendEvent(name: "firmwareAlerts", value: myresults)
 }
 
 private processVehicleState(data)
@@ -1147,12 +1194,22 @@ def closeSunroof() {
 def listDrivers() {
 	if (debugLevel != "None") log.info "Executing 'List Drivers'"
 	def result = parent.listDrivers(device.currentValue('vin'))
-    log.debug "data = ${result.data}"
+    if (debugLevel == "Full") log.debug "data = ${result.data}"
     if (result) { 
         log.info ""
         log.info "Additional Drivers: $result"
         log.info ""
         refresh() }
+}
+
+def getFirmwareAlerts() {
+    if (debugLevel != "None")log.info "Executing 'Get Firmware Alerts'"
+    def result = parent.getFirmwareAlerts(device.currentValue('vin'))
+  
+    if (result) { 
+        // process results
+        processFirmwareAlerts(result) 
+    }
 }
 
 private farenhietToCelcius(dF) {
@@ -1691,7 +1748,8 @@ void webSocketProcess(data) {
         }, 
     ]
 
-    if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug "full Websocket fleet api data = $data"
+    if ((debugLevel == "FULL") || (debugWebSocketAPI)) 
+    log.debug "full Websocket fleet api data = $data"
     
 	data?.each
     {
