@@ -107,6 +107,8 @@
  *
  * Also, add in a modified version of the outside implemented weather api call and associated attributes,.
  *
+ * v 2.22 get firmware alert api added and attribute and command. Only show last 5 alerts. Also option to call getfirmware alerts on wakeup once a day.
+ *
  */
 
 import groovy.transform.Field
@@ -673,27 +675,31 @@ private executeApiCommand(Map options = [:], child, String command) {
    if (descLog) log.info "executeApiCommand"
     
     authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
-        if (debug) log.debug "resp data = ${resp.data}"
+         if (debug) log.debug "resp data = ${resp.data}"
       
         // special case status check
         if (resp.data.status)
           result = resp.data.status
-       //else if (resp.data.address)
-        //  result = resp.data.address
-        else result = resp.data.result       
+        else if (resp.data.results)
+          result = resp.data.results
+        else result = resp.data.result        
     })
+    
+   
     return result
 }
 
 private executeApiCommand(Map options = [:], String command) {
     def result = false
     
-   if (descLog) log.info "executeApiCommand"
+    if (descLog) log.info "executeApiCommand"
     
     authorizedHttpRequestWithTimeout(child,"/${command}", "GET",20,1, { resp ->
+       
         if (debug) log.debug "resp data = ${resp.data}"
         result = resp.data.results       
     })
+    
     return result
 }
 
@@ -704,7 +710,7 @@ private executeApiCommandWithTimeout(Map options = [:], child, String command, N
     def tries = 1
      
    if (descLog) log.info "ExecuteApiCommandtWithTimeout $timeout"
-
+    
         authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET", timeout, tries, { resp ->
         if (debug) log.debug "resp data = ${resp.data}"
             
@@ -1013,6 +1019,16 @@ def getBatteryHealth(child) {
 }
 
 
+def getFirmwareAlerts(child) {
+   if (wakeOnInitialTry)
+    { 
+      wake(child)
+      pause((pauseTime.toInteger() * 1000))
+    }
+	return executeApiCommand(child,"firmware_alerts")
+}
+
+
 def notifyIfEnabled(message) {
     if (notificationDevice) {
         notificationDevice.deviceNotification(message)
@@ -1032,7 +1048,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.21"
+    return "2.22"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
