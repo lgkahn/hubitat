@@ -24,41 +24,12 @@ metadata {
 	preferences {
        	input name: "washerRW", type: "number", title: "Washer running watts:", description: "", required: true
         input name: "dryerRW", type: "number", title: "Dryer running watts:", description: "", required: true
+        input name: "dryerIgnoreRW", type: "number", title: "Over this many watts ignore for dryer?", descriptions: "", required: true
        input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
        
     }
 	
-    simulator {
 
-	}
-
-	tiles(scale: 2) {
-    	multiAttributeTile(name:"laundryState", type: "generic", width: 6, height: 4){
-        	tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
-            	attributeState "on", label:'Running', icon:"st.Appliances.appliances1", backgroundColor:"#53a7c0"
-            	attributeState "off", label:'Nothing running', icon:"st.Appliances.appliances1", backgroundColor:"#ffffff"
-        	}
-        }
-        valueTile("washerState", "device.washerState", width: 3, height: 2) {
-        	state("on", label:'Washer:\nRunning', backgroundColor:"#53a7c0")
-            state("off", label:'Washer:\nNot running', backgroundColor:"#ffffff")
-        }
-        valueTile("dryerState", "device.dryerState", width: 3, height: 2) {
-        	state("on", label:'Dryer:\nRunning', backgroundColor:"#53a7c0")
-            state("off", label:'Dryer:\nNot running', backgroundColor:"#ffffff")
-        }
-        valueTile("washer", "device.washerWatts", width: 3, height: 1, decoration: "flat") {
-            state("default", label:'Washer:\n${currentValue} Watts', foregroundColor: "#000000")
-        }
-        valueTile("dryer", "device.dryerWatts", width: 3, height: 1, decoration: "flat") {
-            state("default", label:'Dryer:\n${currentValue} Watts', foregroundColor: "#000000")
-        }
-		standardTile("configure", "command.configure", inactiveLabel: false) {
-			state "configure", label:'', action: "configure", icon:"st.secondary.configure"
-		}
-		main "laundryState"
-		details(["laundryState","washerState","dryerState","washer","dryer","configure"])
-	}
 }
 
 def installed() {
@@ -120,7 +91,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                //  log.debug "in dryer case"
                 	name = "dryerWatts"
                     desc = "Dryer power is " + value + " Watts"
-                    if (value >= settings.dryerRW.toInteger())
+                    if ((value >= settings.dryerRW.toInteger()) && (value < settings.dryerIgnoreRW.toInteger()))
                     {
                         if (debug) log.debug "Dryer turned on"
                     	//dryer is on
