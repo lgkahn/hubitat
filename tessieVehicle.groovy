@@ -135,7 +135,7 @@
  * to get the last 5 of them. I could also handle this here but the format
  * in the websocket version of alerts is slightly different so I would have to make a separate version.
  *
- * v 2.25 process websocket api error message ..; store in attribute lastWebsocketAPIErrors .
+ * v 2.25 process websocket api error message ..; store in attribute lastWebsocketError .
  */
 
 metadata {
