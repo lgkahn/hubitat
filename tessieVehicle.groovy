@@ -1847,13 +1847,9 @@ void webSocketErrorsProcess(data)
        
           def name = it.name	
           def timestamp = it.createdAt
-          def fieldname = ""
-          
-         // get field name in tag if there is one
-         if (data.tags?.field_name) fieldname = data.tags.field_name
- 
-         sendEvent(name: "lastWebSocketError", value: name, description: "WebSocketError [$name, $timestamp, $fieldname]!")
-         log.warn "WebSocketError [$name, $timestamp, $fieldname]!"
+              
+         sendEvent(name: "lastWebSocketError", value: name, description: "WebSocketError [$name, $timestamp] {$it)!")
+         log.warn "WebSocketError [$name, $timestamp]!"
         }
     }
                 
