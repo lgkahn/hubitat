@@ -135,6 +135,7 @@
  * to get the last 5 of them. I could also handle this here but the format
  * in the websocket version of alerts is slightly different so I would have to make a separate version.
  *
+ * v 2.25 process websocket api error message ..; store in attribute lastWebsocketAPIErrors .
  */
 
 metadata {
@@ -218,6 +219,7 @@ metadata {
         attribute "firmwareAlerts", "string"
         attribute "lastFirmwareAlert", "string"
         attribute "lastFirmwareAlertTime", "string"
+        attribute "lastWebSocketError", "string"
         
         // most weather attributes commented out.
         //attribute "weatherCloudiness", "number"
@@ -1614,6 +1616,10 @@ def webSocketParse(String message) {
         {
             webSocketAlertsProcess(data.alerts)
         }
+        else if (data?.errors)
+        {
+            webSocketErrorsProcess(data.errors)
+        }
         else
         {
              if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug("${device.displayName} webSocketParse() message: $data")
@@ -1805,6 +1811,57 @@ void webSocketProcess(data) {
     }
 }
 
+/*
+{
+  "errors": [
+    {
+      "createdAt": "2024-08-01T00:44:06.780721459Z",
+      "name": "unsupported_field",
+      "tags": {
+        "field_name": "LifetimeEnergyGainedRegen",
+        "name": "1bfd3e4b3966-496c-b87a-59999f71234"
+      },
+      "body": ""
+    }
+  ],
+  "createdAt": "2024-08-01T00:44:06.780721459Z",
+  "vin": "LRW3F7FR9NC123456"
+}
+*/
+
+void webSocketErrorsProcess(data)
+{
+  if ((debugLevel == "FULL") || (debugWebSocketAPI))
+    {
+     log.warn "Processing Websocket Error message."
+     log.warn "Error data = $data"
+    }
+    
+    def ctr = 0
+   
+   	data?.each
+    {
+        if  (ctr == 0)
+        {
+          ++ctr
+       
+          def name = it.name	
+          def timestamp = it.createdAt
+          def fieldname = ""
+          
+         // get field name in tag if there is one
+         if (data.tags?.field_name)
+            {
+             fieldname = data.tags.field_name
+             myresults = myresults + "<tr><td>${name}</td><td>${timestamp}</td><td>${fieldname}</td></tr>"     
+            }
+         else  myresults = myresults + "<tr><td>${name}</td><td>${timestamp}</td><td></td></tr>"     
+        } 
+      sendEvent(name: "lastWebSocketError", value: name, description: "WebSocketError [$name, $timestamp, $fieldname]!")
+    }
+                
+   if (ctr == 0) device.deleteCurrentState('lastWebSocketError') 
+}
 
 void webSocketAlertsProcess(data)
 {
