@@ -109,6 +109,13 @@
  *
  * v 2.22 get firmware alert api added and attribute and command. Only show last 5 alerts. Also option to call getfirmware alerts on wakeup once a day.
  *
+ * version 2.24 noticed alerts also come in in bulk (in realtime) from the websocket api when one occurs.
+ * For this reason added code to just get the last alert from the set of them in realtime and put in 2 attrs lastFirmwareAlert and lastFirmwareAlertTime. 
+ * Also, instead of rewriting all the code to process x alerts, when one
+ * comes in in realtime like this, after being processed it will call the exising full api (if enabled)
+ * to get the last 5 of them. I could also handle this here but the format
+ * in the websocket version of alerts is slightly different so I would have to make a separate version.
+ *
  */
 
 import groovy.transform.Field
@@ -1048,7 +1055,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.23"
+    return "2.24"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
