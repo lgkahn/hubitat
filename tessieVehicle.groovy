@@ -127,7 +127,8 @@
  *
  * version 2.23 reformat firmware alerts into a table and shorten date format.
  *
- * version 2.24 noticed alerts also come in in bulk (in realtime) from the websocket api when one occurs.
+ * version 2.24 noticed alerts also come in in bulk (in realtime) from the websocket api when one occurs. Or it appears whenever a full wake command
+ * is issued the websocket api also sends all the alerts. (I assume this is in case alerts were missing while car was asleep.
  * For this reason added code to just get the last alert from the set of them in realtime and put in 2 attrs lastFirmwareAlert and lastFirmwareAlertTime. 
  * Also, instead of rewriting all the code to process x alerts, when one
  * comes in in realtime like this, after being processed it will call the exising full api (if enabled)
