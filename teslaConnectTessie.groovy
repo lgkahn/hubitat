@@ -116,6 +116,8 @@
  * to get the last 5 of them. I could also handle this here but the format
  * in the websocket version of alerts is slightly different so I would have to make a separate version.
  *
+ * v 2.25 process websocket api error message ..; store in attribute lastWebsocketAPIErrors .
+ *
  */
 
 import groovy.transform.Field
@@ -1055,7 +1057,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.24"
+    return "2.25"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
