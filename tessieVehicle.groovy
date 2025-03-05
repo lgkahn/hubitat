@@ -135,7 +135,7 @@
  * to get the last 5 of them. I could also handle this here but the format
  * in the websocket version of alerts is slightly different so I would have to make a separate version.
  *
- * v 2.25 process websocket api error message ..; store in attribute lastWebsocketError .
+ * v 2.25 process websocket api error message ..; store in attribute lastWebsocketError.
  */
 
 metadata {
@@ -1850,14 +1850,11 @@ void webSocketErrorsProcess(data)
           def fieldname = ""
           
          // get field name in tag if there is one
-         if (data.tags?.field_name)
-            {
-             fieldname = data.tags.field_name
-             myresults = myresults + "<tr><td>${name}</td><td>${timestamp}</td><td>${fieldname}</td></tr>"     
-            }
-         else  myresults = myresults + "<tr><td>${name}</td><td>${timestamp}</td><td></td></tr>"     
-        } 
-      sendEvent(name: "lastWebSocketError", value: name, description: "WebSocketError [$name, $timestamp, $fieldname]!")
+         if (data.tags?.field_name) fieldname = data.tags.field_name
+ 
+         sendEvent(name: "lastWebSocketError", value: name, description: "WebSocketError [$name, $timestamp, $fieldname]!")
+         log.warn "WebSocketError [$name, $timestamp, $fieldname]!"
+        }
     }
                 
    if (ctr == 0) device.deleteCurrentState('lastWebSocketError') 
