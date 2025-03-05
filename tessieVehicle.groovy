@@ -126,6 +126,14 @@
  * version 2.22 get firmware alert api added and attribute and command. Only show last 5 alerts. Also option to call getfirmware alerts on wakeup once a day.
  *
  * version 2.23 reformat firmware alerts into a table and shorten date format.
+ *
+ * version 2.24 noticed alerts also come in in bulk (in realtime) from the websocket api when one occurs.
+ * For this reason added code to just get the last alert from the set of them in realtime and put in 2 attrs lastFirmwareAlert and lastFirmwareAlertTime. 
+ * Also, instead of rewriting all the code to process x alerts, when one
+ * comes in in realtime like this, after being processed it will call the exising full api (if enabled)
+ * to get the last 5 of them. I could also handle this here but the format
+ * in the websocket version of alerts is slightly different so I would have to make a separate version.
+ *
  */
 
 metadata {
@@ -207,7 +215,9 @@ metadata {
         attribute "active_route_energy_at_arrival", "number"
         attribute "timeToFullCharge", "string"
         attribute "firmwareAlerts", "string"
-      
+        attribute "lastFirmwareAlert", "string"
+        attribute "lastFirmwareAlertTime", "string"
+        
         // most weather attributes commented out.
         //attribute "weatherCloudiness", "number"
         attribute "weatherCondition", "string"
@@ -280,7 +290,7 @@ metadata {
         command "listDrivers"
         command "getBatteryHealth"
         command "getFirmwareAlerts"
-      
+       
 	}
 
     preferences
@@ -1599,6 +1609,10 @@ def webSocketParse(String message) {
         {
         	webSocketProcess(data.data)
         }
+        else if (data?.alerts)
+        {
+            webSocketAlertsProcess(data.alerts)
+        }
         else
         {
              if ((debugLevel == "FULL") || (debugWebSocketAPI)) log.debug("${device.displayName} webSocketParse() message: $data")
@@ -1634,7 +1648,7 @@ def handleInvalidSpeed(it)
 { 
    // assume invalid means stopped to work around a bug in api missing the 0 case or interpretting it as null when we first stop
    // if speed is invalid and we have a speed > 0 reset it
-    if (debugWebSocketAPI) log.warn "in vehicle speed case"
+   
     if (it.value?.invalid?.toBoolean() == true)
         {
           sendEventX(name: "speed", value: 0, unit: (mileageScale == "M") ? "mph" : "kph" );  
@@ -1773,10 +1787,10 @@ void webSocketProcess(data) {
         if (it?.value==null || it.value?.invalid?.toBoolean()!=true)
         { // toss any invalid data first
         	if ((handlers.get(it.key, { 
-                if (debugLevel == "Full") log.warn("${device.displayName} webSocketProcess() did not handle item: $it")
+                if (debugLevel == "Full") log.info("${device.displayName} webSocketProcess() did not handle item: $it")
                 return true 
             })(it)) != true) {
-            	if (debugLevel == "Full") log.debug("${device.displayName} webSocketProcess() did not process item: $it")
+            	if (debugLevel == "Full") log.info("${device.displayName} webSocketProcess() did not process item: $it")
         	}
         }
     }
@@ -1788,6 +1802,46 @@ void webSocketProcess(data) {
         
         //if (debugLevel != "None") log.info "WebsocketAPI: processing data!"
     }
+}
+
+
+void webSocketAlertsProcess(data)
+{
+  if ((debugLevel == "FULL") || (debugWebSocketAPI))
+    {
+     log.info "Processing Firmware Alert Data (websocket version)."
+     log.info "Alert data = $data"
+    }
+    
+    def ctr = 0
+ 
+    data?.each
+    {
+        if  (ctr == 0)
+        {
+          ++ctr
+          
+          def name = it.name
+          def startedAt = it.startedAt
+          def endedAt = it.endedAt
+          
+          sendEvent(name: "lastFirmwareAlert", value: name)
+          if (startedAt != null)
+            {
+              sendEvent(name: "lastFirmwareAlertTime", value: startedAt)
+              if ((debugLevel != "None") || (debugWebSocketAPI)) log.warn "Got a firmware alert from WebSocket API: [$name, $startedAt]!"
+            }
+            
+          else if (endedAt != null)
+            {
+              sendEvent(name: "lastFirmwareAlertTime", value: endedAt)
+              if ((debugLevel != "None") || (debugWebSocketAPI)) log.warn "Got a firmware alert from WebSocket API: [$name, $endedAt]!"
+            }
+          else log.warn "No timedate data for for last Firmware Alert (${it})!"
+        }
+    }
+    // now since we got a real time firmware alert call the api call to update all of them
+    if (enableFirmwareAlerts) getFirmwareAlerts()    
 }
 
 Boolean sendEventX(Map x)
@@ -1803,3 +1857,5 @@ Boolean sendEventX(Map x)
     }     
     return true
 }
+
+
