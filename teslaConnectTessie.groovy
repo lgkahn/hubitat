@@ -118,6 +118,8 @@
  *
  * v 2.25 process websocket api error message ..; store in attribute lastWebsocketAPIErrors .
  *
+ * v 2.26 after returning my loaner realized that the removal of a unchecked vehicle in the list was no longer working
+ *  so rewrote that code and had to add the qualifier only_active=true (a new option) to the tessie vehicle api
  */
 
 import groovy.transform.Field
@@ -333,7 +335,7 @@ private refreshAccountVehicles() {
 	state.accountVehicles = [:]
     state.accountVINs = [:]
 
-	authorizedHttpVehicleRequest("/vehicles", "GET", { resp ->
+	authorizedHttpVehicleRequest("/vehicles?only_active=true", "GET", { resp ->
       
         if (debug)
         {
@@ -341,8 +343,8 @@ private refreshAccountVehicles() {
             log.debug "result = ${resp.data}"
             log.debug "one result = ${resp.data.results}"
         }
-        
-    	if (descLog) log.info "Found ${resp.data.results.size()} vehicles"
+       
+        if (descLog) log.info "Found ${resp.data.results.size()} vehicles"
         resp.data.results.each { vehicle ->
            
          //lgk change vehicles can appear in acct without a valid vehicle id so skip thise
@@ -367,6 +369,8 @@ private refreshAccountVehicles() {
                if (vname != "")
                 state.accountVehicles[id] = vname
               else state.accountVehicles[id] = "Tesla ${id}"
+              
+              state.accountVehicles
             }
            else state.accountVehicles[id] = "Tesla ${id}" // null vname case
            
@@ -439,9 +443,40 @@ private ensureDevicesForSelectedVehicles() {
 }
 
 private removeNoLongerSelectedChildDevices() {
-	// Delete any that are no longer in settings
-	def delete = getChildDevices().findAll { !selectedVehicles }
-	removeChildDevices(delete)
+	
+    if (debug) log.info "In remove no longer selected vehicles!"
+   
+   if (selectedVehicles) {
+       
+       // outer loop is all vehicles
+       state.accountVehicles.each { key, value -> 
+      
+          //if (debug) log.info "ooking at $value"
+           
+           // now got through all selected vehicles
+           def found = false
+           selectedVehicles.each { dni ->
+              def d = getChildDevice(dni)
+              def str1 = value.toString()
+              def str2 = d.toString()
+                
+              if (str1 == str2)
+                {
+                    if (debug) log.info "Vehicle: $str1 is still selected"
+                    found = true
+                }
+            }
+          
+           if (!found) 
+           {
+               log.warn "deleting Vehicle $value (network id = ${key}) as it is no longer selected!"
+               deleteChildDevice(key)
+           }
+           
+        }
+          
+   }
+   
 }
 
 private transformWakeResponse(resp)
@@ -1057,7 +1092,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.25"
+    return "2.26"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
