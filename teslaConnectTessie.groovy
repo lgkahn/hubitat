@@ -120,6 +120,8 @@
  *
  * v 2.26 after returning my loaner realized that the removal of a unchecked vehicle in the list was no longer working
  *  so rewrote that code and had to add the qualifier only_active=true (a new option) to the tessie vehicle api
+ *
+ * v 2.27 silently ignore websocket alerts if the last alert is the same name/time.
  */
 
 import groovy.transform.Field
@@ -1092,7 +1094,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.26"
+    return "2.27"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
