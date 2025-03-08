@@ -136,7 +136,7 @@
  * in the websocket version of alerts is slightly different so I would have to make a separate version.
  *
  * v 2.25 process websocket api error message ..; store in attribute lastWebsocketError.
- * v 2.27 silently ignore websocket alerts if the last alert is the same name/time. Also convert the raw alert time I am storing in lastFirmwareAlertTime to localtime for easier readeability.
+ * v 2.27 silently ignore websocket alerts if the last alert is the same. Also convert the raw alert time I was storing in lastFirmwareAlertTime to localtime for easier readeability.
  */
 
 metadata {
