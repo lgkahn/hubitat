@@ -136,6 +136,7 @@
  * in the websocket version of alerts is slightly different so I would have to make a separate version.
  *
  * v 2.25 process websocket api error message ..; store in attribute lastWebsocketError.
+ * v 2.27 silently ignore websocket alerts if the last alert is the same name/time. Also convert the raw alert time I am storing in lastFirmwareAlertTime to localtime for easier readeability.
  */
 
 metadata {
@@ -293,6 +294,7 @@ metadata {
         command "listDrivers"
         command "getBatteryHealth"
         command "getFirmwareAlerts"
+        //command "test"
        
 	}
 
@@ -320,6 +322,10 @@ metadata {
 
     }
 }
+
+import java.time.*;
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 def logsOff()
 {
@@ -465,6 +471,13 @@ def disable()
       webSocketClose()
     }
 }
+
+/*
+def test()
+{
+  log.info "in test method"                     
+}                 
+*/
 
 def reenable()
 {
@@ -1875,24 +1888,34 @@ void webSocketAlertsProcess(data)
           def name = it.name
           def startedAt = it.startedAt
           def endedAt = it.endedAt
+          def alertTime = ""
           
-          sendEvent(name: "lastFirmwareAlert", value: name)
-          if (startedAt != null)
-            {
-              sendEvent(name: "lastFirmwareAlertTime", value: startedAt)
-              if ((debugLevel != "None") || (debugWebSocketAPI)) log.warn "Got a firmware alert from WebSocket API: [$name, $startedAt]!"
-            }
-            
-          else if (endedAt != null)
-            {
-              sendEvent(name: "lastFirmwareAlertTime", value: endedAt)
-              if ((debugLevel != "None") || (debugWebSocketAPI)) log.warn "Got a firmware alert from WebSocket API: [$name, $endedAt]!"
-            }
-          else log.warn "No timedate data for for last Firmware Alert (${it})!"
+          if (startedAt != null) alertTime = startedAt
+           else if (endedAt != null) alertTime = endedAt
+           else log.warn "No timedate (startedAt/endedAt) for last firmware Alert (${it})!"
+               
+            if (alertTime != "")
+              {   
+                  
+               // convert utc alert time to localtime       
+               Instant instant = Instant.parse(alertTime);
+               LocalDateTime ldt = instant.atZone(ZoneId.of(location.timeZone.ID)).toLocalDateTime();
+               DateTimeFormatter dTF = DateTimeFormatter.ofPattern("MM/dd/yyyy h:mm:ss a");
+               def formateddate = dTF.format(ldt)
+               
+               if (device.currentValue("lastFirmwareAlertTime") != formateddate)
+                 {
+                  sendEvent(name: "lastFirmwareAlert", value: name)
+                  sendEvent(name: "lastFirmwareAlertTime", value: formateddate)
+                  if ((debugLevel != "None") || (debugWebSocketAPI)) log.warn "Got a firmware alert from WebSocket API: [$name, $formateddate]!"
+                  
+                  // now since we got a real time firmware alert call the api call to update all of them
+                  if (enableFirmwareAlerts) getFirmwareAlerts()      
+                 }
+                else if (debugLevel == "Full") log.info "Ignoring duplicate firmware alert!"
+              }
         }
     }
-    // now since we got a real time firmware alert call the api call to update all of them
-    if (enableFirmwareAlerts) getFirmwareAlerts()    
 }
 
 Boolean sendEventX(Map x)
