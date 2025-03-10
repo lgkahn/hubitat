@@ -880,7 +880,7 @@ def login(Boolean fromUnauth = false) {
                 }
             }
             int cookieCount = device.data.cookiess.split(";", -1).length - 1;
-            if (cookieCount < 8) {
+            if (cookieCount < 5) {
 			ofExit = false
             }
             //log.debug "cookies: $device.data.cookiess"
