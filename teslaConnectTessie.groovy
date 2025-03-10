@@ -122,6 +122,7 @@
  *  so rewrote that code and had to add the qualifier only_active=true (a new option) to the tessie vehicle api
  *
  * v 2.27 silently ignore websocket alerts if the last alert is the same name/time.
+ * v 2.28 opion to work around bug in getRawOffset for dst issue.
  */
 
 import groovy.transform.Field
@@ -1094,7 +1095,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.27"
+    return "2.28"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
