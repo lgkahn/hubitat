@@ -137,6 +137,7 @@
  *
  * v 2.25 process websocket api error message ..; store in attribute lastWebsocketError.
  * v 2.27 silently ignore websocket alerts if the last alert is the same. Also convert the raw alert time I was storing in lastFirmwareAlertTime to localtime for easier readeability.
+ * v 2.28 add enable DST Work around option to get around a bug in getRawOffset not returning the correct number when dst is on.
  */
 
 metadata {
@@ -294,8 +295,7 @@ metadata {
         command "listDrivers"
         command "getBatteryHealth"
         command "getFirmwareAlerts"
-        //command "test"
-       
+       // command "test"    
 	}
 
     preferences
@@ -319,7 +319,7 @@ metadata {
        input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 300)?",resuired:true, defaultValue:300
        input "enableBatteryHealth", "enum", title: "Enable an extra query on every refresh to get battery health?", options: ["disabled", "on-every-refresh", "only-on-reenable"], required: false, defaultValue: "disabled" 
        input "enableFirmwareAlerts", "bool", title: "Enable an extra query on re-enable to get the last few firmware alert warnings?", required:false, defaultValue:false     
-
+       input "enableDSTWorkAround", "bool", title: "Enable the workaround due to the bug in getRawOffset() being one hour off in Hubitat (used for raw FirmwareAlert time conversion).",required:false, defaultValue:false
     }
 }
 
@@ -472,13 +472,11 @@ def disable()
     }
 }
 
-/*
 def test()
 {
-  log.info "in test method"                     
+    log.info "in test method"      
 }                 
-*/
-
+  
 def reenable()
 {
     if (debugLevel != "None") log.info "Waking up app in re-enable!"
@@ -513,6 +511,7 @@ def parse(String description) {
 
 def convertEpochToSpecificTimezone(long timeEpoch, offset)
 {
+    //log.warn "raw time = $timeEpoch"
     def long mult = 1000
     def long bt = timeEpoch * mult
     def d = new Date(bt);
@@ -540,8 +539,10 @@ private processFirmwareAlerts(data)
           def timestamp = it.timestamp
       
           if (timestamp)
-            {     
-             def df = convertEpochToSpecificTimezone(timestamp.toInteger(), myOffset.toInteger()) 
+            { 
+             def fix = 0
+             if (enableDSTWorkAround) fix = 1
+             def df = convertEpochToSpecificTimezone(timestamp.toInteger(), myOffset.toInteger() +fix) // +1 fix for now till bug with offset is fixed.
              myresults = myresults + "<tr><td>${name}</td><td>${df}</td></tr>"     
             }
         }   
