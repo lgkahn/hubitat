@@ -124,6 +124,7 @@
  * v 2.27 silently ignore websocket alerts if the last alert is the same name/time.
  * v 2.28 opion to work around bug in getRawOffset for dst issue.
  * v 2.29 rewrote the getfirmwarealerts to convert from epcoh time to local without requiring the dst fix/hack. 
+ * v 2.30 add option to select how many firmware alerts to display : warning all cane be a lot...
  */
 
 import groovy.transform.Field
@@ -1096,7 +1097,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.29"
+    return "2.30"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
