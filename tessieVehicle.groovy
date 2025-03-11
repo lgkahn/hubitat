@@ -139,6 +139,7 @@
  * v 2.27 silently ignore websocket alerts if the last alert is the same. Also convert the raw alert time I was storing in lastFirmwareAlertTime to localtime for easier readeability.
  * v 2.28 add enable DST Work around option to get around a bug in getRawOffset not returning the correct number when dst is on.
  * v 2.29 rewrote the getfirmwarealerts to convert from epcoh time to local without requiring the dst fix/hack. 
+ * v 2.30 add option to select how many firmware alerts to show.
 */
 
 metadata {
@@ -320,7 +321,8 @@ metadata {
        input "numberOfSecsToConsiderCarAsleep", "Number", title: "After how many seconds have elapsed since last Tesla update should we check to see if the car is Asleep (default 300)?",resuired:true, defaultValue:300
        input "enableBatteryHealth", "enum", title: "Enable an extra query on every refresh to get battery health?", options: ["disabled", "on-every-refresh", "only-on-reenable"], required: false, defaultValue: "disabled" 
        input "enableFirmwareAlerts", "bool", title: "Enable an extra query on re-enable to get the last few firmware alert warnings?", required:false, defaultValue:false     
-    }
+       input "howManyFirmwareAlerts", "enum", title: "How many firmware alerts should be displayed?",options: ["2", "5", "10", "20", "All"],  required: true, defaultValue: "5"
+         }
 }
 
 import java.time.*;
@@ -529,10 +531,17 @@ private processFirmwareAlerts(data)
     def myOffset = location.timeZone.rawOffset / (60*60*1000)  
     def ctr = 0
     def myresults = "<table>"
+    def howMany = 0 
+        
    
+    if (howManyFirmwareAlerts == null) howMany = 5
+    else if (howManyFirmwareAlerts == "All") howMany = 2000
+    else howMany = howManyFirmwareAlerts.toInteger()
+    
+    if (debugLevel == "Full") log.warn "Number of firmware alerts to display: $howMany"
    	data?.each
     {
-        if  (ctr < 5)
+        if  (ctr < howMany) 
         {
           ++ctr
        
@@ -544,6 +553,7 @@ private processFirmwareAlerts(data)
              def fix = 0
              if (enableDSTWorkAround) fix = 1
              def df = convertEpochToSpecificTimezone(timestamp.toInteger())
+             if (debugLevel == "Full") log.warn "Alert [$name, $df]"
              myresults = myresults + "<tr><td>${name}</td><td>${df}</td></tr>"     
             }
         }   
