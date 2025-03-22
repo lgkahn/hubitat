@@ -232,7 +232,7 @@ void compareDeviceTable()
         if (dtype == "zwave")
         {
          boolean intable = isInZwaveTable(it.id)
-         if (debug) log.debug "in zwave table = $intable"
+         if (debug) log.debug "in zwave table = $intable"          
          if (intable == false)
           {
             log.error "WARNING device ${it.displayName}, id:${it.id} is a ZWave device but is not in the ZWave Table!"
@@ -240,6 +240,7 @@ void compareDeviceTable()
           }
          else ++zwmatches
         }
+        
        else if (dtype == "zigbee")
        {
          boolean intable = isInZigbeeTable(it.id)
