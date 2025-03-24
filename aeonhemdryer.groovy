@@ -1,10 +1,14 @@
 /*
 Custom Laundry monitor device for Aeon HEM V1 
-
+* 3/25 modified by lgkahn add preferences to enable either dryer or washer tracking and check so as not to do extra send events
+* also check current dryer and washer state so as not to send extra on events when already on so as not to trigger extra rule firings.
+* also add dryer and washer ignore watts setting default 15000 so as to ignore eroneous data.
+* also updated fx to dump out status when saving preferences.
+*
 */
 
 metadata {
-	definition (name: "Aeon HEM V1 Laundry DTH", namespace:	"MikeMaxwell", author: "Mike Maxwell") 
+	definition (name: "Aeon HEM V1 Laundry DTH", namespace:	"MikeMaxwell", author: "Mike Maxwell/lgkahn") 
 	{
 		capability "Configuration"
 		capability "Switch"
@@ -22,20 +26,41 @@ metadata {
 	}
 
 	preferences {
-       	input name: "washerRW", type: "number", title: "Washer running watts:", description: "", required: true
-        input name: "dryerRW", type: "number", title: "Dryer running watts:", description: "", required: true
-        input name: "dryerIgnoreRW", type: "number", title: "Over this many watts ignore for dryer?", descriptions: "", required: true
-       input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-       
+       	input name: "washerRW", type: "number", title: "Washer running watts:", description: "", defaultValue: 300, required: true
+        input name: "dryerRW", type: "number", title: "Dryer running watts:", description: "", defaultValue: 300, required: true
+        input name: "dryerIgnoreRW", type: "number", title: "Over this many watts ignore for dryer?", description: "", defaultValue: 15000, required: true
+        input name: "washerIgnoreRW", type: "number", title: "Over this many watts ignore for washer?", description: "", defaultValue: 15000, required: true
+        input name: "debug", type: "bool", title: "Enable logging?", required: true, defaultValue: false
+        input name: "enableWasherTracking", type: "bool", title: "Enable washer Tracking?", required: true, defaultValue: false
+        input name: "enableDryerTracking", type: "bool", title: "Enable dryer Tracking?", required: true, defaultValue: false     
     }
-	
-
 }
 
 def installed() {
 	configure()					
 }
 
+def updated()
+{
+    log.info "Dryer hem updated"
+    if (debug) log.info "Debug on"
+    else log.info "Debug off"
+    
+    if (enableWasherTracking)
+      {
+        log.info "Tracking washer status and operation"
+        log.info "Washer running Watts set to $washerRW"
+        log.info "Washer Ignore watts set to $washerIgnoreRW"
+      }
+    
+    if (enableDryerTracking)
+      {
+        log.info "Tracking dryer status and operation"
+        log.info "Dryer running Watts set to $dryerRW"
+        log.info "Dryer Ignore watts set to $dryerIgnoreRW"
+      }
+}
+    
 def parse(String description) {
 	def result = null
 	def cmd = zwave.parse(description, [0x31: 1, 0x32: 1, 0x60: 3])
@@ -67,55 +92,87 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
             def desc = ""
         	if (scale == 2 ){ //watts
             	str = "watts"
-                if (source == 1){
-              //  log.debug "in washer case"
-                	name = "washerWatts"
-                    desc = "Washer power is " + value + " Watts"
-                    if (value >= settings.washerRW.toInteger()){
-                    	//washer is on
-                        if (debug) log.debug "Washer turned on"
-                        sendEvent(name: "washerState", value: "on", displayed: false)
-                        state.washerIsRunning = true
-                    } else {
-                    	//washer is off
-                        if (state.washerIsRunning == true)
-                        {
-                        	//button event
-                            if (debug) log.debug "Washer turned off"
-                            sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Washer has finished.", isStateChange: true)
-                        }
-                        sendEvent(name: "washerState", value: "off", displayed: false)
-                        state.washerIsRunning = false
-                    }
-                } else {
-               //  log.debug "in dryer case"
-                	name = "dryerWatts"
-                    desc = "Dryer power is " + value + " Watts"
-                    if ((value >= settings.dryerRW.toInteger()) && (value < settings.dryerIgnoreRW.toInteger()))
+                if (source == 1)
+                {
+                // washer tracking
+                    if (enableWasherTracking == true)
                     {
-                        if (debug) log.debug "Dryer turned on"
-                    	//dryer is on
-                        sendEvent(name: "dryerState", value: "on", displayed: false)
-                        state.dryerIsRunning = true
-                    } else {
-                    	//dryer is off
-                       
-                        if (state.dryerIsRunning == true)
+                      //  log.debug "in washer case"
+                	  name = "washerWatts"
+                      desc = "Washer power is " + value + " Watts"
+                      def washerState = device.currentValue("WasherState") 
+                      if (value >= settings.washerRW.toInteger())
                         {
-                        	//button event 
-                            if (debug) log.debug "Dryer turned off"
-                            sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Dryer has finished.", isStateChange: true)
+                         if (washerState == "off")
+                            {
+                    	     //washer is on
+                             if (debug) log.debug "Washer turned on"
+                             sendEvent(name: "washerState", value: "on", displayed: false)
+                             state.washerIsRunning = true
+                            }
+                        } else 
+                        {
+                          //washer is off
+                          if (state.washerIsRunning == true)
+                            {
+                              if (washerState == "on")
+                                {
+                        	    //button event
+                                if (debug) log.debug "Washer turned off"
+                                sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Washer has finished.", isStateChange: true)
+                                }
+                            }
+                          if (washerState == "on")
+                            {   
+                             sendEvent(name: "washerState", value: "off", displayed: false)
+                             state.washerIsRunning = false
+                            }
                         }
-                        sendEvent(name: "dryerState", value: "off", displayed: false)
-                        state.dryerIsRunning = false
-                    }
+                    } 
+                } else {
+                    if (enableDryerTracking == true)
+                     {
+                      //  log.debug "in dryer case"
+                	  name = "dryerWatts"
+                      desc = "Dryer power is " + value + " Watts"   
+                      def dryerState = device.currentValue("dryerState")
+                      if (debug) log.warn "dryer current state = $dryerState"
+
+                      if ((value >= settings.dryerRW.toInteger()) && (value < settings.dryerIgnoreRW.toInteger()))
+                        {
+                      
+                        //if (debug) 
+                        if (dryerState == "off")
+                        {
+                          log.info "Dryer turned on"
+                    	  //dryer is on
+                          sendEvent(name: "dryerState", value: "on", displayed: false)
+                        }
+                        state.dryerIsRunning = true
+                        } else
+                        {
+                          if (state.dryerIsRunning == true)
+                            {
+                              if (dryerState == "on")
+                                { 
+                                  log.info "Dryer turned off"
+                                  sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Dryer has finished.", isStateChange: true)
+                                }
+                            }
+                          if (dryerState == "on")
+                             { 
+                              sendEvent(name: "dryerState", value: "off", displayed: false)
+                              state.dryerIsRunning = false
+                             }
+                        }
+                     }
                 }
-                if (state.dryerIsRunning)
+                if ((state.dryerIsRunning) && (enableDryerTracking == true))
                 {
                     if (debug) log.debug "Dryer has started"
                 	sendEvent(name: "switch", value: "on", descriptionText: "Dryer has started...", displayed: true)
                 }
-                if (state.washerIsRunning)
+                if ((state.washerIsRunning) && (enableWasherTracking == true))
                 {
                     if (debug) log.debug "Washer has started"
                 	sendEvent(name: "switch", value: "on", descriptionText: "Washer has started...", displayed: true)
