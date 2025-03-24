@@ -3,7 +3,7 @@ Custom Laundry monitor device for Aeon HEM V1
 * 3/25 modified by lgkahn add preferences to enable either dryer or washer tracking and check so as not to do extra send events
 * also check current dryer and washer state so as not to send extra on events when already on so as not to trigger extra rule firings.
 * also add dryer and washer ignore watts setting default 15000 so as to ignore eroneous data.
-* also updated fx to dump out status when saving preferences.
+* also updated fx to dump out status when saving preferences. Also add missing voltage update before washer/dryer turn off so you can see event.
 *
 */
 
@@ -30,7 +30,7 @@ metadata {
         input name: "dryerRW", type: "number", title: "Dryer running watts:", description: "", defaultValue: 300, required: true
         input name: "dryerIgnoreRW", type: "number", title: "Over this many watts ignore for dryer?", description: "", defaultValue: 15000, required: true
         input name: "washerIgnoreRW", type: "number", title: "Over this many watts ignore for washer?", description: "", defaultValue: 15000, required: true
-        input name: "debug", type: "bool", title: "Enable logging?", required: true, defaultValue: false
+        input name: "debug", type: "bool", title: "Enable debug logging?", required: true, defaultValue: false
         input name: "enableWasherTracking", type: "bool", title: "Enable washer Tracking?", required: true, defaultValue: false
         input name: "enableDryerTracking", type: "bool", title: "Enable dryer Tracking?", required: true, defaultValue: false     
     }
@@ -79,7 +79,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
 	if (cmd.commandClass == 50) {  
     def cmd2 = cmd.encapsulatedCommand([0x31: 1, 0x32: 1, 0x60: 3])
     	def encapsulatedCommand = cmd.encapsulatedCommand([0x30: 1, 0x31: 1, 0x60: 3])
-      //log.debug "cmd 2 = $cmd2"
+     // if (debug) log.debug "cmd 2 = $cmd2"
       if (encapsulatedCommand) {
       		def endpt = cmd.sourceEndPoint
         	def scale = encapsulatedCommand.scale
@@ -101,6 +101,8 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                 	  name = "washerWatts"
                       desc = "Washer power is " + value + " Watts"
                       def washerState = device.currentValue("WasherState") 
+                      if (debug) log.debug "washer current state = $washerState" 
+                        
                       if (value >= settings.washerRW.toInteger())
                         {
                          if (washerState == "off")
@@ -119,7 +121,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                                 {
                         	    //button event
                                 if (debug) log.debug "Washer turned off"
-                                sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Washer has finished.", isStateChange: true)
+                                sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Washer has finished.( watts: $value)", isStateChange: true)
                                 }
                             }
                           if (washerState == "on")
@@ -136,7 +138,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                 	  name = "dryerWatts"
                       desc = "Dryer power is " + value + " Watts"   
                       def dryerState = device.currentValue("dryerState")
-                      if (debug) log.warn "dryer current state = $dryerState"
+                      if (debug) log.debug "dryer current state = $dryerState"
 
                       if ((value >= settings.dryerRW.toInteger()) && (value < settings.dryerIgnoreRW.toInteger()))
                         {
@@ -156,7 +158,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                               if (dryerState == "on")
                                 { 
                                   log.info "Dryer turned off"
-                                  sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Dryer has finished.", isStateChange: true)
+                                  sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Dryer has finished. (watts: $value)", isStateChange: true)
                                 }
                             }
                           if (dryerState == "on")
@@ -179,11 +181,15 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                 }
                 if  ((state.dryerIsRunning == false) && (state.washerIsRunning == false))
                 {
-                    if (debug) log.debug "Global switch turned off"
-                	sendEvent(name: "switch", value: "off", displayed: false)
+                    if (device.currentValue("switch") == "on")
+                      {
+                        if (debug) log.debug "Global switch turned off"
+                	    sendEvent(name: "switch", value: "off", displayed: false)
+                      }
                 }
                 //log.debug "mc3v- name: ${name}, value: ${value}, unit: ${str}"
-                
+                if (debug) "returning $name ${value}"
+                // missing 0 event
             	return [name: name, value: value.toInteger(), unit: str, displayed: true, descriptionText: desc]
             }
         }
