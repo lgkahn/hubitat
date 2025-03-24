@@ -104,12 +104,14 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
             	str = "watts"
                 if (source == 1)
                 {
-                // washer tracking
+                   // washer tracking  
+                   name = "washerWatts"
+                   desc = "Washer power is " + value + " Watts"
+                    
                     if (enableWasherTracking == true)
                     {
                       //  log.debug "in washer case"
-                	  name = "washerWatts"
-                      desc = "Washer power is " + value + " Watts"
+                	
                       def washerState = device.currentValue("WasherState") 
                       if (debug) log.debug "washer current state = $washerState" 
                         
@@ -142,11 +144,14 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                         }
                     } 
                 } else {
+                    
+                    //  log.debug "in dryer case"
+                	name = "dryerWatts"
+                    desc = "Dryer power is " + value + " Watts" 
+                    
                     if (enableDryerTracking == true)
                      {
-                      //  log.debug "in dryer case"
-                	  name = "dryerWatts"
-                      desc = "Dryer power is " + value + " Watts"   
+                        
                       def dryerState = device.currentValue("dryerState")
                       if (debug) log.debug "dryer current state = $dryerState"
 
@@ -197,8 +202,8 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                 	    sendEvent(name: "switch", value: "off", displayed: false)
                       }
                 }
-                //log.debug "mc3v- name: ${name}, value: ${value}, unit: ${str}"
-                if (debug) "returning $name ${value}"
+                if (debug) log.debug "returning - name: ${name}, value: ${value}, unit: ${str}"
+            
                 // missing 0 event
             	return [name: name, value: value.toInteger(), unit: str, displayed: true, descriptionText: desc]
             }
