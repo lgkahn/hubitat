@@ -343,6 +343,13 @@
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/lgkahn/hubitat/master/tesla_tessie.json",
       "description": "Control and query the status of all your tesla vehicles. This is the app and driver both needed."
+    },
+    {
+      "id": "bff52925-48ac-4b4d-9c3a-a70510564b99",
+      "name": "LGK Zwave zigbee database table/devices comparison and ghost finder.",
+      "category": "Utility",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/refs/heads/master/hubitatdbchecker.json",
+      "description": "Check the hubitat zwave vs devices and zigbee vs devices databases for inconsistancies and ghosts."
     }
   ]
 }
