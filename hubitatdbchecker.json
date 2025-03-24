@@ -1,0 +1,16 @@
+{
+  "packageName": "Hubitat Database Consistency/ghost checker",
+  "author": "lgkahn",
+  "version": "1.1",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2025-03-24",
+  "drivers": [
+    {
+      "id": "8005147c-854a-425c-af7b-bc8b79a30c84",
+      "name": "LGK Zwave table/devices comparison.",
+      "namespace": "lgkapps",
+      "location": "https://raw.githubusercontent.com/lgkahn/hubitat/refs/heads/master/dbconsistencychecker.groovy",
+      "required": false
+    }
+  ]
+}
