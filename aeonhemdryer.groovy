@@ -4,7 +4,7 @@ Custom Laundry monitor device for Aeon HEM V1
 * also check current dryer and washer state so as not to send extra on events when already on so as not to trigger extra rule firings.
 * also add dryer and washer ignore watts setting default 15000 so as to ignore eroneous data.
 * also updated fx to dump out status when saving preferences. Also add missing voltage update before washer/dryer turn off so you can see event.
-*
+* also fx to turn off debug logging after one hour
 */
 
 metadata {
@@ -43,7 +43,11 @@ def installed() {
 def updated()
 {
     log.info "Dryer hem updated"
-    if (debug) log.info "Debug on"
+    if (debug)
+      {
+        log.info "Debug on - Turning off logging in 1 hour!"
+        runIn(3600,logsOff)
+      }
     else log.info "Debug off"
     
     if (enableWasherTracking)
@@ -60,7 +64,13 @@ def updated()
         log.info "Dryer Ignore watts set to $dryerIgnoreRW"
       }
 }
-    
+ 
+def logsOff()
+{
+    log.info "Turning off Logging!"
+    device.updateSetting("debug",[value:"false",type:"bool"])
+}
+   
 def parse(String description) {
 	def result = null
 	def cmd = zwave.parse(description, [0x31: 1, 0x32: 1, 0x60: 3])
