@@ -78,7 +78,7 @@ def parse(String description) {
 		result = createEvent(zwaveEvent(cmd))
 	}
 	if (result) { 
-		if (debug) log.debug "Parse returned ${result?.descriptionText}"
+		if ((debug) && (result?.descriptionText != "")) log.debug "Parse returned ${result?.descriptionText}"
 		return result
 	} else {
 	}
@@ -104,12 +104,11 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
             	str = "watts"
                 if (source == 1)
                 {
-                   // washer tracking  
-                   name = "washerWatts"
-                   desc = "Washer power is " + value + " Watts"
-                    
                     if (enableWasherTracking == true)
                     {
+                      // washer tracking  
+                      name = "washerWatts"
+                      desc = "Washer power is " + value + " Watts"  
                       //  log.debug "in washer case"
                 	
                       def washerState = device.currentValue("WasherState") 
@@ -144,14 +143,13 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                         }
                     } 
                 } else {
-                    
-                    //  log.debug "in dryer case"
-                	name = "dryerWatts"
-                    desc = "Dryer power is " + value + " Watts" 
-                    
+                               
                     if (enableDryerTracking == true)
                      {
-                        
+                       //  log.debug "in dryer case"
+                	   name = "dryerWatts"
+                       desc = "Dryer power is " + value + " Watts" 
+                     
                       def dryerState = device.currentValue("dryerState")
                       if (debug) log.debug "dryer current state = $dryerState"
 
