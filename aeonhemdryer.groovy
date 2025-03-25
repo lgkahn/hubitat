@@ -114,7 +114,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                       def washerState = device.currentValue("WasherState") 
                       if (debug) log.debug "washer current state = $washerState" 
                         
-                      if (value >= settings.washerRW.toInteger())
+                      if ((value >= settings.washerRW.toInteger())  && (value < settings.washerIgnoreRW.toInteger()))
                         {
                          if (washerState == "off")
                             {
