@@ -20,6 +20,10 @@ metadata {
     capability "Actuator"
       
     command "compare"
+    command "reInitialize"
+   // command "test"
+   // command "test2"
+
     }
 }
 
@@ -35,8 +39,67 @@ attribute "lastUpdate", "string"
 attribute "lastRunStart", "string"
 attribute "zzrunResults", "string"
 
+import groovy.transform.Field
+@Field Map globalDeviceType = [:]
+
+void addToDeviceType(id, type)
+{
+    if (debug) log.warn "in add to device list: [$id, $type]"
+    globalDeviceType.put(id, type)
+    
+  //  log.warn "got value back = "
+  //  def typ = globalDeviceType.get(id)
+   // log.warn "$typ"
+    
+}
+
+void listGlobalDeviceTypes()
+{
+    log.info "In list device types"
+    log.info "device types = $globalDeviceType"
+     
+}
+
 void installed() {
    log.info "in installed"
+}
+
+void test()
+{
+    getDeviceList()
+    listDeviceTable()
+}
+
+void test2()
+{    log.debug "in test"
+    getDeviceList()
+
+    loadGlobalDeviceType()
+  log.warn "gdt = ${state.globalDeviceType}" 
+ 
+    dtypestr = state.globalDeviceType.get("301")  
+    log.warn "got device string for 301 = $dtypestr"
+     dtypeint = state.globalDeviceType.get(301)  
+    log.warn "got device int for 301 = $dtypeint" 
+}
+
+String findDeviceType(searchid)
+{
+    
+    log.warn "looking for $searchid"
+ def rvalue = ""
+    
+    state.globalDeviceType.each { id, type ->
+       //log.info " got [ $id, $type ]"
+       if (searchid.toInteger() == id.toInteger())
+        {
+          log.warn "found it"
+          rvalue = type 
+        }
+    }   
+    log.debug "after loop result = $rvalue"
+ return rvalue
+    
 }
 
 void updated() {
@@ -65,6 +128,25 @@ void initialize()
    log.info "in initialize"      
 }
 
+void listDeviceTable()
+{
+    
+ def deviceTable = state.hubDevices
+ def thesize = deviceTable.size()
+ // log.debug "device table = $deviceTable"
+  def thecnt = 1
+ // if (debug) 
+    log.debug "size = ${thesize}"
+ 
+    deviceTable?.each
+    { it ->
+         log.info "[$it]"
+        ++thecnt
+    }  
+  
+    log.debug "after loop cnt = $thecnt"
+}
+
 void getDeviceList()
 {
     if (debug) log.info "In get Device List"
@@ -88,6 +170,7 @@ void getDeviceList()
       catch (Exception e) {
         log.error "EXCEPTION CAUGHT: ${e.message} ON LINE ${e.stackTrace.find{it.className.contains("user_")}?.lineNumber}"   
       }
+    
 }
 
 void getZwaveTable()
@@ -215,18 +298,45 @@ void compareDeviceTable()
     def missingZigbee = 0
     def zwmatches = 0
     def zbmatches = 0  
+    def reloaded = false
+    def processed = 0
          
  def howmany = state.hubDevices.size()
  def deviceTable = state.hubDevices
- // log.debug "device table = $deviceTable"
+ //log.debug "device table = $deviceTable"
     
   if (debug) log.debug "size = ${howmany}"
-
-  deviceTable?.each
+ 
+   // listGlobalDeviceTypes()
+    
+    deviceTable?.each
     { it ->
-        if (debug) log.info "got device ${it.displayName}, value = ${it.id}"
-        // get type data
-        def dtype = getDeviceType(it.id)
+         if (debug) log.info "processing device $it"
+        
+        def id = it.id
+        def dtypeint = state.globalDeviceType.get(id.toInteger())
+        def dtypestr = state.globalDeviceType.get(id.toString())
+        //log.warn "dtypeint = $dtypeint"
+        //log.warn "dtypestr = $dtypestr"
+  
+        def dtype = ""
+        if ((dtypestr == null) && (dtypeint == null))
+        {
+            log.warn "Device id $id not found in device type table.. probably changes to devices reloading table!"
+            if (reloaded == false)
+              {
+                loadGlobalDeviceType()
+                reloaded = true
+              }
+            else
+             {
+                log.error "Error - Missing device id ($id) in device type table even after reloading it.. giving up"
+                return;
+             }
+        }
+        else if (dtypeint != null) dtype = dtypeint
+        else dtype = dtypestr
+            
         if (debug) log.debug "deviceType: $dtype"
         
         if (dtype == "zwave")
@@ -252,10 +362,13 @@ void compareDeviceTable()
           }
          else ++zbmatches   
        }
+       // if (id.toInteger() == 2899) log.warn "found last node"
+     ++processed
     }
     
     // now look for ghosts
-    
+   if (debug) log.info "Processed $processed nodes!"
+
     sendEvent(name: "devicesNotInZwaveTable", value: missingZWave.toInteger())
     sendEvent(name: "devicesNotInZigbeeTable", value: missingZigbee.toInteger())
     sendEvent(name: "zwMatchesFound", value: zwmatches)
@@ -294,6 +407,37 @@ void compareDeviceTable()
         theResults = theResults + "------------------------------------------------------------------------"
   
         sendEvent(name: "zzrunResults", value: theResults)
+}
+
+
+void loadGlobalDeviceType()
+{
+    
+ log.info "loading device type table"
+ def howmany = state.hubDevices.size()
+ def deviceTable = state.hubDevices
+   
+ globalDeviceType = [:]
+ state.globalDeviceType = [:]
+    
+ // log.debug "device table = $deviceTable"
+    
+  if (debug) log.debug "size = ${howmany}"
+
+  deviceTable?.each
+    { it ->
+        if (debug) log.info "got device ${it.displayName}, value = ${it.id}"
+        // get type data
+        def dtype = getDeviceType(it.id)
+        if (debug) log.debug "[ $id, $dtype]"
+        
+        // now put in our global
+        addToDeviceType(it.id,dtype)   
+    }
+     
+ state.globalDeviceType = globalDeviceType
+ log.info "Global Device Type Table Size: ${state.globalDeviceType.size()}" 
+
 }
 
 String getDeviceType(deviceid)
@@ -373,7 +517,6 @@ boolean isInZwaveTable(deviceid)
     return found
 }
 
-
 boolean isInZigbeeTable(deviceid)
 {   
     zigbeedevices = state.zigbeeDevices
@@ -408,6 +551,7 @@ void compare()
     state.zwDevices = "" 
     state.zigbeeDevices = ""
     state.hubDevices = ""
+    //state.globalDeviceType = ""
     
     sendEvent(name: "numberOfDevices", value: 0)
     sendEvent(name: "numberOfZwaveNodes", value: 0)
@@ -417,10 +561,21 @@ void compare()
     sendEvent(name: "ghosts", value: 0)
     sendEvent(name: "zwMatchesFound", value: 0)
     sendEvent(name: "zbMatchesFound", value: 0)
+    sendEvent(name: "zzrunResults", value: " ")
 
     getZwaveTable()
     getZigbeeTable()
     getDeviceList() 
+    // log table if necessary
+    if (state.globalDeviceType == "")
+    {
+        log.warn "Loading global device types"
+        loadGlobalDeviceType()
+    }
+    else globalDeviceType = state.globalDeviceType
+    
+    if (debug) listDeviceTable()
+    if (debug) listGlobalDeviceTypes()
     if (debug) listZWaveTable()
     if (debug) listZigbeeTable()
     compareZWaveTable()
@@ -435,13 +590,36 @@ void compare()
       state.zwDevices = "" 
       state.zigbeeDevices = ""
       state.hubDevices = "" 
+     // only for testing if you clear this here it will load every time  state.globalDeviceType = ""
     }
  
 }
 
+void reInitialize()
+{
+    log.info "Reintialized - clearning all state variables to force re-load on next compare!"
+    state.zwDevices = "" 
+    state.zigbeeDevices = ""
+    state.hubDevices = ""
+    state.globalDeviceType = "" 
+    
+    sendEvent(name: "numberOfDevices", value: 0)
+    sendEvent(name: "numberOfZwaveNodes", value: 0)
+    sendEvent(name: "numberOfZigbeeNodes", value: 0)
+    sendEvent(name: "devicesNotInZwaveTable", value: 0)
+    sendEvent(name: "devicesNotInZigbeeTable", value: 0)
+    sendEvent(name: "ghosts", value: 0)
+    sendEvent(name: "zwMatchesFound", value: 0)
+    sendEvent(name: "zbMatchesFound", value: 0)
+    sendEvent(name: "zzrunResults", value: " ")
+    sendEvent(name: "lastRunStart", value: " ")  
+    sendEvent(name: "lastUpdate", value: " ")  
+}
+
+
 String getVersion()
 {
-    return "1.1"
+    return "1.2"
 }
 
         
