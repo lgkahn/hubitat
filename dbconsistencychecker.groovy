@@ -23,7 +23,6 @@ metadata {
     command "reInitialize"
    // command "test"
    // command "test2"
-
     }
 }
 
@@ -45,19 +44,13 @@ import groovy.transform.Field
 void addToDeviceType(id, type)
 {
     if (debug) log.warn "in add to device list: [$id, $type]"
-    globalDeviceType.put(id, type)
-    
-  //  log.warn "got value back = "
-  //  def typ = globalDeviceType.get(id)
-   // log.warn "$typ"
-    
+    globalDeviceType.put(id.toString(), type)   
 }
 
 void listGlobalDeviceTypes()
 {
     log.info "In list device types"
-    log.info "device types = $globalDeviceType"
-     
+    log.info "device types = $globalDeviceType"    
 }
 
 void installed() {
@@ -87,17 +80,14 @@ String findDeviceType(searchid)
 {
     
     log.warn "looking for $searchid"
- def rvalue = ""
+    def rvalue = ""
     
     state.globalDeviceType.each { id, type ->
-       //log.info " got [ $id, $type ]"
        if (searchid.toInteger() == id.toInteger())
         {
-          log.warn "found it"
           rvalue = type 
         }
     }   
-    log.debug "after loop result = $rvalue"
  return rvalue
     
 }
@@ -169,8 +159,7 @@ void getDeviceList()
     }
       catch (Exception e) {
         log.error "EXCEPTION CAUGHT: ${e.message} ON LINE ${e.stackTrace.find{it.className.contains("user_")}?.lineNumber}"   
-      }
-    
+      }  
 }
 
 void getZwaveTable()
@@ -298,7 +287,6 @@ void compareDeviceTable()
     def missingZigbee = 0
     def zwmatches = 0
     def zbmatches = 0  
-    def reloaded = false
     def processed = 0
          
  def howmany = state.hubDevices.size()
@@ -311,31 +299,24 @@ void compareDeviceTable()
     
     deviceTable?.each
     { it ->
-         if (debug) log.info "processing device $it"
+         if (debug) log.debug "processing device $it"
         
         def id = it.id
-        def dtypeint = state.globalDeviceType.get(id.toInteger())
-        def dtypestr = state.globalDeviceType.get(id.toString())
-        //log.warn "dtypeint = $dtypeint"
-        //log.warn "dtypestr = $dtypestr"
-  
-        def dtype = ""
-        if ((dtypestr == null) && (dtypeint == null))
+        def dtype = state.globalDeviceType.get(id.toString())
+        if (debug) log.debug "device type: $dtype"
+
+        if (dtype == null)
         {
             log.warn "Device id $id not found in device type table.. probably changes to devices reloading table!"
-            if (reloaded == false)
-              {
-                loadGlobalDeviceType()
-                reloaded = true
-              }
-            else
-             {
+            loadGlobalDeviceType()
+            reloaded = true 
+            dtype = state.globalDeviceType.get(id.toString()) 
+            if (dtype == null)
+               {
                 log.error "Error - Missing device id ($id) in device type table even after reloading it.. giving up"
                 return;
-             }
-        }
-        else if (dtypeint != null) dtype = dtypeint
-        else dtype = dtypestr
+               }
+        } // bad dtype
             
         if (debug) log.debug "deviceType: $dtype"
         
@@ -616,10 +597,9 @@ void reInitialize()
     sendEvent(name: "lastUpdate", value: " ")  
 }
 
-
 String getVersion()
 {
-    return "1.2"
+    return "1.3"
 }
 
         
