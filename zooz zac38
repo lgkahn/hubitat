@@ -439,9 +439,6 @@ void executeConfigureCmds() {
 		}
 	}
     
-    cmds.add(zwave.powerlevelV1.powerlevelGet())
-    cmds.add(zwave.powerlevelV1.powerlevelTestNodeGet())
-    
 	state.resyncAll = false
 
 	if (cmds) sendCommands(cmds)
@@ -458,9 +455,20 @@ void executeRefreshCmds() {
 	cmds << batteryGetCmd()
 	cmds << notificationGetCmd(0x08, 0x00)
 	cmds << notificationGetCmd(0x08, 0x03)
-
+   
 	sendCommands(cmds)
+    refresh2()
 }
+
+
+void refresh2() {
+  List<hubitat.zwave.Command> cmds = []
+    cmds.add(zwave.versionV3.versionGet())
+    cmds.add(zwave.powerlevelV1.powerlevelGet())
+    cmds.add(zwave.powerlevelV1.powerlevelTestNodeGet())
+    sendCmds(cmds)    
+}
+
 
 List getConfigureAssocsCmds(Boolean logging=false) {
 	List<String> cmds = []
