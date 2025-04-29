@@ -1,5 +1,5 @@
 /*
-Hubitat Driver For Honeywell Thermistate
+Hubitat Driver For Honeywell Thermistat
 
 Copyright 2020 - Taylor Brown
 
@@ -14,7 +14,24 @@ Major Releases:
 11-27-2020 :  Alpha Release (0.1)
 12-15-2020 :  Beta 1 Release (0.2.0)
 4/23 lgk fix supportedThermostatModes and supportedThermostatFanModes so dashboards work again for setting these.
+ 3/24 lgk add code to handle and retry after communication failures
+ 10/24 lgk add tons of new attrbiutes
+ie 
+maxCoolSetPoint : 90
+minCoolSetPoint : 70
+maxHeatSetPoint : 79
+minHeatSetPoint : 60
+userDefinedDeviceName : Condo 304
+isAlive : true
+macID : 48A2E6363B49
+fanOperatingState : off
+vacationHold : false
+model : T5-T6
 
+lgk 04/25 added attributes and code for percent runtime statistics that updates the percent of time it is running in the last hour based on
+how often it refreshes.. reset every hour or x times based on refresh time
+so for instance if refresh time is 15 minutes it will only consider the last 4 updates to calculate the statistics. 
+Similiarly 6 times for 10 minutes etc.
 
 Considerable inspiration an example to: https://github.com/dkilgore90/google-sdm-api/
 */
@@ -76,6 +93,8 @@ def mainPage() {
             }            
             section {
                 input name: "debugOutput", type: "bool", title: "Enable Debug Logging?", defaultValue: false, submitOnChange: true
+                input name: "debugStats", type: "bool", title: "Enable Statistics Calc. Logging?", defaultValue: false, submitOnChange: true
+                input name: "enableStats", type: "bool", title: "Enable Calculation of hourly runtime percentage?", defaultValue: false, submitOnChange: false
             }
             getDebugLink()
         }      
@@ -151,6 +170,14 @@ def LogDebug(logMessage)
     }
 }
 
+def LogDebugStats(logMessage)
+{
+    if(settings?.debugStats)
+    {
+        log.info "${logMessage}";
+    }
+}
+
 def LogInfo(logMessage)
 {
     log.info "${logMessage}";
@@ -194,11 +221,52 @@ def initialize()
 
 def updated() 
 {
+    log.debug "in updated refresh inter = $refreshIntervals"
     LogDebug("Updated with config: ${settings}");
-    if (refreshIntervals == null)
+  
+    if (enableStats)
     {
-        refreshIntervals = 10;
+        if (refreshIntervals == null)
+          {
+           refreshIntervals = 10;
+          }
+    
+    def ri = refreshIntervals.toInteger()
+    // lgk set stats stuff
+    if (ri == 55)
+      state.maxStats = 1
+    else if (ru == 30)
+      state.maxStats = 2
+    else if (ri == 15)
+      state.maxStats = 4
+    else if (ri == 10)
+      state.maxStats = 6
+    else if (ri == 5)
+      state.maxStats = 12
+    else 
+      state.maxStats = 12 // 12 max 
+    
+    log.debug "after loop max stats = ${state.maxStats}"
+    
+      state.currentRefresh = 1
+      state.refresh1 = 0
+      state.refresh2 = 0
+      state.refresh3 = 0
+      state.refresh4 = 0
+      state.refresh5 = 0
+      state.refresh6 = 0
+      state.refresh7 = 0
+      state.refresh8 = 0
+      state.refresh9 = 0
+      state.refresh10 = 0
+      state.refresh11 = 0
+      state.refresh12 = 0
+    
+      def cv = 0.0
+      state.currentPercent = cv.setScale(2)
+      
     }
+    
     initialize();
 }
 
@@ -317,7 +385,7 @@ def listDiscoveredDevices() {
             section {
                 paragraph "Refresh interval (how often devices are automaticaly refreshed/polled):"
 
-                input name: "refreshIntervals", type: "enum", title: "Set the refresh interval.", options: [0:"off", 1:"1 minute", 2:"2 minutes", 5:"5 minutes",10:"10 minutes",15:"15 minutes",30:"30 minutes",55:"55 minutes"], required: true, defaultValue: "10", submitOnChange: true
+                input name: "refreshIntervals", type: "enum", title: "Set the refresh interval.", options: [0:"off"																																			, 5:"5 minutes",10:"10 minutes",15:"15 minutes",30:"30 minutes",55:"55 minutes"], required: true, defaultValue: "10", submitOnChange: true
         }
     }
 }
@@ -621,12 +689,11 @@ def refreshHelper(jsonString, cloudString, deviceString, com.hubitat.app.DeviceW
         LogDebug("refreshHelper() cloudString:${cloudString} - deviceString:${deviceString} - device:${device} - optionalUnits:${optionalUnits} - optionalMakeLowerMap:${optionalMakeLower} -optionalMakeLowerString:${optionalMakeLower}")
         
         def value = jsonString.get(cloudString)
-        
-         LogInfo("updateThermostats-${cloudString}: ${value}")
+       
          LogDebug("updateThermostats-${cloudString}: ${value}")
         if (value == null)
         {
-            LogDebug("Thermostate Does not Support: ${deviceString} (${cloudString})")
+            LogDebug("Thermostat Does not Support: ${deviceString} (${cloudString})")
             return false;
         }
         if (optionalMakeLowerMap)
@@ -652,12 +719,14 @@ def refreshHelper(jsonString, cloudString, deviceString, com.hubitat.app.DeviceW
                 if (settings?.debugOutput) log.debug("Caught supportedModes... converted value = ${newValue}")
             }
           
+            //lgk debugging
+            LogDebug "sending: $deviceString value: $newValue"
             sendEvent(device, [name: deviceString, value: newValue])
         }
     }
     catch (java.lang.NullPointerException e)
     {
-        LogDebug("Thermostate Does not Support: ${deviceString} (${cloudString})")
+        LogDebug("Thermostat Does not Support: ${deviceString} (${cloudString})")
         return false;
     }
 
@@ -731,7 +800,7 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
         tempUnits = "°C"
     }
     sendEvent(device, [name: "units", value: tempUnits])
-    LogInfo("updateThermostats-tempUnits: ${tempUnits}")
+    LogDebug("updateThermostats-tempUnits: ${tempUnits}")
     
     
     def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
@@ -779,33 +848,68 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
         }
         refreshHelper(reJson.settings.fan, "fanRunning", "thermostatFanState", device, null, false, false)
     }
+    
+    
+    // lgk new attributes    
+    refreshHelper(reJson, "maxCoolSetpoint", "maxCoolSetPoint", device, tempUnits, false, false, true)
+    refreshHelper(reJson, "minCoolSetpoint", "minCoolSetPoint", device, tempUnits, false, false, true)
+    refreshHelper(reJson, "maxHeatSetpoint", "maxHeatSetPoint", device, tempUnits, false, false, true)   
+    refreshHelper(reJson, "minHeatSetpoint", "minHeatSetPoint", device, tempUnits, false, false, true) 
+    
+    refreshHelper(reJson, "isAlive", "isAlive", device,  null, false, false, true) 
+    refreshHelper(reJson, "userDefinedDeviceName", "userDefinedDeviceName", device, tempUnits, false, false, false)
+    refreshHelper(reJson, "macID", "macID", device, tempUnits, false, false, false)
+    refreshHelper(reJson, "deviceModel", "model", device, null, false, false, false)
+    refreshHelper(reJson.vacationHold, "enabled", "vacationHold", device, null, false, false, true)  
 
+     // now actual fan state
+   
+    def fanOn = reJson.operationStatus.fanRequest
+    def fanCirc = reJson.operationStatus.circulationFanRequest
+   
+    if (fanOn == true || fanCirc == true)
+         sendEvent(device, [name: "fanOperatingState", value: "on"]) 
+    else  sendEvent(device, [name: "fanOperatingState", value: "off"]) 
+        
     def operationStatus = reJson.operationStatus.mode
     def formatedOperationStatus =''
+    def isOn = 0
     if (operationStatus == "EquipmentOff")
     {
         formatedOperationStatus = "idle";
+        isOn = 0
     }
     else if(operationStatus == "Heat")
     {
         formatedOperationStatus = "heating";
+        isOn = 1
     }
     else if(operationStatus == "Cool")
     {
         formatedOperationStatus = "cooling";
+        isOn = 1
     }
     else if(operationStatus == "EmergencyHeat")
     {
         formatedOperationStatus = "emergencyHeating";
+        isOn = 1
     } 
     
     else
     {
         LogError("Unexpected Operation Status: ${operationStatus}")
+        isOn = 0
     }
 
     LogDebug("updateThermostats-thermostatOperatingState: ${formatedOperationStatus}")
     sendEvent(device, [name: 'thermostatOperatingState', value: formatedOperationStatus])
+    if (enableStats)
+      {
+        updateStats(isOn)
+        sendEvent(device, [name: 'hourlyRuntimePercentage', value: state.currentPercent, name: "isStateChange", value: true]) 
+        // force state change so if attr stays at same value rule for runtime still triggers
+      }
+    
 }
 
 String getRemoteSensorUserDefName(String parentDeviceId, String locationId, String groupId, int roomId, retry=false)
@@ -1131,3 +1235,101 @@ def setThermosatFan(com.hubitat.app.DeviceWrapper device, fan=null, retry=false)
     refreshThermosat(device)
     return true;
 }
+
+
+def updateStats(isOn)
+{
+    LogDebugStats("in update status isOn = $isOn, maxStats = ${state.maxStats}, current Stats counter = ${state.currentRefresh}")
+    
+    switch(state.currentRefresh) {
+        case 1:
+         state.refresh1 = isOn
+         break;
+        case 2:
+         state.refresh2 = isOn
+         break;
+        case 3:
+         state.refresh3 = isOn
+         break;
+        case 4:
+         state.refresh4 = isOn
+         break;
+         case 5:
+         state.refresh5 = isOn
+         break;
+        case 6:
+         state.refresh6 = isOn
+         break;
+        case 7:
+         state.refresh7 = isOn
+         break;
+        case 8:
+         state.refresh8 = isOn
+         break;
+        case 9:
+         state.refresh9 = isOn
+         break;
+        case 10:
+         state.refresh10 = isOn
+         break;
+        case 11:
+         state.refresh11 = isOn
+         break;
+        case 12:
+         state.refresh12 = isOn
+         break; 
+    }
+    
+    // calculate stats and up or reset counter
+    if (state.maxStats == 12)
+      {
+        def theTotal = state.refresh1 + state.refresh2 + state.refresh3 + state.refresh4 + state.refresh5 + state.refresh6 + 
+                       state.refresh7 + state.refresh8 + state.refresh9 + state.refresh10 + state.refresh11 + state.refresh12
+        
+        def BigDecimal stat = theTotal.toFloat() / state.maxStats.toFloat()   
+        state.currentPercent = stat.setScale(2, BigDecimal.ROUND_HALF_UP)
+        LogDebugStats("total: $theTotal , stats: ${state.currentPercent}")
+      }
+    else if (state.maxStats == 6)
+      {
+        def theTotal = state.refresh1 + state.refresh2 + state.refresh3 + state.refresh4 + state.refresh5 + state.refresh6
+        def BigDecimal stat = theTotal.toFloat() / state.maxStats.toFloat()
+        state.currentPercent = stat.setScale(2, BigDecimal.ROUND_HALF_UP) 
+        LogDebugStats("total: $theTotal , stats: ${state.currentPercent}")
+      }
+    
+    else if (state.maxStats == 4)
+      {
+        def theTotal = state.refresh1 + state.refresh2 + state.refresh3 + state.refresh4 
+        def BigDecimal stat = theTotal.toFloat() / state.maxStats.toFloat()
+        state.currentPercent = stat.setScale(2, BigDecimal.ROUND_HALF_UP)
+        LogDebugStats("total: $theTotal , stats: ${state.currentPercent}")          
+      }
+    else if (state.maxStats == 2)
+      {
+        def theTotal = state.refresh1 + state.refresh2 
+        def BigDecimal stat = theTotal.toFloat() / state.maxStats.toFloat()
+        state.currentPercent = stat.setScale(2, BigDecimal.ROUND_HALF_UP)
+        LogDebugStats("total: $theTotal , stats: ${state.currentPercent}")  
+      }
+    else if (state.maxStats == 1)
+      {
+        def theTotal = state.refresh1
+        def BigDecimal stat = theTotal.toFloat() / state.maxStats.toFloat()
+        state.currentPercent = stat.setScale(2, BigDecimal.ROUND_HALF_UP)
+        LogDebugStats("total: $theTotal , stats: ${state.currentPercent}")         
+      }  
+                  
+    // reset counter
+    state.currentRefresh = state.currentRefresh + 1
+    if (state.currentRefresh > state.maxStats)
+      {
+        LogDebugStats("reseting stats counter to 1")
+        state.currentRefresh = 1
+      }
+              
+}
+
+
+
+
