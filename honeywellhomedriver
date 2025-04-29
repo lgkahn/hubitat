@@ -1,5 +1,5 @@
 /*
-Hubitat Driver For Honeywell Thermistate
+Hubitat Driver For Honeywell Thermistat
 
 Copyright 2020 - Taylor Brown
 
@@ -55,6 +55,7 @@ metadata {
         attribute "allowedModes", "enum", ["EmergencyHeat", "Heat", "Off", "Cool","Auto"]
         attribute "units", "enum", ["F", "C"]
         attribute  "lastUpdate", "string"
+        attribute "hourlyRuntimePercentage", "Number" 
 
     }
     preferences{
