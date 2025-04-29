@@ -906,7 +906,7 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
     if (enableStats)
       {
         updateStats(isOn)
-        sendEvent(device, [name: 'hourlyRuntimePercentage', value: state.currentPercent, name: "isStateChange", value: true]) 
+        sendEvent(device, [name: 'hourlyRuntimePercentage', value: state.currentPercent, isStateChange: true]) 
         // force state change so if attr stays at same value rule for runtime still triggers
       }
     
