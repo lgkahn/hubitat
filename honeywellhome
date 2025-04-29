@@ -1324,7 +1324,7 @@ def updateStats(isOn)
     state.currentRefresh = state.currentRefresh + 1
     if (state.currentRefresh > state.maxStats)
       {
-        LogDebugStats("reseting stats counter to 1")
+        LogDebugStats("resetting stats counter to 1")
         state.currentRefresh = 1
       }
               
