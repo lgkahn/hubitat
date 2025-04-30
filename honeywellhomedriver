@@ -56,6 +56,10 @@ metadata {
         attribute "units", "enum", ["F", "C"]
         attribute  "lastUpdate", "string"
         attribute "hourlyRuntimePercentage", "Number" 
+        attribute "lastDayPercentage", "Number"
+        attribute "lastMonthPercentage", "Number"
+        attribute "monthStats", "String"
+        attribute "yearStats", "String"
 
     }
     preferences{
