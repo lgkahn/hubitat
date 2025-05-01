@@ -1451,18 +1451,22 @@ def storeDailyStats()
     if ((state.dayCounter != null) && (state.dayCounter != 0))
       {
         def theTotal = state.dayTotals
-        def BigDecimal daystat = theTotal.toFloat() / state.mdayhCounter.toFloat()
+        def theCount = state.dayCounter
+        def BigDecimal daystat = theTotal.toFloat() / theCount.toFloat()
+        log.warn "day stat = $daystat"
         def dayPercent = daystat.setScale(2, BigDecimal.ROUND_HALF_UP)
-        LogDebugStats("day total: $theTotal , stats: ${state.dayPercent}")     
-        
-        sendEvent(device, [name: 'lastDayPercentage', value: dayPercent, isStateChange: true]) 
-        sendEvent(device, [name: 'monthStats', value: state.globalDays, isStateChange: true])  
-          
+             
         // now store in table for current day
         def now = new Date().format('dd', location.timeZone) 
         def intday = now.toInteger() 
           
-       addToDays(intday,dayPercent)    
+          // override to test
+          //intday = 30
+          log.warn "intday = $intday"
+          
+       addToDays(intday,dayPercent) 
+       LogDebugStats("day total: $theTotal , percent: $dayPercent, global day stats: ${state.globalDays}")     
+    
        resetDayCounters()  
           
       // get device
@@ -1487,9 +1491,7 @@ def storeDailyStats()
           
 def storeMonthlyStats()
 { 
-    // addToDays(1,0.5)
-    // addToDays(2,0.7)
-    
+   
     //listDays()   
     
     LogDebugStats("In store Monthly Stats")
@@ -1532,9 +1534,9 @@ def storeMonthlyStats()
    def BigDecimal monthstat = runningTotal.toFloat() / mdays.toFloat()
    def monthPercent = monthstat.setScale(2, BigDecimal.ROUND_HALF_UP)
    state.monthPercent = monthPercent
-   LogDebugStats("month total: $runningTotal, days: $mdays, stats: ${monthPercent}")   
     
    addToMonths(lastmonth,monthPercent)   
+   LogDebugStats("month total: $runningTotal, days: $mdays, percentage: $monthPercent, global month stats: ${globalMonths}")   
     
     // get device
     def com.hubitat.app.DeviceWrapper dev
@@ -1551,13 +1553,20 @@ def storeMonthlyStats()
     }
     
    sendEvent(dev, [name: 'lastMonthPercentage', value: monthPercent, isStateChange: true]) 
-   sendEvent(dev, [name: 'yearStats', value: state.globalMonths, isStateChange: true])    
+   sendEvent(dev, [name: 'yearStats', value: state.globalMonths, isStateChange: true])  
+    
+   // reset day array on month turnover
+   for (i in 1..31)
+    {
+     addToDays(i,0.0.toFloat())
+    }
+    
 }
 
 def testfx()
 {
-    storeMonthlyStats()
-    storeDailyStats()
+   // storeMonthlyStats()
+    //storeDailyStats()
 }
 
 def disableStats()
