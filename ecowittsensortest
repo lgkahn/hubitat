@@ -946,14 +946,11 @@ private Boolean attributeUpdateCapacitorVoltage(String val, String attribCap, St
   vMax = 5.3;
 
   if (voltage > 5.3) voltage = 5.3
-    
-    log.warn "in attrib cap update voltage = $voltage"
  
-    percent = convertRange(voltage, vMin, vMax, 0, 100);
-    log.warn "percent = $percent"
+  percent = convertRange(voltage, vMin, vMax, 0, 100);
    
-    if (attributeUpdateNumber(percent, attribPercent, "%")) updated = true 
-    if (attributeUpdateNumber(voltage, attribCap, "V")) updated = true
+   if (attributeUpdateNumber(percent, attribPercent, "%")) updated = true 
+   if (attributeUpdateNumber(voltage, attribCap, "V")) updated = true
     
   return (updated);
 }
