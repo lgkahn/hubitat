@@ -33,14 +33,20 @@ how often it refreshes.. reset every hour or x times based on refresh time
 so for instance if refresh time is 15 minutes it will only consider the last 4 updates to calculate the statistics. 
 Similiarly 6 times for 10 minutes etc.
 
+second round now keeps track of average runtime for days and months of the year.
+
 Considerable inspiration an example to: https://github.com/dkilgore90/google-sdm-api/
 */
 
+import groovy.transform.Field
+@Field Map globalDays = [:]
+@Field Map globalMonths = [:]
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
 import groovy.transform.Field
 import java.net.SocketTimeoutException
+import java.time.LocalDate
 
 @Field static String global_apiURL = "https://api.honeywell.com"
 @Field static String global_redirectURL = "https://cloud.hubitat.com/oauth/stateredirect"
@@ -112,8 +118,6 @@ def installCheck()
   	}
 }
 
-
-
 def loginPage() 
 {
     dynamicPage(name:"loginPage", title: "Honeywell Auth Configuration", install: false, uninstall: false) {
@@ -158,7 +162,13 @@ def debugPage() {
         section {
             input 'createNewAccessToken', 'button', title: 'Create New Access Token', submitOnChange: true
         }
-        
+       section {
+            input 'testGlobals', 'button', title: 'test Globals', submitOnChange: true  
+       }
+        section {
+            input 'testfx', 'button', title: 'test fx', submitOnChange: true  
+       }  
+     
     }
 }
 
@@ -265,6 +275,8 @@ def updated()
       def cv = 0.0
       state.currentPercent = cv.setScale(2)
       
+      if (state.globalDays == null)
+        initializeGlobals()  
     }
     
     initialize();
@@ -416,6 +428,12 @@ def appButtonHandler(btn) {
     case 'connectToHoneywell':
         connectToHoneywell()
         break
+     case 'testGlobals':
+        initializeGlobals()
+        break;
+      case 'testfx':
+        testfx()
+        break;     
     default:
         LogError("Invalid Button In Handler")
     }
@@ -666,11 +684,14 @@ def RefreshAllDevices()
 {
     LogDebug("RefreshAllDevices()");
 
+    def childCount = 0
     def children = getChildDevices()
     children.each 
     {
         if (it != null) 
         {
+            ++childCount
+           
             // Thermostat or Sensor?
             if (it.hasAttribute("groupId") && it.hasAttribute("roomId")) {
                 refreshRemoteSensor(it)
@@ -679,6 +700,14 @@ def RefreshAllDevices()
                 refreshThermosat(it)
             }
         }
+    }
+    
+    // lgk if stats enabled and more then one therm disable clear stuff and print warning
+    //log.info "Child Count = $childCount"
+    if ((enableStats) && (childCount > 1))
+    {
+        log.warn "Statistics are only designed to work with a single therm. Disabling them. If you want statistics with more than one create a separate instance for each."
+        disableStats()
     }
 }
 
@@ -1319,17 +1348,247 @@ def updateStats(isOn)
         state.currentPercent = stat.setScale(2, BigDecimal.ROUND_HALF_UP)
         LogDebugStats("total: $theTotal , stats: ${state.currentPercent}")         
       }  
-                  
+     
+    // total day status
+    state.dayCounter = state.dayCounter + 1
+    state.dayTotals = state.dayTotals + isOn.toInteger()
+     LogDebugStats("accumulating day stats: current = $isOn total = ${state.dayTotals}, counter = ${state.dayCounter}")
+    
     // reset counter
     state.currentRefresh = state.currentRefresh + 1
     if (state.currentRefresh > state.maxStats)
       {
         LogDebugStats("resetting stats counter to 1")
         state.currentRefresh = 1
-      }
-              
+      }              
 }
 
+void addToDays(id, type)
+{
+    LogDebugStats("in add to day list: [$id, $type]")
+    if (state.globalDays != null)
+    { 
+        globalDays = state.globalDays
+    }
+    
+    globalDays.put(id.toString(), type) 
+    state.globalDays = globalDays
+}
 
+void listDays()
+{
+    log.info "In list days"
+    globalDays = state.globalDays
+    log.info "days = $globalDays"    
+}
 
+void addToMonths(id, type)
+{
+    LogDebugStats("in add to device list: [$id, $type]")
+    if (state.globalMonths != null)
+    {
+        globalMonths = state.globalMonths
+    }
+    globalMonths.put(id.toString(), type)   
+    state.globalMonths = globalMonths
+}
 
+void listMonths()
+{
+    log.info "In list Months"
+    globalMonths = state.globalMonths
+    log.info "months = $globalMonths"    
+}
+
+def resetDayCounters()
+{
+    LogDebugStats("In reset day counters")
+    state.dayCounter = 0
+    state.dayTotals = 0
+}
+
+def initializeGlobals()
+{
+    LogDebugStats("in init globals.")
+    state.globalDays = [:]
+    state.globalMonths = [:]
+ 
+    for (i in 1..31)
+    {
+     addToDays(i,0.0.toFloat())
+    }
+    
+   for (j in 1..12)
+    {
+     addToMonths(j,0.0.toFloat())
+    }  
+   
+ resetDayCounters()
+      
+   // listDays()
+   //listMonths()
+   //addToDays(26,0.5) 
+   // listDays()
+    
+    // schedule daily and monthly jobs
+    unschedule("storeDailyStats")
+    schedule("0 55 23 ? * * *", "storeDailyStats")
+    
+    unschedule("storeMonthlyStats")
+    schedule("0 2 0 1 1-12 ? *","storeMonthlyStats")
+  
+    // test gettiong day
+   // def now = new Date().format('dd', location.timeZone) 
+   // def intday = now.toInteger()
+   // log.debug "now = $intday"
+    
+    //storeMonthlyStats()   
+}
+
+def storeDailyStats()
+{
+    LogDebugStats("In store daily statistics")
+    if ((state.dayCounter != null) && (state.dayCounter != 0))
+      {
+        def theTotal = state.dayTotals
+        def BigDecimal daystat = theTotal.toFloat() / state.mdayhCounter.toFloat()
+        def dayPercent = daystat.setScale(2, BigDecimal.ROUND_HALF_UP)
+        LogDebugStats("day total: $theTotal , stats: ${state.dayPercent}")     
+        
+        sendEvent(device, [name: 'lastDayPercentage', value: dayPercent, isStateChange: true]) 
+        sendEvent(device, [name: 'monthStats', value: state.globalDays, isStateChange: true])  
+          
+        // now store in table for current day
+        def now = new Date().format('dd', location.timeZone) 
+        def intday = now.toInteger() 
+          
+       addToDays(intday,dayPercent)    
+       resetDayCounters()  
+          
+      // get device
+      def com.hubitat.app.DeviceWrapper dev
+      def children = getChildDevices()
+      children.each 
+      {
+        if (it != null) 
+        {
+           dev = it
+            }
+            else {
+               dev = it
+            }
+      }
+  
+     sendEvent(dev, [name: 'lastDayPercentage', value: dayPercent, isStateChange: true]) 
+     sendEvent(dev, [name: 'monthStats', value: state.globalDays, isStateChange: true])         
+                   
+      }
+}
+          
+def storeMonthlyStats()
+{ 
+    // addToDays(1,0.5)
+    // addToDays(2,0.7)
+    
+    //listDays()   
+    
+    LogDebugStats("In store Monthly Stats")
+    // called on the first of month so need to go back a month
+    
+     def themonth = new Date().format('MM').toInteger()
+    LogDebugStats("Current month: $themonth")
+    
+     def lastmonth = 0
+    
+    if (themonth == 1)
+       lastmonth = 12
+     else lastmonth = themonth - 1
+      
+     LogDebugStats("Last Month: $lastmonth")
+    
+     def theday = new Date().format('dd')
+     def theyear = new Date().format('YYYY')
+     
+     def LocalDate ldate = LocalDate.of(theyear.toInteger(),lastmonth.toInteger(),1)
+     def int mdays = ldate.lengthOfMonth();
+     LogDebugStats("days in last month = $mdays")
+    
+     // now loop through those days and get totals
+    def float runningTotal = 0.0
+    
+    def int loopctr = 1
+    globalDays = state.globalDays
+ 
+    while (loopctr <= mdays)
+    {
+     def dayvalue = globalDays.get(loopctr.toString())
+    // log.info "day: $loopctr, value: $dayvalue"
+     runningTotal = runningTotal + dayvalue
+     loopctr++
+    }
+    
+    LogDebugStats("end of loop total = $runningTotal")
+    
+   def BigDecimal monthstat = runningTotal.toFloat() / mdays.toFloat()
+   def monthPercent = monthstat.setScale(2, BigDecimal.ROUND_HALF_UP)
+   state.monthPercent = monthPercent
+   LogDebugStats("month total: $runningTotal, days: $mdays, stats: ${monthPercent}")   
+    
+   addToMonths(lastmonth,monthPercent)   
+    
+    // get device
+    def com.hubitat.app.DeviceWrapper dev
+    def children = getChildDevices()
+    children.each 
+    {
+        if (it != null) 
+        {
+           dev = it
+            }
+            else {
+               dev = it
+            }
+    }
+    
+   sendEvent(dev, [name: 'lastMonthPercentage', value: monthPercent, isStateChange: true]) 
+   sendEvent(dev, [name: 'yearStats', value: state.globalMonths, isStateChange: true])    
+}
+
+def testfx()
+{
+    storeMonthlyStats()
+    storeDailyStats()
+}
+
+def disableStats()
+{
+    log.info "Disabling statistics!"
+    unschedule("storeDailyStats")
+    unschedule("storeMonthlyStats")
+    resetDayCounters()
+    
+    // clear state variables
+    state.dayCounter = 0
+    state.dayTotals = 0
+    state.globalDays = [:]
+    state.globalMonths = [:]
+    state.maxStats = 0
+    state.monthPercent = 0
+    state.currentRefresh = 1
+    state.refresh1 = 0
+    state.refresh2 = 0
+    state.refresh3 = 0
+    state.refresh4 = 0
+    state.refresh5 = 0
+    state.refresh6 = 0
+    state.refresh7 = 0
+    state.refresh8 = 0
+    state.refresh9 = 0
+    state.refresh10 = 0
+    state.refresh11 = 0
+    state.refresh12 = 0
+    app.updateSetting("debugStats",false)
+    app.updateSetting("enableStats",false)
+    
+}
+    
