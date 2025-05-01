@@ -1,8 +1,8 @@
 /**
  * Driver:     Ecowitt WiFi Gateway
- * Author:     Mirco Caramori
- * Repository: https://github.com/mircolino/ecowitt
- * Import URL: https://raw.githubusercontent.com/mircolino/ecowitt/master/ecowitt_gateway.groovy
+ * Author:     Simon Burke (Original author Mirco Caramori - github.com/mircolino)
+ * Repository: https://github.com/sburke781/ecowitt
+ * Import URL: https://raw.githubusercontent.com/sburke781/ecowitt/main/ecowitt_gateway.groovy
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at:
@@ -81,14 +81,55 @@
  *              above or below a certain threshold
  * 2021.02.04 - Added support for humidityAbs (absolute humidity) based on current relative humidity and temperature
  * 2021.02.06 - Fixed WH45 temperature and humidity signature
+ * 2021.02.08 - Added "Carbon Dioxide Measurement" capability
+ *            - Renamed attributes "co2" to native "carbonDioxide" and "co2_avg_24h" to "carbonDioxide_avg_24h"
+ *            - When a sensor is on USB power, battery attributes are no longer created
+ * 2021.05.18 - streamlined double conversion in attributeUpdateDewPoint()
+ * 2021.06.02 - bug fixing
+ * 2021.08.11 - updated status attribute to be deleted when no error
+ *            - added the ability to set the number of digits for temperature and pressure
+ *            - added the ability to completely disable html template support including all related attributes
+ *            - fixed a bug where the soil moisture sensor would incorreclty display Dew Point and Heat Index preferences
+ *            - used the new (2.2.8) API deleteCurrentState() to remove stale attributes when toggling Dew Point, Heat Index
+ *              and Wind Chill support
+ *            - improved and optimized device orphaned status detection
+ * 2021.08.18 - relocated repository: mircolino -> padus
+ * 2021.08.25 - relocated repository: padus -> sburke781
+ *            - moved to ecowitt namespace
+ * 2021.12.04 - Replaced "time" attribute with lastUpdate, thanks to @kahn-hubitat for writing and testing this change
+ * 2021.12.04 - Added nameserver lookup for remote gateways where their public IP address can change, thanks again to @kahn-hubitat
+ * 2022.02.02 - Added Air Quality capability and population of associated Air Quality attribute in sensor driver, thanks @kahn-hubitat
+ * 2022.02.03 - Fixed bug with Air Quality update where it would only happen when HTML tile was enabled
+ * 2022.06.17 - Added support for Leaf Wetness Sensor
+ * 2022.06.17 - Leaf Sensor adjustments for version handling
+ * 2022.07.04 - Fix for WH31 Battery Readings not being picked up correctly
+ * 2022.07.09 - Formatting of Dynamic DNS Preference title and description
+ * 2022.10.22 - Add Wittboy Weather Station support (WH/WS90) - developed by @kahn-hubitat
+ * 2022.12.15 - Added Wittboy (WS90) rain readings to child sensor driver
+ * 2023.01.01 - Added wh90batt to sensor detection for detecting WittBoy PWS
+ * 2023-02-05 - Added ws90cap_volt reading (Wittboy Battery)
+ * 2023-02-18 - Added version check to parse method
+ * 2023-07-02 - Fix for Dew Point in Celsius
+ * 2023-09-24 - Updates for Wittboy battery readings and firmware (made by @xcguy)
+ * 2023-09-24 - New runtime attribute, dateutc stored in data value and detection of gain30_piezo (not stored)
+ * 2023-09-25 - Fixed error in Lightning Distance reporting in KMs instead of miles
+ * 2023-10-22 - Added option to forward data feed on to another hub
+ * 2023-12-03 - Added Git Repo Version Monitoring setting and logic
+ * 2024-12-xx - lgk - add srain_piezo = 0 1 and associated raining = true false, also firmware version/ws90_ver and ws90cap_volt firmware version and capacitor voltage are stuckon the wind device for now
+ * 2025-01-14 - lgk - fixed missing break statement when processing srain_piezo and raining attributes
+ 
  */
+import groovy.json.JsonSlurper;
 
-public static String version() { return "v1.23.17"; }
-
+public static String version() { return "v1.34.16"; }
+public static String gitHubUser() { return "sburke781"; }
+public static String gitHubRepo() { return "ecowitt"; }
+public static String gitHubBranch() { return "main"; }
 // Metadata -------------------------------------------------------------------------------------------------------------------
 
 metadata {
-  definition(name: "Ecowitt WiFi Gateway", namespace: "mircolino", author: "Mirco Caramori", importUrl: "https://raw.githubusercontent.com/mircolino/ecowitt/master/ecowitt_gateway.groovy") {
+  
+  definition(name: "Ecowitt WiFi Gateway", namespace: "ecowitt", author: "Simon Burke", importUrl: "https://raw.githubusercontent.com/${gitHubUser()}/${gitHubRepo()}/${gitHubBranch()}/ecowitt_gateway.groovy") {
     capability "Sensor";
 
     command "resyncSensors";
@@ -101,14 +142,22 @@ metadata {
     attribute "rf", "string";                                  // Sensors radio frequency
     attribute "passkey", "string";                             // PASSKEY
 
-    attribute "time", "string";                                // Time last data was posted
+    attribute "lastUpdate", "string";                          // Time last data was posted
     attribute "status", "string";                              // Display current driver status
+    attribute "dynamicIPResult","string"                       // Result of nameserver lookup
+    attribute "runtime","number"                               // Run time
   }
 
   preferences {
     input(name: "macAddress", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>MAC / IP Address</font>", description: "<font style='font-size:12px; font-style: italic'>Wi-Fi gateway MAC or IP address</font>", defaultValue: "", required: true);
+    input(name: "DDNSName", type: "text", title: "<font style='font-size:12px; color:#1a77c9'>DDNS Name</font>", description: "<font style='font-size:12px; font-style: italic'>Dynamic DNS Name to use to resolve a changing ip address. Leave Blank if not used.</font>", required: false)
+    input(name: "DDNSRefreshTime", type: "number", title: "<font style='font-size:12px; color:#1a77c9'>DDNS Refresh Time (Hours)</font>",description: "<font style='font-size:12px; font-style: italic'>How often (in Hours) to check/resolve the DDNS Name to discover an IP address change on a remote weather station? (Range 1 - 720, Default 24)?</font>", range: "1..720", defaultValue: 3, required: false)
+    input(name: "forwardAddress", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>Forwarding IP Address</font>", description: "<font style='font-size:12px; font-style: italic'>IP address of hub to forward data feed to (optional)</font>", defaultValue: "", required: false);
+    input(name: "forwardPort", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>Forwarding Port</font>", description: "<font style='font-size:12px; font-style: italic'>Port of hub to forward data feed to (optional)</font>", defaultValue: "", required: false);
+    input(name: "forwardPath", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>Forwarding Path</font>", description: "<font style='font-size:12px; font-style: italic'>Path of hub to forward data feed to (optional)</font>", defaultValue: "", required: false);
     input(name: "bundleSensors", type: "bool", title: "<font style='font-size:12px; color:#1a77c9'>Compound Outdoor Sensors</font>", description: "<font style='font-size:12px; font-style: italic'>Combine sensors in a virtual PWS array</font>", defaultValue: true);
     input(name: "unitSystem", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>System of Measurement</font>", description: "<font style='font-size:12px; font-style: italic'>Unit system all values are converted to</font>", options: [0:"Imperial", 1:"Metric"], multiple: false, defaultValue: 0, required: true);
+    input(name: "monitorGitVersion", type: "bool", title: "<font style='font-size:12px; color:#1a77c9'>Monitor Git Driver Version</font>", description: "<font style='font-size:12px; font-style: italic'>Check Git Repository for New Driver Version</font>", defaultValue: true);
     input(name: "logLevel", type: "enum", title: "<font style='font-size:12px; color:#1a77c9'>Log Verbosity</font>", description: "<font style='font-size:12px; font-style: italic'>Default: 'Debug' for 30 min and 'Info' thereafter</font>", options: [0:"Error", 1:"Warning", 2:"Info", 3:"Debug", 4:"Trace"], multiple: false, defaultValue: 3, required: true);
   }
 }
@@ -161,6 +210,16 @@ private Boolean bundleOutdoorSensors() {
   //
   if (settings.unitSystem != null) return (settings.unitSystem.toInteger() != 0);
   return (false);
+}
+
+// ------------------------------------------------------------
+
+private Boolean monitorGitVersion() {
+  //
+  // Return true if we are monitoring the Git repository for updates
+  //
+  if (settings.monitorGitVersion != null) return (settings.monitorGitVersion);
+  return (true);
 }
 
 // ------------------------------------------------------------
@@ -220,43 +279,66 @@ Boolean versionUpdate() {
   logDebug("versionUpdate()");
 
   Boolean ok = false;
+  Boolean devOk = false;
   String attribute = "driver";
 
-  try {
-    // Retrieve current version
-    Map verCur = versionExtract(version());
-    if (verCur) {
-      // Retrieve latest version from GitHub repository manifest
-      // If the file is not found, it will throw an exception
-      Map verNew = null;
-      String manifestText = "https://raw.githubusercontent.com/mircolino/ecowitt/master/packageManifest.json".toURL().getText();
-      if (manifestText) {
-        // text -> json
-        Object parser = new groovy.json.JsonSlurper();
-        Object manifest = parser.parseText(manifestText);
+  // Retrieve current version from the driver
+  Map verCur = versionExtract(version());
+  // Retrieve the current version captured on the device
+  String devVer = device.currentValue(attribute);
 
-        verNew = versionExtract(manifest.version);
-        if (verNew) {
-          // Compare versions
-          if (verCur.major > verNew.major) verNew = null;
-          else if (verCur.major == verNew.major) {
-            if (verCur.minor > verNew.minor) verNew = null;
-            else if (verCur.minor == verNew.minor) {
-              if (verCur.build >= verNew.build) verNew = null;
+  // If the driver state variable has not been recorded on the device, update it
+  if (devVer == null || devVer == "") {
+    logDebug("versionUpdate: device driver version was empty, populating it now");
+    devOk = attributeUpdateString(verCur.desc, attribute);
+    devVer = verCur.desc;
+  }  
+
+  // If we are monitoring Git for new driver version, check the manifest file and compare to the current driver version
+  if(monitorGitVersion()) {
+
+    try {
+      
+      if (verCur) {
+        // Retrieve latest version from GitHub repository manifest
+        // If the file is not found, it will throw an exception
+        Map verNew = null;
+        String manifestText = "https://raw.githubusercontent.com/${gitHubUser()}/${gitHubRepo()}/${gitHubBranch()}/packageManifest.json".toURL().getText();
+        if (manifestText) {
+          // text -> json
+          Object parser = new groovy.json.JsonSlurper();
+          Object manifest = parser.parseText(manifestText);
+
+          verNew = versionExtract(manifest.version);
+          if (verNew) {
+            // Compare versions
+            if (verCur.major > verNew.major) verNew = null;
+            else if (verCur.major == verNew.major) {
+              if (verCur.minor > verNew.minor) verNew = null;
+              else if (verCur.minor == verNew.minor) {
+                if (verCur.build >= verNew.build) verNew = null;
+              }
             }
           }
         }
-      }
 
-      String version = verCur.desc;
-      if (verNew) version = "<font style='color:#3ea72d'>${verCur.desc} (${verNew.desc} available)</font>";
-      ok = attributeUpdateString(version, attribute);
+        String version = verCur.desc;
+        if (verNew) version = "<font style='color:#3ea72d'>${verCur.desc} (${verNew.desc} available)</font>";
+        ok = attributeUpdateString(version, attribute);
+      }
+    }
+    catch (Exception e) {
+      logError("Exception in versionUpdate(): ${e}");
     }
   }
-  catch (Exception e) {
-    logError("Exception in versionUpdate(): ${e}");
+  else {
+    ok = true;
+    // Capturing the situation where Git Repo monitoring has been turned off and a version update is still captured in the driver attribute
+    if(devVer != verCur.desc) {
+      logDebug("versionUpdate: Device driver version does not match the code, updating it now");
+      devOk = attributeUpdateString(verCur.desc, attribute);
+    }
   }
-
   return (ok);
 }
 
@@ -352,29 +434,46 @@ private String dniUpdate() {
   return (error);
 }
 
-// Conversion -----------------------------------------------------------------------------------------------------------------
 
-private String timeUtcToLocal(String time) {
-  //
-  // Convert a UTC date and time in the format "yyyy-MM-dd+HH:mm:ss" to a local time with locale format
-  //
-  try {
-    // Create a UTC formatter and parse the given time
-    java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd+HH:mm:ss");
-    format.setTimeZone(TimeZone.getTimeZone("UTC"));
+def nsCallback(resp, data) {
+  logDebug("in callback")
 
-    Date date = format.parse(time);
+  // test change
 
-    // Create a local/locale formatter and format the given time
-    format = new java.text.SimpleDateFormat();
-    time = format.format(date);
+  def jSlurp = new JsonSlurper()
+  Map ipData = (Map)jSlurp.parseText((String)resp.data)
+  def String newIP = ipData.Answer.data[0]
+  sendEvent(name:"dynamicIPResult", value:ipData.Answer.data[0])
+
+  // now compare ip to our own and if different reset and log
+  if ((newIP != null) && (newIP != ""))
+  {
+      def String currentIP = settings.macAddress
+      logInfo("Comparing resolved IP: $newIP to $currentIP")
+      
+      if (currentIP != newIP)
+      {
+          logInfo("IP address has Changed !!! Resetting DNI !")
+          Map dni = dniIsValid(newIP);
+          // Update Device Network ID
+          logDebug("got back dni = $dni")
+          if (dni) 
+          { 
+            device.updateSetting("macAddress", [type: "string", value: dni.canonical]);
+            dniUpdate();
+            resyncSensors();
+          }
+      }
+        
   }
-  catch (Exception e) {
-    logError("Exception in timeUtcToLocal(): ${e}");
-  }
-
-  return (time);
 }
+
+void DNSCheckCallback() {
+  logInfo("Dns Update Check Callback Startup")
+  updated()
+}
+
+
 
 // Logging --------------------------------------------------------------------------------------------------------------------
 
@@ -408,18 +507,26 @@ private void logData(Map data) {
   }
 }
 
-// Ztatus ---------------------------------------------------------------------------------------------------------------------
+// Device Status --------------------------------------------------------------------------------------------------------------
 
-private Boolean ztatus(String str, String color = null) {
+private Boolean devStatus(String str = null, String color = null) {
+  if (str) {
+    if (color) str = "<font style='color:${color}'>${str}</font>";
 
-  if (color) str = "<font style='color:${color}'>${str}</font>";
+    return (attributeUpdateString(str, "status"));
+  }
 
-  return (attributeUpdateString(str, "status"));
+  if (device.currentValue("status") != null) {
+    device.deleteCurrentState("status");
+    return (true);
+  }
+
+  return (false);
 }
 
 // ------------------------------------------------------------
 
-private Boolean ztatusIsError() {
+private Boolean devStatusIsError() {
   
   String str = device.currentValue("status") as String;
 
@@ -457,6 +564,7 @@ String sensorDniToId(String dni) {
  *      WH68                              X
  *      WH80  X                           X
  * WH65/WH69  X             X             X
+ * WS90       X             X             X
  *
  */
 
@@ -464,8 +572,8 @@ private void sensorMapping(Map data) {
   //
   // Remap sensors, boundling or decoupling devices, depending on what's present
   //
-  //                     0       1       2       3       4       5       6       7       8       9       10      11
-  String[] sensorMap =  ["WH69", "WH25", "WH26", "WH31", "WH40", "WH41", "WH51", "WH55", "WH57", "WH80", "WH34", "WFST"];
+  //                     0       1       2       3       4       5       6       7       8       9       10      11        12     13
+  String[] sensorMap =  ["WH69", "WH25", "WH26", "WH31", "WH40", "WH41", "WH51", "WH55", "WH57", "WH80", "WH34", "WFST", "WN35", "WS90"];
 
   logDebug("sensorMapping()");
 
@@ -475,6 +583,7 @@ private void sensorMapping(Map data) {
   Boolean wh68 = data.containsKey("wh68batt");
   Boolean wh80 = data.containsKey("wh80batt");
   Boolean wh69 = data.containsKey("wh65batt");
+  Boolean ws90 = data.containsKey("ws90batt") || data.containsKey("wh90batt");
 
   // Count outdoor sensor
   Integer outdoorSensors = 0;
@@ -485,6 +594,7 @@ private void sensorMapping(Map data) {
 
   // A bit of sanity check
   if (wh69 && outdoorSensors) logWarning("The PWS should be the only outdoor sensor");
+  if (ws90 && outdoorSensors) logWarning("The PWS should be the only outdoor sensor");
   if (wh80 && wh26) logWarning("Both WH80 and WH26 are present with overlapping sensors");
 
   if (wh80) {
@@ -501,6 +611,14 @@ private void sensorMapping(Map data) {
     sensorMap[2] = sensorMap[0];
     sensorMap[4] = sensorMap[0];
     sensorMap[9] = sensorMap[0];
+  }
+  if (ws90) {
+    //
+    // We have a real ws90 PWS
+    //
+    sensorMap[2] = sensorMap[13];
+    sensorMap[4] = sensorMap[13];
+    sensorMap[9] = sensorMap[13];
   }
   else if (bundleOutdoorSensors() && outdoorSensors > 1) {
     //
@@ -523,8 +641,8 @@ String sensorModel(Integer id) {
 
   // assert (id >= 0 && id <= 10);
 
-  //                      0     1     2     3     4     5     6     7     8     9     10    11
-  // String sensorMap = "[WH69, WH25, WH26, WH31, WH40, WH41, WH51, WH55, WH57, WH80, WH34, WFST]";
+  //                      0     1     2     3     4     5     6     7     8     9     10    11    12
+  // String sensorMap = "[WH69, WH25, WH26, WH31, WH40, WH41, WH51, WH55, WH57, WH80, WH34, WFST, WN35]";
   //
   String sensorMap = device.getDataValue("sensorMap");
 
@@ -548,7 +666,8 @@ private String sensorName(Integer id, Integer channel) {
                   "WH57": "Lightning Detection Sensor",
                   "WH80": "Wind Solar Sensor",
                   "WH34": "Water/Soil Temperature Sensor",
-                  "WFST": "WeatherFlow Station"];
+                  "WFST": "WeatherFlow Station",
+                  "WN35": "Leaf Wetness Sensor"];
 
   String model = sensorId."${sensorModel(id)}";
 
@@ -648,7 +767,7 @@ private Boolean sensorUpdate(String key, String value, Integer id = null, Intege
           if (sensor && sensorIsBundled(id, channel)) sensor.updateDataValue("isBundled", "true");
         }
 
-        ztatus("OK", "green");
+        devStatus();
       }
 
       if (sensor) updated = sensor.attributeUpdate(key, value);
@@ -662,7 +781,7 @@ private Boolean sensorUpdate(String key, String value, Integer id = null, Intege
   catch (Exception e) {
     if (e instanceof com.hubitat.app.exception.UnknownDeviceTypeException) {
       logError("Unable to create child sensor device. Please make sure the \"ecowitt_sensor.groovy\" driver is installed.");
-      ztatus("Unable to create child sensor device. Please make sure the \"ecowitt_sensor.groovy\" driver is installed", "red");
+      devStatus("Unable to create child sensor device. Please make sure the \"ecowitt_sensor.groovy\" driver is installed", "red");
     }
     else logError("Exception in sensorUpdate(${id}, ${channel}): ${e}");
   }
@@ -678,6 +797,19 @@ private Boolean attributeUpdateString(String val, String attribute) {
   // Return true if "attribute" has actually been updated/created
   //
   if ((device.currentValue(attribute) as String) != val) {
+    sendEvent(name: attribute, value: val);
+    return (true);
+  }
+
+  return (false);
+}
+
+private Boolean attributeUpdateNumber(Number val, String attribute) {
+  //
+  // Only update "attribute" if different
+  // Return true if "attribute" has actually been updated/created
+  //
+  if ((device.currentValue(attribute) as Number) != val) {
     sendEvent(name: attribute, value: val);
     return (true);
   }
@@ -730,6 +862,12 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "baromabsin":
       updated = sensor(it.key, it.value, 1);
       break;
+        
+    // Leaf Wetness Sensor
+    case ~/leaf_batt([1-8])/:
+    case ~/leafwetness_ch([1-8])/:
+      updated = sensor(it.key, it.value, 12);
+      break;
 
     //
     // Outdoor Ambient Sensor (WH26 -> WH80 -> WH69)
@@ -764,6 +902,19 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value, 4);
       break;
 
+    // Rain (ws90)
+
+    case "rrain_piezo":
+    case "erain_piezo":
+    case "hrain_piezo":
+    case "drain_piezo":
+    case "wrain_piezo":
+    case "mrain_piezo":
+    case "yrain_piezo":
+    case "train_piezo": 
+    case "srain_piezo": 
+      updated = sensor(it.key, it.value, 4);
+      break;
     //
     // Multi-channel Air Quality Sensor (WH41)
     //
@@ -815,11 +966,16 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       break;
 
     //
-    // Wind & Solar Sensor (WH80 -> WH69)
+    // Wind & Solar Sensor (WH80 -> WH69, WS90)
     //
     case "wh65batt":
     case "wh68batt":
     case "wh80batt":
+    case "wh90batt": 
+    case "ws80cap_volt":
+    case "ws90cap_volt":
+    case "ws80_ver":
+    case "ws90_ver":
     case "winddir":
     case "winddir_avg10m":
     case "windspeedmph":
@@ -828,6 +984,8 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "maxdailygust":
     case "uv":
     case "solarradiation":
+    case "ws90cap_volt":
+    case "ws90_ver":
       updated = sensor(it.key, it.value, 9);
       break;
 
@@ -839,6 +997,9 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value, 10, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
       break;
 
+    //
+    // WeatherFlow Station (WFST)
+    //
     case ~/batt_wf([1-8])/:
     case ~/tempf_wf([1-8])/:
     case ~/humidity_wf([1-8])/:
@@ -867,12 +1028,26 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value, 11, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
       break;
 
+    case "runtime":
+      if(it.value.isInteger()) { updated = attributeUpdateNumber(it.value.toInteger(), "runtime"); }
+      break;
+
+    case "dateutc":
+      state.dateutc = it.value;
+      updated = true;
+      break;
+    
+    case "gain30_piezo":
+      // we won't handle this one for now, need to work out what it relates to...
+      updated = true;
+      break;
+    
     case "endofdata":
       // Special key to notify all drivers (parent and children) of end-od-data status
       updated = sensor(it.key, it.value);
 
       // Last thing we do on the driver
-      if (attributeUpdateString(it.value, "time")) updated = true;
+      if (attributeUpdateString(it.value, "lastUpdate")) updated = true;
       break;
 
     default:
@@ -895,7 +1070,7 @@ void resyncSensors() {
 
     if (dniIsValid(device.getDeviceNetworkId())) {
       // We have a valid gateway dni
-      ztatus("Sensor sync pending", "blue");
+      devStatus("Sensor sync pending", "blue");
 
       device.updateDataValue("sensorResync", "true");
     }
@@ -941,22 +1116,60 @@ void updated() {
     // Unschedule possible previous runIn() calls
     unschedule();
 
+    // lgk if ddns name resolve this first and do ip check before dniupdatE.. ALSO schedule the re-check.
+    def String ddnsname = settings.DDNSName
+    def Number ddnsupdatetime = settings.DDNSRefreshTime
+                                          
+    logDebug("DDNS Name = $ddnsname")
+    logDebug("DDNS Refresh Time = $ddnsupdatetime")
+                                          
+    if ((ddnsname != null) && (ddnsname != "")) {
+      logDebug("Got ddns name $ddnsname")
+      // now resolve
+
+      Map params = [
+        uri: "https://8.8.8.8/resolve?name=$ddnsname&type=A",
+        contentType: "text/plain",
+        timeout: 20
+      ]
+
+      logDebug("calling dns Update url = $params")
+      asynchttpGet("nsCallback", params)
+    }
+    
+    // now schedule next run of update
+    if (ddnsname == null)
+      unschedule("DNSCheckCallback")
+    else
+    {
+    if ((ddnsupdatetime != null) && (ddnsupdatetime != 00)) {
+      def thesecs = ddnsupdatetime * 3600
+      logInfo("Rescheduling IP Address Check to run again in $thesecs seconds.")
+      runIn(thesecs, "DNSCheckCallback");
+    }
+    }
+
     // Update Device Network ID
     String error = dniUpdate();
     if (error == null) {
       // The gateway dni hasn't changed: we set OK only if a resync sensors is not pending
-      if (device.getDataValue("sensorResync")) ztatus("Sensor sync pending", "blue");
-      else ztatus("OK", "green");
+      if (device.getDataValue("sensorResync")) devStatus("Sensor sync pending", "blue");
+      else devStatus();
     }
-    else if (error != "") ztatus(error, "red");
+    else if (error != "") devStatus(error, "red");
     else resyncSensors();
 
-    // Update driver version now and every Sunday @ 2am
+    // Update driver version now and every Sunday @ 2am, if we are monitoring Git
     versionUpdate();
-    schedule("0 0 2 ? * 1 *", versionUpdate);
+    if(monitorGitVersion()) {
+      schedule("0 0 2 ? * 1 *", versionUpdate);
+    }
 
     // Turn off debug log in 30 minutes
     if (logGetLevel() > 2) runIn(1800, logDebugOff);
+
+    // lgk get rid of now unused time attribute
+    device.deleteCurrentState("time")
   }
   catch (Exception e) {
     logError("Exception in updated(): ${e}");
@@ -989,6 +1202,37 @@ void uninstalledChildDevice(String dni) {
 
 // ------------------------------------------------------------
 
+def forwardData(String msg) {
+
+    if(forwardAddress != null && forwardAddress != "") {
+        logDebug("forwardData() - forwarding to IP ${forwardAddress}, Port ${forwardPort} and Path ${forwardPath}");
+        logDebug("forwardData() - data = ${msg}");
+      def bodyForm = msg;
+      def postParams = [:];
+      def headers = [:];
+      headers.put("accept", "application/x-www-form-urlencoded");
+    
+      postParams = [
+          uri: "http://${forwardAddress}:${forwardPort}",
+          path: forwardPath,
+          headers: headers,
+          contentType: "application/x-www-form-urlencoded",
+          body : bodyForm,
+          ignoreSSLIssues: true
+      ];
+           
+      try {
+          asynchttpPost(postParams);
+      }
+      catch(Exception e)
+      {
+          logError("forwardData: Exception ${e}")   
+      }
+    }
+    
+}
+
+// ------------------------------------------------------------
 void parse(String msg) {
   //
   // Called everytime a POST message is received from the WiFi Gateway
@@ -1019,25 +1263,23 @@ void parse(String msg) {
     // for it to be calculated properly, in "data", "pm10_24h_co2", if present, must come after "pm25_24h_co2"
 
     // Inject a special key (at the end of the data map) to notify all the driver of end-of-data status. Value is local time
-    data["endofdata"] = timeUtcToLocal(data["dateutc"]);
-    data.remove("dateutc");
+    def now = new Date().format('yyyy-MM-dd h:mm a',location.timeZone)
+    data["endofdata"] = now
 
     logData(data);
 
     if (device.getDataValue("sensorResync")) {
       // We execute this block only the first time we receive data from the wifi gateway
       // or when the user presses the "Resynchronize Sensors" command
-      device.updateDataValue("sensorResync", null);
-      device.data.remove("sensorResync");
-
+      device.removeDataValue("sensorResync");
+ 
       // (Re)create sensor map
-      device.updateDataValue("sensorBundled", null);
-      device.data.remove("sensorBundled");      
-      device.updateDataValue("sensorMap", null);
+      device.removeDataValue("sensorBundled");      
+      device.removeDataValue("sensorMap");
       sensorMapping(data);
 
       // (Re)create sensor list
-      device.updateDataValue("sensorList", null);
+      device.removeDataValue("sensorList");
       attributeUpdate(data, this.&sensorEnumerate);
 
       // Match the new (soon to be created) sensor list with the existing one
@@ -1045,10 +1287,22 @@ void parse(String msg) {
       sensorGarbageCollect();
 
       // Clear pending status and start processing data
-      ztatus("OK", "green");
+      devStatus();
     }
 
     attributeUpdate(data, this.&sensorUpdate);
+    
+    //Driver Version Updates
+
+    // If the driver has been updated on the HE hub, check that this is reflected in the driver attribute
+    // If the current driver value is empty or different, run the version update to record the correct details
+    if(curVer == null || curVer == "" || !(curVer.startsWith(versionExtract(version()).desc))) {
+      logDebug("Driver on HE Hub updated, running versionUpdate() to update the driver attribute");
+      versionUpdate();
+    }
+    
+    // Forward the data on, if configured for the Gateway
+    forwardData(body);
   }
   catch (Exception e) {
     logError("Exception in parse(): ${e}");
