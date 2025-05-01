@@ -275,12 +275,11 @@ def updated()
       def cv = 0.0
       state.currentPercent = cv.setScale(2)
       
+      if (state.globalDays == null)
+        initializeGlobals()  
     }
     
     initialize();
-    
-    if (state.globalDays == null)
-      initializeGlobals()
 }
 
 def uninstalled() 
@@ -685,11 +684,14 @@ def RefreshAllDevices()
 {
     LogDebug("RefreshAllDevices()");
 
+    def childCount = 0
     def children = getChildDevices()
     children.each 
     {
         if (it != null) 
         {
+            ++childCount
+           
             // Thermostat or Sensor?
             if (it.hasAttribute("groupId") && it.hasAttribute("roomId")) {
                 refreshRemoteSensor(it)
@@ -698,6 +700,14 @@ def RefreshAllDevices()
                 refreshThermosat(it)
             }
         }
+    }
+    
+    // lgk if stats enabled and more then one therm disable clear stuff and print warning
+    //log.info "Child Count = $childCount"
+    if ((enableStats) && (childCount > 1))
+    {
+        log.warn "Statistics are only designed to work with a single therm. Disabling them. If you want statistics with more than one create a separate instance for each."
+        disableStats()
     }
 }
 
@@ -1549,3 +1559,36 @@ def testfx()
     storeMonthlyStats()
     storeDailyStats()
 }
+
+def disableStats()
+{
+    log.info "Disabling statistics!"
+    unschedule("storeDailyStats")
+    unschedule("storeMonthlyStats")
+    resetDayCounters()
+    
+    // clear state variables
+    state.dayCounter = 0
+    state.dayTotals = 0
+    state.globalDays = [:]
+    state.globalMonths = [:]
+    state.maxStats = 0
+    state.monthPercent = 0
+    state.currentRefresh = 1
+    state.refresh1 = 0
+    state.refresh2 = 0
+    state.refresh3 = 0
+    state.refresh4 = 0
+    state.refresh5 = 0
+    state.refresh6 = 0
+    state.refresh7 = 0
+    state.refresh8 = 0
+    state.refresh9 = 0
+    state.refresh10 = 0
+    state.refresh11 = 0
+    state.refresh12 = 0
+    app.updateSetting("debugStats",false)
+    app.updateSetting("enableStats",false)
+    
+}
+    
