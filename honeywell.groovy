@@ -1453,7 +1453,7 @@ def storeDailyStats()
         def theTotal = state.dayTotals
         def theCount = state.dayCounter
         def BigDecimal daystat = theTotal.toFloat() / theCount.toFloat()
-        log.warn "day stat = $daystat"
+        LogDebugStats("day stat = $daystat")
         def dayPercent = daystat.setScale(2, BigDecimal.ROUND_HALF_UP)
              
         // now store in table for current day
@@ -1462,7 +1462,7 @@ def storeDailyStats()
           
           // override to test
           //intday = 30
-          log.warn "intday = $intday"
+         LogDebugStats("intday = $intday")
           
        addToDays(intday,dayPercent) 
        LogDebugStats("day total: $theTotal , percent: $dayPercent, global day stats: ${state.globalDays}")     
