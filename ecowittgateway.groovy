@@ -145,7 +145,8 @@ metadata {
     attribute "lastUpdate", "string";                          // Time last data was posted
     attribute "status", "string";                              // Display current driver status
     attribute "dynamicIPResult","string"                       // Result of nameserver lookup
-    attribute "runtime","number"                               // Run time
+    attribute "runtime","number"  // Run time
+    attribute "updateInterval", "number"
   }
 
   preferences {
@@ -830,11 +831,17 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     //
     // Gateway attributes
     //
-    case "model":
+     case "interval":
+       // lgk add interval as hwUpdateInterval appears added in gw1100b 2.4.0 firmware
+       // this appears specific to the custom configuration what hubitat uses 
+       updated = attributeUpdateNumber(it.value.toInteger(),"updateInterval");
+       break; 
+     
+     case "model":
       // Eg: model = GW1000_Pro
       updated = attributeUpdateString(it.value, "model");
       break;
-
+     
     case "stationtype":
       // Eg: firmware = GW1000B_V1.5.7
       Map ver = versionExtract(it.value);
@@ -1160,8 +1167,9 @@ void updated() {
     else resyncSensors();
 
     // Update driver version now and every Sunday @ 2am, if we are monitoring Git
-    versionUpdate();
+
     if(monitorGitVersion()) {
+      versionUpdate();
       schedule("0 0 2 ? * 1 *", versionUpdate);
     }
 
@@ -1296,10 +1304,10 @@ void parse(String msg) {
 
     // If the driver has been updated on the HE hub, check that this is reflected in the driver attribute
     // If the current driver value is empty or different, run the version update to record the correct details
-    if(curVer == null || curVer == "" || !(curVer.startsWith(versionExtract(version()).desc))) {
-      logDebug("Driver on HE Hub updated, running versionUpdate() to update the driver attribute");
-      versionUpdate();
-    }
+  //  if(curVer == null || curVer == "" || !(curVer.startsWith(versionExtract(version()).desc))) {
+  //    logDebug("Driver on HE Hub updated, running versionUpdate() to update the driver attribute");
+  //    versionUpdate();
+  //  }
     
     // Forward the data on, if configured for the Gateway
     forwardData(body);
