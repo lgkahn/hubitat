@@ -185,47 +185,59 @@ def generateEvent(Map updates){
 	//log.error "generateEvent(Map): ${updates}"
 	generateEvent([updates])
 }
-def generateEvent(List<Map<String,Object>> updates) {
-	//log.debug "updates: $updates}"
+
+def generateEvent(List<Map<String,Object>> updates)
+{
+	//log.debug "updates: $updates"
 
 	String myVersion = getDataValue("myVersion")
 	if (!myVersion || (myVersion != getVersionLabel())) updated()
-	String msgH="generateEvent() | "
-	Long startMS = now()
+	String msgH = "generateEvent() | "
+	Long startMS = wnow()
 	Boolean debugLevelFour = debugLevel(4)
 	if (debugLevelFour) LOG(msgH+"parsing data ${updates}",4, sTRACE)
 	//LOG("Debug level of parent: ${getParentSetting('debugLevel')}", 4, sDEBUG)
-//	String linkText = device.displayName
+//	String linkText= device.displayName
 	Boolean forceChange = false
-
 	Integer objectsUpdated = 0
 
-	if(updates) {
+	if(updates)
+    {
 		updates.each { Map<String,Object> update ->
 			update.each { String name, value ->
 				String sendValue = value.toString()
-				Boolean isChange = isStateChange(device, name, sendValue)
-				if(isChange) {
-					//def eventFront = [name: name, linkText: linkText, handlerName: name]
+				Boolean isChange = false
+				if (!(name in ['id','forced']) && value!=null)
+					isChange = isStateChange(device, name, sendValue)
+				if (isChange || name in ['id','forced'])
+                {
+					//def eventFront= [name: name, linkText: linkText, handlerName: name]
 					Map eventFront = [name: name ]
 					objectsUpdated++
 					Map event
 					if (debugLevelFour) LOG(msgH+"processing object #${objectsUpdated} name: ${name} value: "+sendValue, 5, sTRACE)
 					event = eventFront + [value: sendValue]
 
-					switch (name) {
+					//noinspection GroovyFallthrough
+					switch (name)
+                    {
 						case 'forced':
 							forceChange = (sendValue == 'true')
 							break
 
 						case 'id':
+							if (state.id == sendValue) objectsUpdated--
 							state.id = sendValue
 							event = null
 							break
 
 						case 'lastPoll':
-							if (debugLevelFour) event = eventFront + [value: sendValue, descriptionText: "Poll: " + sendValue ]
-							else event = null
+							if (debugLevelFour) event= eventFront + [value: sendValue, descriptionText: "Poll: " + sendValue ]
+							else 
+                            {
+								event = null
+								device.deleteCurrentState(name)
+                            }
 							break
 
 						case 'apiConnected':
@@ -235,11 +247,12 @@ def generateEvent(List<Map<String,Object>> updates) {
 
 						case 'debugEventFromParent':
 						case 'appdebug':
-							event = eventFront + [value: sendValue ] //, descriptionText: "-> ${sendValue}" ]
+							event= eventFront + [value: sendValue ] //, descriptionText: "-> ${sendValue}" ]
 							Integer ix = sendValue.lastIndexOf(" ")
 							String msg = sendValue.substring(0, ix)
 							String type = sendValue.substring(ix + 1).replaceAll("[()]", "")
-							switch (type) {
+							switch (type) 
+                             {
 								case sERROR:
 									LOG(msg,1,sERROR)
 									break
@@ -254,7 +267,7 @@ def generateEvent(List<Map<String,Object>> updates) {
 									break
 								default:
 									LOG(msg,1,sDEBUG)
-							}
+                             }
 							break
 
 						case 'debugLevel':
@@ -265,33 +278,61 @@ def generateEvent(List<Map<String,Object>> updates) {
 
 						default:
 							String desc = name + " is " + sendValue
-							if (name.endsWith("TimeStamp") || name.endsWith("NextStart")) {
-								if(sendValue != sNULL && sendValue != 'null' && sendValue != "0"){
-									Long t = sendValue.toLong()
-									Long n = now()
-									if (name.endsWith("NextStart")) {
-										t -= location.timeZone.getOffset(n) + Math.round(
-												(Integer)location.timeZone.getOffset(t)-(Integer)location.timeZone.getOffset(n)*1.0D )
+							if (name.endsWith("TimeStamp") || name.endsWith("NextStart"))
+                              {
+								if (sendValue != sNULL && sendValue != 'null' && sendValue != "0")
+                                  {
+									Long t,n
+									t= sendValue.toLong()
+									n= wnow()
+									if (name.endsWith("NextStart")) 
+                                      {
+										t -= mTZ().getOffset(n) + Math.round(
+												mTZ().getOffset(t)-mTZ().getOffset(n)*1.0D )
 
-									}
+                                      }
 									Date aa = new Date(t)
 									desc = name + " is " + formatDt(aa)
-								}
-							}
+                                  }
+                              }
 							event = eventFront + [value: sendValue, descriptionText: desc ]
 							break
 					}
-					if (event) {
-						if (debugLevelFour) LOG(msgH+"calling sendevent(${event})", 4, sTRACE)
-						sendEvent(event)
-					}
-				} else LOG(msgH+"${name} did not change", 5, sTRACE)
-			}
-		}
-	} else LOG(msgH+'NO UPDATES')
-	Long elapsed = now() - startMS
+					if (event)
+                      {
+
+						// lgk new code block to stop parked in cs, charging repeat storm
+						String thename = event.name
+						String thevalue = event.value
+						Boolean doUpdate; doUpdate = true
+						if (thename == "mowerActivity")
+                           {
+							// lgk is last was already charging and we get a parked in cs ignore it so we dont get 100 messages
+							String lastActivity = device.currentValue(thename, true)
+							if (debugLevelFour) LOG(msgH+"got lastActivity = $lastActivity new value = $thevalue",4, sTRACE)
+
+							if (lastActivity == "CHARGING" && thevalue == "PARKED_IN_CS")
+                               {
+								LOG(msgH+"Got PARKED_IN_CS when last activity was CHARGING... so ignoring it!",4, sTRACE)
+								doUpdate = false
+                               }
+                           }
+
+						if (doUpdate) 
+                          {
+							if (debugLevelFour) LOG(msgH+"calling sendevent(${event})", 4, sTRACE)
+							sendEvent(event)
+                          }
+
+                      }
+                } else LOG(msgH+"${name} did not change", 5, sTRACE)
+            }
+        }
+    } else LOG(msgH+'NO UPDATES')
+	Long elapsed = wnow() - startMS
 	LOG(msgH+"Updated ${objectsUpdated} object${objectsUpdated!=1?'s':''} (${elapsed}ms)", 4, sINFO)
 }
+
 
 // ***************************************************************************
 // commands
