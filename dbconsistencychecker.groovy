@@ -217,15 +217,16 @@ void listZWaveTable()
 {
  if (debug) log.info "In list zwave Table"
     
- def howmany = state.zwDevices.size()
- def zwtable = state.zwDevices
-    
+ def zwdevices = state.zwDevices
+ def howmany = state.zwDevices.size() 
+   
   log.debug "size = ${howmany}"
+    log.debug "table = $zwdevices"
 
-  zwtable?.each 
-    { it ->
-        log.info "got node ${it.id}, value = ${it.value}"
-    }
+ //  for (it in zwdevices)
+  //  { 
+   ///     log.info "got node ${it.valid.id}, value = ${it.value}"
+  //  }
 
 }
 
@@ -295,6 +296,12 @@ void compareDeviceTable()
     
   if (debug) log.debug "size = ${howmany}"
  
+    if (state.globalDeviceType == null) 
+    {
+        log.warn "Reloading global device type table!"
+        loadGlobalDeviceType()
+    }
+    
    // listGlobalDeviceTypes()
     
     deviceTable?.each
@@ -302,6 +309,12 @@ void compareDeviceTable()
          if (debug) log.debug "processing device $it"
         
         def id = it.id
+        
+        //log.warn "id = $id it.id = ${it.id}"
+        //log.warn "id string = ${id.toString()}"
+        
+       // log.warn "table = ${state.globalDeviceType}"
+        
         def dtype = state.globalDeviceType.get(id.toString())
         if (debug) log.debug "device type: $dtype"
 
@@ -410,7 +423,7 @@ void loadGlobalDeviceType()
         if (debug) log.info "got device ${it.displayName}, value = ${it.id}"
         // get type data
         def dtype = getDeviceType(it.id)
-        if (debug) log.debug "[ $id, $dtype]"
+        if (debug) log.debug "[ ${it.id}, $dtype]"
         
         // now put in our global
         addToDeviceType(it.id,dtype)   
