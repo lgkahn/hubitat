@@ -140,6 +140,7 @@
  * v 2.28 add enable DST Work around option to get around a bug in getRawOffset not returning the correct number when dst is on.
  * v 2.29 rewrote the getfirmwarealerts to convert from epcoh time to local without requiring the dst fix/hack. 
  * v 2.30 add option to select how many firmware alerts to show.
+ * v 2.40 add condition, impact and description hover text to alerts
 */
 
 metadata {
@@ -547,14 +548,23 @@ private processFirmwareAlerts(data)
        
           def name = it.name
           def timestamp = it.timestamp
-      
+          def desc = it.description
+          def impact = it.impact
+          def cond = it.condition
+            
+          if (desc == null) desc = "No Description"
+          if (cond == null) cond = ""
+          if (impact == null) impact = ""
+            
+          def hoverstr = "Condition: $cond, Description: $desc, Impact: $impact"
+     
           if (timestamp)
             { 
              def fix = 0
              if (enableDSTWorkAround) fix = 1
              def df = convertEpochToSpecificTimezone(timestamp.toInteger())
              if (debugLevel == "Full") log.warn "Alert [$name, $df]"
-             myresults = myresults + "<tr><td>${name}</td><td>${df}</td></tr>"     
+                myresults = myresults + "<tr><td><a href title=\"${hoverstr}\">${name}</a></div></td><td>${df}</td></tr>"
             }
         }   
     }
@@ -1249,9 +1259,9 @@ def listDrivers() {
 }
 
 def getFirmwareAlerts() {
-    if (debugLevel != "None")log.info "Executing 'Get Firmware Alerts'"
+    if (debugLevel != "None") log.info "Executing 'Get Firmware Alerts'"
     def result = parent.getFirmwareAlerts(device.currentValue('vin'))
-  
+
     if (result) { 
         // process results
         processFirmwareAlerts(result) 
