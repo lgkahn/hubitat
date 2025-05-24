@@ -125,6 +125,7 @@
  * v 2.28 opion to work around bug in getRawOffset for dst issue.
  * v 2.29 rewrote the getfirmwarealerts to convert from epcoh time to local without requiring the dst fix/hack. 
  * v 2.30 add option to select how many firmware alerts to display : warning all cane be a lot...
+ * v 2.40 add condition, impact and description hover text to alerts
  */
 
 import groovy.transform.Field
@@ -723,9 +724,9 @@ private executeApiCommand(Map options = [:], child, String command) {
     
    if (descLog) log.info "executeApiCommand"
     
-    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",20,1, { resp ->
+    authorizedHttpRequestWithTimeout(child,"/${child}/${command}", "GET",40,1, { resp ->
          if (debug) log.debug "resp data = ${resp.data}"
-      
+  
         // special case status check
         if (resp.data.status)
           result = resp.data.status
@@ -1097,7 +1098,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.30"
+    return "2.40"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
