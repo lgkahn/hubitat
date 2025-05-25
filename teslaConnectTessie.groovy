@@ -126,6 +126,7 @@
  * v 2.29 rewrote the getfirmwarealerts to convert from epcoh time to local without requiring the dst fix/hack. 
  * v 2.30 add option to select how many firmware alerts to display : warning all cane be a lot...
  * v 2.40 add condition, impact and description hover text to alerts
+ * v 2.41 add hover text as an option as it broke legacy dashboard display
  */
 
 import groovy.transform.Field
@@ -1098,7 +1099,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.40"
+    return "2.41"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
