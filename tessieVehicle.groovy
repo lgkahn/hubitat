@@ -141,6 +141,7 @@
  * v 2.29 rewrote the getfirmwarealerts to convert from epcoh time to local without requiring the dst fix/hack. 
  * v 2.30 add option to select how many firmware alerts to show.
  * v 2.40 add condition, impact and description hover text to alerts
+ * v 2.41 add hover text as an option as it broke legacy dashboard display
 */
 
 metadata {
@@ -323,7 +324,8 @@ metadata {
        input "enableBatteryHealth", "enum", title: "Enable an extra query on every refresh to get battery health?", options: ["disabled", "on-every-refresh", "only-on-reenable"], required: false, defaultValue: "disabled" 
        input "enableFirmwareAlerts", "bool", title: "Enable an extra query on re-enable to get the last few firmware alert warnings?", required:false, defaultValue:false     
        input "howManyFirmwareAlerts", "enum", title: "How many firmware alerts should be displayed?",options: ["2", "5", "10", "20", "All"],  required: true, defaultValue: "5"
-         }
+       input "hoverTextOnFirmwareAlerts", "bool", title: "Enable hover text/description on firmware alerts list? (Note this breaks display of this attribute on legacy dashboards).", required: true, defaultValue:false
+    }
 }
 
 import java.time.*;
@@ -564,7 +566,8 @@ private processFirmwareAlerts(data)
              if (enableDSTWorkAround) fix = 1
              def df = convertEpochToSpecificTimezone(timestamp.toInteger())
              if (debugLevel == "Full") log.warn "Alert [$name, $df]"
-                myresults = myresults + "<tr><td><a href title=\"${hoverstr}\">${name}</a></div></td><td>${df}</td></tr>"
+               if (hoverTextOnFirmwareAlerts)  myresults = myresults + "<tr><td><p title=\"${hoverstr}\">${name}</p></td><td>${df}</td></tr>"
+                else myresults = myresults + "<tr><td>${name}</td><td>${df}</td></tr>"
             }
         }   
     }
