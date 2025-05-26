@@ -1,0 +1,66 @@
+
+metadata {
+	definition (name: "badDashTest", namespace: "lgkahn", author: "Larry Kahn") {
+		capability "Actuator"
+		 capability "Initialize"
+     
+		
+        attribute "firmwareAlerts", "string"
+    
+       
+		command "setAttr"
+      
+	}
+
+  
+}
+
+import java.time.*;
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+def initialize() 
+{
+    setAttr()
+  
+}
+   
+
+private setAttr()
+{    
+  log.debug "Processing Firmware Alert Data"  
+    
+    def myresults = "<table>"
+  
+    def name1 = "APP_w207_autosteerUnavailable"
+    def name2 = "UI_a002_DoorOpen" 
+    def name3 = "DI_a172_accelPressedInNP"
+        
+    def time1 = "05/24/2025 6:40 PM"
+    def time2 = "05/24/2025 6:39 PM"
+    def time3 = "05/23/2025 11:45 AM"
+        
+    def desc1 = "An attempt is made to engage Autosteer, but Autosteer is not available. Autosteer will not be activated."
+    def desc2 = "The passenger or rear door(s) (except for Model X Falcon door(s)) is detected as open when the vehicle is shifted into a gear other than Park, which may lead to the passenger or rear door(s) being open while driving."
+    def desc3 = "The drive interface (DI) electronic control unit (ECU) detects that the accelerator was pressed while the vehicle is in Park or Neutral."
+        
+    def impact1 = "Autosteer will not be activated."
+    def impact2 = "The passenger or rear door(s) may open while driving."
+    def impact3 = "The DI ECU does not provide any torque, and displays user-facing message."
+        
+    def cond1 = "Attempt is made to engage Autosteer when the feature is not available."
+    def cond2 = "The passenger or rear door(s) is detected as open when the vehicle is shifted into the Drive, Reverse, or Neutral gears."
+    def cond3 = "The DI ECU detects that the accelerator pedal was pressed while the vehicle is in Park or Neutral."
+        
+    
+      def hoverstr1 =  "Condition: $cond1, Description: $desc1, Impact: $impact1"
+      def hoverstr2 =  "Condition: $cond2, Description: $desc2, Impact: $impact2"
+      def hoverstr3 =  "Condition: $cond3, Description: $desc3, Impact: $impact3"
+       
+         myresults = myresults + "<tr><td><p title=\"${hoverstr1}\">${name1}</p></td><td>${time1}</td></tr>"
+         myresults = myresults + "<tr><td><p title=\"${hoverstr2}\">${name2}</p></td><td>${time2}</td></tr>"  
+         myresults = myresults + "<tr><td><p title=\"${hoverstr3}\">${name3}</p></td><td>${time3}</td></tr>"         
+     
+      myresults = myresults + "</table>"
+      sendEvent(name: "firmwareAlerts", value: myresults)
+}
