@@ -946,7 +946,7 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case ~/soilmoisture([1-9])/:
     case ~/soilad([1-9])/:
       updated = sensor(it.key, it.value, 6, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
-        log.warn "updating ${it.key} value ${it.value}"
+       // log.warn "updating ${it.key} value ${it.value}"
       break;
 
     case "soilbatt10":
