@@ -942,12 +942,37 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     //
     // Multi-channel Soil Moisture Sensor (WH51)
     //
-    case ~/soilbatt([1-16])/:
-    case ~/soilmoisture([1-16])/:
-    case ~/soilad([1-16])/:
+    case ~/soilbatt([1-9])/:
+    case ~/soilmoisture([1-9])/:
+    case ~/soilad([1-9])/:
       updated = sensor(it.key, it.value, 6, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
+        log.warn "updating ${it.key} value ${it.value}"
       break;
 
+    case "soilbatt10":
+    case "soilbatt11":
+    case "soilbatt12":
+    case "soilbatt13":
+    case "soilbatt14":
+    case "soilbatt15":
+    case "soilbatt16":
+    case "soilmoisture10":
+    case "soilmoisture11":
+    case "soilmoisture12":
+    case "soilmoisture13":
+    case "soilmoisture14":
+    case "soilmoisture15":
+    case "soilmoisture16":
+    case "soilad10":
+    case "soilad11":
+    case "soilad12":
+    case "soilad13":
+    case "soilad14":
+    case "soilad15":
+    case "soilad16":
+      updated = sensor(it.key, it.value, 6);
+      break;
+      
     //
     // Multi-channel Water Leak Sensor (WH55)
     //
