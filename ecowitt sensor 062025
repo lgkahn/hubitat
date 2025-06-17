@@ -1327,10 +1327,16 @@ Boolean attributeUpdate(String key, String val) {
     break;
 
   case ~/batt_wf[1-8]/:
-  case ~/leaf_batt[1-8]/:
-  case ~/soilbatt[1-16]/:
+  case ~/leaf_batt[1-8]/:  
   case ~/tf_batt[1-8]/:
-
+  case ~/soilbatt[1-9]/:  
+  case "soilbatt10":
+  case "soilbatt11":
+  case "soilbatt12":
+  case "soilbatt13":
+  case "soilbatt14":
+  case "soilbatt15":
+  case "soilbatt16":
     state.sensor = 1;
     updated = attributeUpdateBattery(val, "battery", "batteryIcon", "batteryOrg", 1);  // voltage
     break;
@@ -1372,11 +1378,26 @@ Boolean attributeUpdate(String key, String val) {
     if (attributeUpdateSimmerIndex(val, "simmerIndex", "simmerDanger", "simmerColor")) updated = true;
     break;
 
-  case ~/soilmoisture[1-16]/:
+  case ~/soilmoisture[1-9]/:
+  case "soilmoisture10":
+  case "soilmoisture11":
+  case "soilmoisture12":
+  case "soilmoisture13":
+  case "soilmoisture14":
+  case "soilmoisture15":
+  case "soilmoisture16":
     updated = attributeUpdateHumidity(val, "humidity");
     break;  
-   
-  case ~/soilad[1-16]/:
+  
+
+  case ~/soilad[1-9]/:
+  case "soilad10":
+  case "soilad11":
+  case "soilad12":
+  case "soilad13":
+  case "soilad14":
+  case "soilad15":
+  case "soilad16":
      updated = attributeUpdateSoilAD(val, "soilAD")
      break;
       
