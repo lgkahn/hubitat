@@ -47,7 +47,8 @@
 * in this way you can have multiple ups's and have them run every x minutes but stagger them so they dont all run at the same time.
 * v 4.1 only put out password if  max debug level set.. otherwise less info
 * v 4.2 add connectStatus check if Trying in rule and if soo for a long time means it times out .. used to toggle a switch to reboot my wifi connector.
-* v 4.3 add sku to differentiate between smt1500 and smt1500c
+* v 4.3 add sku to differentiate between smt1500 and smt1500c 
+* v 4.4 alternate get battery status on new f/w when says in green mode
 
 */
 
@@ -990,7 +991,71 @@ def parse(String msg) {
 
                  }
            
-                } // length = 6
+                } // length = 8
+            
+        if (pair.length == 10) // just for status of ups
+         {
+             
+           def p0 = pair[0]
+           def p1 = pair[1]
+           def p2 = pair[2]
+           def p3 = pair[3]
+           def p4 = pair[4]
+           def p5 = pair[5] 
+             
+            
+             if ((p0 == "Status") && (p1 == "of") && (p2 == "UPS:"))
+                 {
+                    def thestatus = p3
+                    if (getloglevel() > 1) log.debug ""
+                     // handle on line versus online case combiner p3 and p4
+                    if ((p3 == "OnLine") || (p3 == "Online"))
+                     {
+                     thestatus = p3
+                     }
+                  
+                       if ((thestatus == "OnLine,") || (thestatus == "Online"))
+                         thestatus = "OnLine"
+                       if ((thestatus == "Discharged,") || (thestatus == "Discharged"))
+                         thestatus = "Discharged"
+                       if (thestatus == "OnBattery,")
+                         thestatus = "OnBattery"
+                                     
+                    if (getloglevel() > 1) log.info "*********************************"
+                     if (state.upsStatus == "Unknown") log.info "Got UPS Status = $thestatus!"
+                     state.upsStatus = theStatus
+                    if (getloglevel() > 1) log.info "*********************************"
+                     
+                    sendEvent(name: "UPSStatus", value: thestatus)
+                                  
+                  if ((thestatus == "OnBattery") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTimeOnBattery))
+                     {
+                         log.debug "On Battery so Resetting Check time to $runTimeOnBattery Minutes!"
+                         unschedule()
+                         
+                         scheduleString = "0 " + runOffset.toString() + "/" + runTimeOnBattery.toString() + " * ? * * *" 
+           
+                         //scheduleString = "0 */" + runTimeOnBattery.toString() + " * ? * * *"
+                         if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
+                         state.currentCheckTime = runTimeOnBattery
+                         sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
+                         schedule(scheduleString, refresh)
+                     } 
+                   else if ((thestatus == "OnLine") && (runTime != runTimeOnBattery) && (state.currentCheckTime != runTime))
+                     {
+                       log.debug "UPS Back Online, so Resetting Check time to $runTime Minutes!"
+                       unschedule()
+                       scheduleString = "0 " + runOffset.toString() + "/" + runTime.toString() + " * ? * * *" 
+            
+                       //scheduleString = "0 */" + runTime.toString() + " * ? * * *"
+                       if (getloglevel() > 1) log.debug "Schedule string = $scheduleString"
+                       state.currentCheckTime = runTime
+                       sendEvent(name: "currentCheckTime", value: state.currentCheckTime)
+                       schedule(scheduleString, refresh)
+                     }
+                     
+                 }
+            } // length = 10
         } 
 
     
