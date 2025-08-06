@@ -90,7 +90,9 @@
  * also call dni update regardless if the field is not blank to see if that fixes issue with loosing connection.
  *
  * 12/24 add srain_piezo = 0 1 and associated raining = true false, also firmware version/ws90_ver and ws90cap_volt firmware version and capacitor voltage are stuckon the wind device for now
- */
+ *
+ * 8/25 add last24hrainin 
+*/
 
 public static String version() { return "v1.23.17"; }
 
@@ -101,6 +103,7 @@ metadata {
     capability "Sensor";
 
     command "resyncSensors";
+    command "DNSCheckCallback";
 
     // Gateway info
     attribute "driver", "string";                              // Driver version (new version notification)
@@ -656,10 +659,10 @@ private Boolean sensorUpdate(String key, String value, Integer id = null, Intege
   try {
     if (id) {
       String dni = sensorIdToDni(sensorId(id, channel));
-      logDebug("dna = $dni")
+     // logDebug("dna = $dni")
 
       com.hubitat.app.ChildDeviceWrapper sensor = getChildDevice(dni);
-       logDebug("got sensor ${sensor}")
+       //logDebug("got sensor ${sensor}")
       if (sensor == null) {
         //
         // Support for sensors with legacy DNI (without the parent ID)
@@ -799,6 +802,8 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case ~/batt([1-8])/:
     case ~/temp([1-8])f/:
     case ~/humidity([1-8])/:
+       // log.warn "group 1= ${java.util.regex.Matcher.lastMatcher.group(1)} sensor = ${it.key}"
+      //  log.warn "group 2= ${java.util.regex.Matcher.lastMatcher.group(2)}"
       updated = sensor(it.key, it.value, 3, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
       break;
 
@@ -814,6 +819,7 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case "monthlyrainin":
     case "yearlyrainin":
     case "totalrainin":
+    case "last24hrainin":
       updated = sensor(it.key, it.value, 4);
       break;
 
