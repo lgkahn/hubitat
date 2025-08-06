@@ -22,72 +22,83 @@
  *    2018-11-18  Stephan Hackett	Added support for Virtual Containers
  *    2020-07-29  nh.schottfam      Remove characters from message text that may cause issues
  *    2020-09-25  lgk add volume
- *    2020-10-04  lgk add set volume as command so it can be called from rule machione.
  */
 
-attribute "currentVolume", "number"
- capability "Configuration"
-
- command "setVolume", [[name: "volumeLevel", type: "intteger", range: "1..100"]]
 
 metadata {
     definition (name: "Child Alexa TTS", namespace: "ogiewon", author: "Dan Ogorchock", importUrl: "https://raw.githubusercontent.com/ogiewon/Hubitat/master/AlexaTTS/Drivers/child-alexa-tts.src/child-alexa-tts.groovy") {
+
         capability "Speech Synthesis"
+	capability "Configuration"
+	capability "Refresh"
+
+	attribute "level", "number"
+
+	command "initialize"
+	command "setLevel", ["number"]
     }
 }
 
 
 preferences {
-	input("volumeLevel", "integer", title: "Volume level for this device (0-99)?", range: "1…100", defaultValue: 75, required: true)
+	input("level", "integer", title: "Volume level for this device (0-100)?", range: "1..100", defaultValue: 75, required: true)
 }
 
-def configure()
-{
+def refresh(){
+	// this should query current volume setting and match device state to it
+	//updateDevState(num)
 }
 
-def updated()
-
-{ 
-    log.debug "in updated current volume = $volumeLevel,  prior volume = $state.currentVolume"
-    if (state.currentVolume != volumeLevel)
-    {
-        log.debug "Resetting Volume"
-        sendEvent(name: "currentVolume", value: volumeLevel)
-        updateVolume()
-    }
+def updateDevState(num){
+	num=num!=null ? num.toInteger() : -1
+	if(num>=0 && num<=100) {
+		sendEvent(name: 'level', value: num)
+		device.updateSetting('level', [value:num, type:'integer'])
+		state.level = num.toInteger()
+	}
 }
 
-def updateVolume(newLevel)
-{
-   log.debug "In update volume ... new level = $newLevel!"
+def updateVolume(num) {
+	log.debug "updateVolume($num)"
 
-  def name = device.deviceNetworkId.split("-")[-1]
-  def vId = device.data.vcId
-    
-  if(vId) parent.childComm("setVolume", newLevel, vId)
-	else parent.setVolume(newLevel.toInteger(), name)   
-    
-}
-def updateVolume()
-{
-    updateVolume(volumeLevel)
+	num=num!=null ? num.toInteger() : -1
+	if(num>=0 && num<=100) {
+		def name = device.deviceNetworkId.split("-")[-1]
+		def vId = device.data.vcId
+		if(vId) parent.childComm("setVolume", num, vId)
+		else parent.setVolume(num, name)
+
+		updateDevState(num) // or it could have called refresh to ensure it gets current value
+	}
 }
 
-def installed()
-{
-    log.debug "in initialize"
-    state.currentVolume = volumeLevel
+def setLevel(num){
+    log.debug "setLevel($num)"
+    updateVolume(num)
 }
 
-def setVolume(level)
-{
-     if (level)
-    {
-      log.debug "In setVolume command: new level = $level"
-      sendEvent(name: "currentVolume", value: level)
-      state.currentVolume = level
-      updateVolume(level)
-    }   
+def configure() {
+}
+
+def updated() { 
+	log.debug "updated current volume = $level,  prior volume = $state.level"
+	if (state.level != level) {
+		updateVolume(level)
+	}
+}
+
+def installed() {
+    log.debug "installed"
+    initialize()
+}
+
+def initialize(){
+	log.debug "initialize"
+// really should call refresh() after a runIn
+	Integer vol = level!=null ? level.toInteger() : 75
+	if (state.level != vol) {
+		updateDevState(vol)
+	}
 }
 
 def speak(message) {
