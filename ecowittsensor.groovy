@@ -21,6 +21,13 @@
  * lgk add code for capablity Air Quality using aqi
  * lgk add srain_piezo and raining = true or false, also capacitorVoltage and firmware versions, stick the raing on the rain device and cap voltate and firmware version on the wind device
  *
+* lgk add srain_piezo and raining = true or false, also capacitorVoltage and firmware versions, stick the raing on the rain device and cap voltate and firmware version on the wind device
+* lgk fixed missing break statement when processing srain_piezo and raining attributes
+* lgk remove ws90 possibly going to batterysolar attrs leave for ws80 for now
+* add code for capacitorPercent attribute
+*
+* 8/25 add last24hrainin 
+
  */
 
 metadata {
@@ -70,7 +77,8 @@ metadata {
 
  // attribute "pressure", "number";                            // inHg - relative pressure corrected to sea-level
     attribute "pressureAbs", "number";                         // inHg - absolute pressure
-
+    attribute "vpd", "number"                                  // new field vapor pressure difference.
+      
     attribute "rainRate", "number";                            // in/h - rainfall rate
     attribute "rainEvent", "number";                           // in - rainfall in the current event
     attribute "rainHourly", "number";                          // in - rainfall in the current hour
@@ -80,6 +88,7 @@ metadata {
     attribute "rainYearly", "number";                          // in - rainfall in the current year
     attribute "rainTotal", "number";                           // in - rainfall total since sensor installation
     attribute "raining", "string";
+    attribute "rainLast24Hrs", "number";
 
     attribute "pm25", "number";                                // µg/m³ - PM2.5 particle reading - current
     attribute "pm25_avg_24h", "number";                        // µg/m³ - PM2.5 particle reading - average over the last 24 hours
@@ -1344,6 +1353,12 @@ Boolean attributeUpdate(String key, String val) {
     updated = attributeUpdateRain(val, "rainDaily");
     break;
 
+  case "last24hrainin":
+    state.sensor = 1
+    state.sensorRain = 1; 
+    updated = attributeUpdateRain(val, "rainLast24Hrs");
+    break;
+   
   case ~/weeklyrainin_wf[1-8]/:
   case "weeklyrainin":
   case "wrain_piezo": 
@@ -1496,6 +1511,15 @@ Boolean attributeUpdate(String key, String val) {
     updated = attributeUpdateWindSpeed(val, "windGustMaxDaily");
     break;
 
+  // lgk new code 5/25
+ case ~/vpd[1-8]/:
+ case "vpd":
+    state.sensor = 1    
+     Boolean metric = unitSystemIsMetric();   
+     if (metric) attributeUpdateNumber(val.toBigDecimal(), "vpd", "inHg",4);
+      else attributeUpdateNumber(val.toBigDecimal(), "vpd", "kPa",4);
+     break;
+    
   //
   // End Of Data
   //
