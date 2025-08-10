@@ -24,6 +24,7 @@
 // lgk v1.0 add debug and info logging options and auto turn off for debugging
 // lgk v 1.1 add state variabled to cache saturation and hue and implement the sethue and setsaturation function,
 // also add the initialize fx
+// lgk 8/25 change setcolor using command classes instead of raw should work in zwave js
 
 metadata {
         definition (name: "EZmultiPli new", namespace: "erocm123", author: "Eric Maycock", oauth: true) {
@@ -59,7 +60,6 @@ metadata {
            2:"Lux"])
        input name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: false
        input("descLog", "bool", title: "Enable descriptionText logging", required: true, defaultValue: true)
-    
   }
 
 } // end metadata
@@ -229,7 +229,7 @@ def setColor(value) {
     def mygreen
     def myblue
     def hexValue
-    def cmds = []
+    def cmds2 = []
 
     if ( value.level == 1 && value.saturation > 20) {
 		def rgb = huesatToRGB(value.hue as Integer, 100)
@@ -254,26 +254,11 @@ def setColor(value) {
         mygreen=value.green >=128 ? 255 : 0
         myblue=value.blue>=128 ? 255 : 0
     }
-    cmds << "200100"
-   // cmds << " delay 250"
-	if (myred!=0) {
-        cmds << "33060002FF"
-		//cmds << "delay 150"
-        cmds << "330702"
-    }
-    if (mygreen!=0) {
-        cmds << "33060003FF"
-		//cmds << "delay 150"
-        cmds << "330703"
-    }
-    if (myblue!=0) {
-        cmds << "3306000400"
-		//cmds << "delay 150"
-        cmds << "330704"
-    }
-   // cmds << " delay 100"
-    cmds << zwave.basicV1.basicGet()
+    log.warn "red = $myred, green = $mygreen, blue= $myblue"
     
+    cmds2 << zwave.basicV1.basicSet(value: 0x00)
+    cmds2 << zwave.basicV1.basicGet()
+      
     sendEvent(name:"hue", value: value.hue)
   
     sendEvent(name:"saturation", value: value.saturation)
@@ -285,7 +270,11 @@ def setColor(value) {
     hexValue = rgbToHex([r:myred, g:mygreen, b:myblue])
     if(hexValue) sendEvent(name: "color", value: hexValue, displayed: true) 
     state.color = hexValue
-	commands(cmds)
+    
+    cmds2 << zwave.basicV1.basicGet()  
+    cmds2 << zwave.switchColorV3.switchColorSet(red: myred, green: mygreen, blue: myblue).format()
+    
+    commands(cmds2)
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
