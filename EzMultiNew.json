@@ -1,7 +1,7 @@
 {
   "packageName": "EZ Multi aka HSM200 Driver",
   "author": "Larry Kahn",
-  "version": "2.0",
+  "version": "2.1",
   "minimumHEVersion": "1.0.1",
   "dateReleased": "2020-10-19",
   "drivers": [
@@ -14,4 +14,5 @@
     }
   ]
 }
+
 
