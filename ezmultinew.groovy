@@ -24,7 +24,7 @@
 // lgk v1.0 add debug and info logging options and auto turn off for debugging
 // lgk v 1.1 add state variabled to cache saturation and hue and implement the sethue and setsaturation function,
 // also add the initialize fx
-// lgk v 2.1 8/25 change setcolor using command classes instead of raw should work in zwave js
+// lgk v 2.2 8/11/25 change setcolor using command classes instead of raw should work in zwave js
 
 metadata {
         definition (name: "EZmultiPli new", namespace: "erocm123", author: "Eric Maycock", oauth: true) {
@@ -254,7 +254,7 @@ def setColor(value) {
         mygreen=value.green >=128 ? 255 : 0
         myblue=value.blue>=128 ? 255 : 0
     }
-    log.warn "red = $myred, green = $mygreen, blue= $myblue"
+    if ((debugEnable) || (descLog)) log.info "red = $myred, green = $mygreen, blue= $myblue"
     
     cmds2 << zwave.basicV1.basicSet(value: 0x00)
     cmds2 << zwave.basicV1.basicGet()
