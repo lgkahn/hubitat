@@ -11,6 +11,7 @@
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
+ * lgk 8/11/25 add params to work around new ssl issue in hubitat
  */
 definition(
     name: 'Wireless Tags (Connect)',
@@ -247,7 +248,7 @@ String generateRedirectUrl() {
     // return apiServerUrl("token/${atomicState.accessToken}/smartapps/installations/${app.id}/swapToken")
     // log.debug 'state.accessToken: ' + state.accessToken
     // return getFullApiServerUrl() + "/oauth/initialize?access_token=${state.accessToken}"
-    return fullLocalApiServerUrl("/swapToken?access_token=${atomicState?.accessToken}&")
+    return fullLocalApiServerUrl("swapToken?access_token=${atomicState?.accessToken}&ignoreSSLIssues=true")
 }
 
 void swapToken() {
@@ -262,6 +263,7 @@ void swapToken() {
             Map refreshParams = [
                 uri: 'https://www.mytaglist.com/',
                 path: '/oauth2/access_token.aspx',
+                ignoreSSLIssues: true,
                 query: [ grant_type: 'authorization_code', client_id: getHubitatClientId(), client_secret: '042cf455-0fe9-483c-a4e4-9198a2ae7c9d', code: code, redirect_uri: generateRedirectUrl() ],
             ]
 
@@ -480,6 +482,7 @@ def postMessage(String path, Object query) {
     Map message = [
                 uri: 'https://www.mytaglist.com/',
                 path: path,
+                ignoreSSLIssues: true,
                 headers: ['Content-Type': 'application/json', 'Authorization': "Bearer ${atomicState.authToken}"],
             ]
     if (query != null) {
@@ -1002,4 +1005,3 @@ def convertTagTypeToString(def tag) {
 }
 
 def getSmartThingsClientId() { "67953bd9-8adf-422a-a7f0-5dbf256b9024" }
-
