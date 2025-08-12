@@ -71,7 +71,8 @@ def updated() {
 
 void generateEvent(Map results)
 {
-	if (debug) log.debug "parsing data $results"
+	//if (debug) 
+    log.debug "parsing data $results"
     def tl = triggerLevel
    	if(results)
 	{
@@ -82,14 +83,14 @@ void generateEvent(Map results)
 				sendEvent(name: name, value: tempValue, unit: getTemperatureScale())                                  									 
             }
             else {
-              //  log.debug "name = $name , value = $value"
+                log.debug "name = $name , value = $value"
                 
                 if (name =="humidity")
                    {
                        if (debug)
                        {
                            log.debug "TrigerLevel = $tl"
-                           log.debug "humidity value = $value"
+                           log.debug "humidity value = $value"                        
                        }
                        
                        if (value >= tl)
