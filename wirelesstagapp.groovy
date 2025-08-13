@@ -36,24 +36,46 @@ mappings {
 }
 
 def preferencesPage() {
+    
+    def cid = clientIDOverride
+    def cs = clientSecretOverride
+    
+    if (cs != null)
+       state.clientIDOverride = clientIDOverride
+    if (cid != null)
+       state.clientSecretOverride = cs
+    
+    if (debug) log.warn "input client id = ${clientIDOverride}"
+    if (debug) log.warn "input client secret = ${clientSecretOverride}"
+    
+    if (debug) log.warn "authtoken = ${atomicState.authToken}"
     if (!atomicState.accessToken) {
-         log.debug 'about to create access token'
+        if (debug) log.debug 'about to create access token'
         createAccessToken()
         atomicState.accessToken = state.accessToken
     }
 
     // oauth docs = http://www.mytaglist.com/eth/oauth2_apps.html
-    if (atomicState.authToken) {
-        log.debug "have a valid wirelesstags authToken: ${atomicState.authToken}"
+    
+    if ((!state.clientIDOverride) || (!state.clientSecretOverride))
+    {
+        log.warn "Need to get Client Id and client secret from https://www.mytaglist.com/oauth2_apps.html "
+        return inputClientSecrets()
+    }
+    else if (atomicState.authToken)
+    {
+        log.debug "We have a valid wirelesstags authToken: ${atomicState.authToken}"
         return wirelessDeviceList()
-    } else  { 
+    }
+    else 
+    { 
         String redirectUrl = oauthInitUrl()
         if (debug) log.debug "RedirectUrl = ${redirectUrl}"
 
         return dynamicPage(title: 'Connect', uninstall: true) {
             section {
-            input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
-            input("clientSecretOverride","String", title: "Override client Secret gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
+            input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: true, submitOnChange: true)
+            input("clientSecretOverride","String", title: "Override client Secret gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: true, submitOnChange: true)
             
             paragraph 'Tap below to log in to the Wireless Tags service and authorize Hubitat access.'
             href url:redirectUrl, style:'external', required:true, title:'Authorize wirelesstag.net', description:'Click to authorize'
@@ -61,6 +83,18 @@ def preferencesPage() {
         }
     }
 }
+
+def inputClientSecrets()
+{
+     return dynamicPage(title: 'ConnectSecret', uninstall: true, nextPage: "preferencesPage") {
+            section {
+            input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: true, submitOnChange: false)
+            input("clientSecretOverride","String", title: "Override client Secret gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: true, submitOnChange: false)
+                       
+            }
+     }           
+}
+
 def wirelessDeviceList() {
    if (debug) log.debug 'wirelessDeviceList()'
     Map availDevices = getWirelessTags()
@@ -75,8 +109,8 @@ def wirelessDeviceList() {
             paragraph 'Select up to 5 devices in each instance. Use a unique name here to create multiple apps.'
             label title: 'Assign a name for this app instance (optional)', required: false
             input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-            input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
-            input("clientSecretOverride","String", title: "Override client Secret gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
+            input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: true, submitOnChange: true)
+            input("clientSecretOverride","String", title: "Override client Secret gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: true, submitOnChange: true)
             
         }
     }
@@ -159,7 +193,8 @@ def logsOff()
 
 void updated() {
     
-   if (debug) log.warn "in update"
+  // if (debug) 
+    log.warn "in update"
    if (debug) log.warn "ovride = $clientIDOverride"
     state.clientIDOverride = clientIDOverride
     state.clientSecretOverride  = clientSecretOverride
@@ -171,12 +206,9 @@ void updated() {
     {
         log.debug "Turning off logging in 1/2 hour!"
         runIn(1800,logsOff)
-    }    
-    
-    
+    }      
 }
     
-
 String getChildNamespace() {
     return 'swanny'
 }
@@ -185,9 +217,6 @@ String getChildName(Map tagInfo) {
     String deviceType = 'Wireless Tag Generic'
     return deviceType
 }
-
-
-
 
 def initialize() {
     
