@@ -11,10 +11,11 @@
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
- * lgk 8/11/25 fix for ssl errors
+ * lgk 8/11/25 fix for ssl errors also add override for client id and secret to you can have more than one instance.
+ * before it work bork the other instance as was using the same login.
  */
 definition(
-    name: 'Wireless Tags 2 (Connect)',
+    name: 'Wireless Tags (Connect)',
     namespace: 'lgkahn',
     author: 'lgkahn',
     description: 'Wireless Tags connection',
@@ -74,7 +75,8 @@ def wirelessDeviceList() {
             paragraph 'Select up to 5 devices in each instance. Use a unique name here to create multiple apps.'
             label title: 'Assign a name for this app instance (optional)', required: false
             input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
-           // input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false)
+            input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
+            input("clientSecretOverride","String", title: "Override client Secret gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
             
         }
     }
@@ -86,7 +88,7 @@ def wirelessDeviceList() {
 def handleUrlCallback () {
     
    
-	log.debug " in url callback $params"
+	if (debug) log.debug " in url callback $params"
     
     def id = params.id.toInteger()
     def type = params.type
@@ -157,8 +159,8 @@ def logsOff()
 
 void updated() {
     
-    log.warn "in update"
-    log.warn "ovride = $clientIDOverride"
+   if (debug) log.warn "in update"
+   if (debug) log.warn "ovride = $clientIDOverride"
     state.clientIDOverride = clientIDOverride
     state.clientSecretOverride  = clientSecretOverride
     
@@ -246,27 +248,27 @@ String oauthInitUrl() {
  
     def ow2 = clientIDOverride
     def cs = clientSecretOverride
-    log.warn "ow2 = $ow2"
+    //log.warn "ow2 = $ow2"
     
      if ((cs != null) && (cs != null))
     {
-        log.warn "saving client secret = $cs"
+       if (debug) log.warn "saving client secret = $cs"
         state.clientSecretOverride = cs
     }
     
     if ((ow2 != null) && (ow2 != null))
     {
-        log.warn "saving ow2 = $ow2"
+      if (debug)  log.warn "saving ow2 = $ow2"
         state.clientIDOverride = ow2
     }
     
-    log.warn "after ow2 = ${state.clientIDOverride}"
+   if (debug) log.warn "after ow2 = ${state.clientIDOverride}"
     
     if ((ow2 != null) && (ow2 != ""))
     {
     if (debug) log.debug 'oauthInitUrl() case1'
     atomicState.oauthInitState = UUID.randomUUID().toString()
-    log.warn "calling auth url cid = ${ow2} state = ${atomicState.oauthInitState} url = ${generateRedirectUrl()}"
+    if (debug) log.warn "calling auth url cid = ${ow2} state = ${atomicState.oauthInitState} url = ${generateRedirectUrl()}"
   
     Map oauthParams = [
         client_id: ow2, 
@@ -280,7 +282,7 @@ String oauthInitUrl() {
     {
     if (debug) log.debug 'oauthInitUrl() case2'
     atomicState.oauthInitState = UUID.randomUUID().toString()
-    log.warn "calling2 auth url cid = ${getHubitatClientId()} state = ${atomicState.oauthInitState} url = ${generateRedirectUrl()}"
+    if (debug) log.warn "calling2 auth url cid = ${getHubitatClientId()} state = ${atomicState.oauthInitState} url = ${generateRedirectUrl()}"
   
     Map oauthParams = [
         client_id: getHubitatClientId(),
@@ -291,7 +293,6 @@ String oauthInitUrl() {
         
     }
     
-    //return 'https://www.mytaglist.com/oauth2/authorize.aspx?' + toQueryString(oauthParams)
 }
 
 String generateRedirectUrl() {
@@ -313,17 +314,17 @@ void swapToken() {
     def ow2 = state.clientIDOverride
     def cs = state.clientSecretOverride
     
-    log.warn "here2 ow2 override = $ow"
-    log.warn "here2 cs override = $cs"
+   // log.warn "here2 ow2 override = $ow"
+    //log.warn "here2 cs override = $cs"
     
     if ((ow2 != null) && (ow2 != ""))
     {
-        log.warn "got good clientid = $ow2"
+        if (debug) log.warn "got good clientid = $ow2"
     }
     else ow2 = getHubitatClientId()
     
     if (cs == null)
-     cs = '340c4811-a436-4aa6-96a8-350c2a578f00'
+     cs = '340c4811-a436-4aa6-96a8-350c2a578f01'
     
     
     if (code) {
@@ -563,11 +564,11 @@ def postMessage(String path, Object query) {
         }
     }
     
-  log.trace "Query: $message"
+  if (debug) log.trace "Query: $message"
     def jsonMap
     try {
         httpPost(message) { resp ->
-            log.warn "resp status = ${resp.status}"
+           if (debug) log.warn "resp status = ${resp.status}"
             
             if (resp.status == 200) {
                 if (resp.data) {
