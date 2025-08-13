@@ -14,7 +14,7 @@
  * lgk 8/11/25 fix for ssl errors
  */
 definition(
-    name: 'Wireless Tags (Connect)',
+    name: 'Wireless Tags 2 (Connect)',
     namespace: 'lgkahn',
     author: 'lgkahn',
     description: 'Wireless Tags connection',
@@ -36,7 +36,7 @@ mappings {
 
 def preferencesPage() {
     if (!atomicState.accessToken) {
-        // log.debug 'about to create access token'
+         log.debug 'about to create access token'
         createAccessToken()
         atomicState.accessToken = state.accessToken
     }
@@ -45,14 +45,17 @@ def preferencesPage() {
     if (atomicState.authToken) {
         log.debug "have a valid wirelesstags authToken: ${atomicState.authToken}"
         return wirelessDeviceList()
-    } else {
+    } else  { 
         String redirectUrl = oauthInitUrl()
         if (debug) log.debug "RedirectUrl = ${redirectUrl}"
 
         return dynamicPage(title: 'Connect', uninstall: true) {
             section {
-                paragraph 'Tap below to log in to the Wireless Tags service and authorize Hubitat access.'
-                href url:redirectUrl, style:'external', required:true, title:'Authorize wirelesstag.net', description:'Click to authorize'
+            input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
+            input("clientSecretOverride","String", title: "Override client Secret gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false, submitOnChange: true)
+            
+            paragraph 'Tap below to log in to the Wireless Tags service and authorize Hubitat access.'
+            href url:redirectUrl, style:'external', required:true, title:'Authorize wirelesstag.net', description:'Click to authorize'
             }
         }
     }
@@ -65,12 +68,14 @@ def wirelessDeviceList() {
         section {
             paragraph 'Tap below to see the list of Wireless Tag devices available in your Wireless Tags account and select the ones you want to connect to Hubitat.'
             paragraph 'When you hit Done, the setup can take as much as 10 seconds per device selected.'
-            input(name: 'devices', title:'Tags to Connect', type: 'enum', required:true, multiple:true, options:availDevices)
+            input(name: 'devices', title:'Tags to Connect', type: 'enum', required:false, multiple:true, options:availDevices)
             paragraph 'Configure the poll timer if you want to periodically poll the Wireless Tags server. Set to 0 to skip polling.'
             input 'pollTimer', 'number', title:'Minutes between poll updates of the sensors', required:true, defaultValue:5
             paragraph 'Select up to 5 devices in each instance. Use a unique name here to create multiple apps.'
             label title: 'Assign a name for this app instance (optional)', required: false
             input("debug", "bool", title: "Enable logging?", required: true, defaultValue: false)
+           // input("clientIDOverride","String", title: "Override client ID gotten from https://www.mytaglist.com/eth/oauth2_apps.html with this?", required: false)
+            
         }
     }
 
@@ -151,6 +156,12 @@ def logsOff()
 }
 
 void updated() {
+    
+    log.warn "in update"
+    log.warn "ovride = $clientIDOverride"
+    state.clientIDOverride = clientIDOverride
+    state.clientSecretOverride  = clientSecretOverride
+    
     unsubscribe()
     initialize()
  
@@ -158,7 +169,9 @@ void updated() {
     {
         log.debug "Turning off logging in 1/2 hour!"
         runIn(1800,logsOff)
-    }     
+    }    
+    
+    
 }
     
 
@@ -230,16 +243,55 @@ def initialize() {
 
 
 String oauthInitUrl() {
-    if (debug) log.debug 'oauthInitUrl()'
+ 
+    def ow2 = clientIDOverride
+    def cs = clientSecretOverride
+    log.warn "ow2 = $ow2"
+    
+     if ((cs != null) && (cs != null))
+    {
+        log.warn "saving client secret = $cs"
+        state.clientSecretOverride = cs
+    }
+    
+    if ((ow2 != null) && (ow2 != null))
+    {
+        log.warn "saving ow2 = $ow2"
+        state.clientIDOverride = ow2
+    }
+    
+    log.warn "after ow2 = ${state.clientIDOverride}"
+    
+    if ((ow2 != null) && (ow2 != ""))
+    {
+    if (debug) log.debug 'oauthInitUrl() case1'
     atomicState.oauthInitState = UUID.randomUUID().toString()
-
+    log.warn "calling auth url cid = ${ow2} state = ${atomicState.oauthInitState} url = ${generateRedirectUrl()}"
+  
+    Map oauthParams = [
+        client_id: ow2, 
+        state: atomicState.oauthInitState,
+        redirect_uri: generateRedirectUrl(),
+    ] 
+        
+    return 'https://www.mytaglist.com/oauth2/authorize.aspx?' + toQueryString(oauthParams)    
+    }
+    else 
+    {
+    if (debug) log.debug 'oauthInitUrl() case2'
+    atomicState.oauthInitState = UUID.randomUUID().toString()
+    log.warn "calling2 auth url cid = ${getHubitatClientId()} state = ${atomicState.oauthInitState} url = ${generateRedirectUrl()}"
+  
     Map oauthParams = [
         client_id: getHubitatClientId(),
         state: atomicState.oauthInitState,
         redirect_uri: generateRedirectUrl(),
     ]
-
-    return 'https://www.mytaglist.com/oauth2/authorize.aspx?' + toQueryString(oauthParams)
+    return 'https://www.mytaglist.com/oauth2/authorize.aspx?' + toQueryString(oauthParams)    
+        
+    }
+    
+    //return 'https://www.mytaglist.com/oauth2/authorize.aspx?' + toQueryString(oauthParams)
 }
 
 String generateRedirectUrl() {
@@ -257,14 +309,30 @@ void swapToken() {
     // mytaglist.com doesn't properly add parameters when one exists. So, also look for this mangled version.
     String code = params.code ?: params['?code']
     // log.debug "mytaglist.com authorization_code: ${code}"
-
+   
+    def ow2 = state.clientIDOverride
+    def cs = state.clientSecretOverride
+    
+    log.warn "here2 ow2 override = $ow"
+    log.warn "here2 cs override = $cs"
+    
+    if ((ow2 != null) && (ow2 != ""))
+    {
+        log.warn "got good clientid = $ow2"
+    }
+    else ow2 = getHubitatClientId()
+    
+    if (cs == null)
+     cs = '340c4811-a436-4aa6-96a8-350c2a578f00'
+    
+    
     if (code) {
         try {
             Map refreshParams = [
                 uri: 'https://www.mytaglist.com/',
                 path: '/oauth2/access_token.aspx',
                 ignoreSSLIssues: true,
-                query: [ grant_type: 'authorization_code', client_id: getHubitatClientId(), client_secret: '042cf455-0fe9-483c-a4e4-9198a2ae7c9d', code: code, redirect_uri: generateRedirectUrl() ],
+                query: [ grant_type: 'authorization_code', client_id: ow2, client_secret: cs, code: code, redirect_uri: generateRedirectUrl() ],
             ]
 
             httpPost(refreshParams) { resp ->
