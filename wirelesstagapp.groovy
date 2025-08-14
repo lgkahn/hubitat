@@ -193,9 +193,9 @@ def logsOff()
 
 void updated() {
     
-   log.info "in update"
-   if (debug) log.debug "override = $clientIDOverride"
-    
+  // if (debug) 
+    log.warn "in update"
+   if (debug) log.warn "ovride = $clientIDOverride"
     state.clientIDOverride = clientIDOverride
     state.clientSecretOverride  = clientSecretOverride
     
@@ -593,7 +593,7 @@ def postMessage(String path, Object query) {
         }
     }
     
-  if (debug)  log.trace "Query: $message"
+  if (debug) log.trace "Query: $message"
     def jsonMap
     try {
         httpPost(message) { resp ->
@@ -601,10 +601,10 @@ def postMessage(String path, Object query) {
             
             if (resp.status == 200) {
                 if (resp.data) {
-                   if (debug) log.debug "**** got resp. ${resp.data}"
+                    if (debug) log.debug "**** got resp. ${resp.data}"
                     jsonMap = resp.data
                 } else {
-                    log.error 'error1 = ' + resp + " query was: $message"
+                    log.trace 'error = ' + resp
                 }
             } else {
                 if (resp.status == 500 && resp.data.status.code == 14) {
@@ -618,7 +618,7 @@ def postMessage(String path, Object query) {
         }
     } catch ( ex ) {
         //atomicState.authToken = null
-        log.error 'error2 = ' + ex + " query was: $message"
+        log.trace 'error = ' + ex
     }
     
     return jsonMap
@@ -1108,3 +1108,4 @@ def convertTagTypeToString(def tag) {
 }
 
 def getSmartThingsClientId() { "67953bd9-8adf-422a-a7f0-5dbf256b9024" }
+
