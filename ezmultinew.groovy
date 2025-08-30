@@ -25,6 +25,7 @@
 // lgk v 1.1 add state variabled to cache saturation and hue and implement the sethue and setsaturation function,
 // also add the initialize fx
 // lgk v 2.2 8/11/25 change setcolor using command classes instead of raw should work in zwave js
+// lgk v 2.3 8/29/25 working with zwave js but added basic get after setting color so switch shows correct state
 
 metadata {
         definition (name: "EZmultiPli new", namespace: "erocm123", author: "Eric Maycock", oauth: true) {
@@ -271,8 +272,9 @@ def setColor(value) {
     if(hexValue) sendEvent(name: "color", value: hexValue, displayed: true) 
     state.color = hexValue
     
-    cmds2 << zwave.switchColorV3.switchColorSet(red: myred, green: mygreen, blue: myblue).format() 
-    commands(cmds2)
+      commands([zwave.switchColorV3.switchColorSet(red: myred, green: mygreen, blue: myblue).format(),         
+                zwave.basicV1.basicGet()
+        ], 500)
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
