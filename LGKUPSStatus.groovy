@@ -427,6 +427,7 @@ def refresh() {
    
     if (!disable)
     {
+       setversion()
        state.upsBattery = "Unknown"
        state.runtime = "Unknown"
        state.upsStatus = "Unknown"
