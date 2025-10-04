@@ -49,6 +49,7 @@
 * v 4.2 add connectStatus check if Trying in rule and if soo for a long time means it times out .. used to toggle a switch to reboot my wifi connector.
 * v 4.3 add sku to differentiate between smt1500 and smt1500c 
 * v 4.4 alternate get battery status on new f/w when says in green mode
+* v 4.5 fix upstatus sometimes coming back as online, (with small l and a comma) vs OnLine
 
 */
 
@@ -146,7 +147,7 @@ metadata {
 
 def setversion(){
     state.name = "LGK SmartUPS Status"
-	state.version = "4.4"
+	state.version = "4.5"
 }
 
 def installed() {
@@ -251,7 +252,8 @@ def initialize() {
            
            // scheduleString = "0 */" + runTimeInt.toString() + " * ? * * *"
             state.CronString = scheduleString
-            if (getloglevel() > 0) log.debug "Schedule string = $scheduleString"
+            if (getloglevel() > 0)
+            log.debug "Schedule string = $scheduleString"
             
            schedule(scheduleString, refresh)
            sendEvent(name: "lastCommand", value: "Scheduled")     
@@ -774,7 +776,7 @@ def parse(String msg) {
                      thestatus = p3
                      }
                   
-                       if ((thestatus == "OnLine,") || (thestatus == "Online"))
+                       if ((thestatus == "OnLine,") || (thestatus == "Online") || (thestatus == "Online,"))
                          thestatus = "OnLine"
                        if ((thestatus == "Discharged,") || (thestatus == "Discharged"))
                          thestatus = "Discharged"
@@ -848,7 +850,7 @@ def parse(String msg) {
                      { 
                        thestatus = p3 + p4
                      }
-                       if ((thestatus == "OnLine,") || (thestatus == "Online"))
+                       if ((thestatus == "OnLine,") || (thestatus == "Online") || (thestatus == "Online,"))
                          thestatus = "OnLine"
                        if (thestatus == "OnBattery,")
                          thestatus = "OnBattery"
@@ -1014,7 +1016,7 @@ def parse(String msg) {
                      thestatus = p3
                      }
                   
-                       if ((thestatus == "OnLine,") || (thestatus == "Online"))
+                       if ((thestatus == "OnLine,") || (thestatus == "Online") || (thestatus == "Online,"))
                          thestatus = "OnLine"
                        if ((thestatus == "Discharged,") || (thestatus == "Discharged"))
                          thestatus = "Discharged"
