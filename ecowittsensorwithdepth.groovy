@@ -1955,6 +1955,8 @@ void updated() {
       
       sensorid = device.currentValue("sensorID")
       log.info "sensor id = $sensorid"
+      def ed
+      
       if (sensorid == "WH54")
       {
           log.warn "Found WH54 Laser Density Sensor... Enable depth recording setting (via command on device panel) if you want to record snow depth, otherwise just raw depth is recored!!"
@@ -1963,16 +1965,15 @@ void updated() {
           def mv = device.getSetting("voltageMin")
           def mm = device.getSetting("voltageMax")
           log.warn "MinVoltage input setting: $mv, MaxVoltage input setting: $mm, recommend you configure these so max is near 3.0 volts!"
-          
+        
+          ed = device.getSetting("useWh54ForSnowDepthCalculations")
+          log.info "WH54 enable snow depth recording = $ed"
       }
       else 
       {
           log.info "Device is Not a WH54!"
           device.updateSetting("WH54LaserDensityDeviceEnabled", [value: false, type: "bool"])
       }
-      
-       def ed = device.getSetting("useWh54ForSnowDepthCalculations")
-       log.info "WH54 enable snow depth recording = $ed"
          
     if ((sensorid == "WH54") && (ed == true))
       { 
