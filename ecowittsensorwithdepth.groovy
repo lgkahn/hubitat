@@ -27,6 +27,10 @@
 * add code for capacitorPercent attribute
 * lgk 8/25 add last24hrain and last24hrain_piezo 
 
+* lgk 10/25 all code changes for wh54 depth sensor and code for snow depth sensing.
+* note to end yearly depth record .. and reset you must manually call the fx from the device panel as snowfalls levels dont conveniently
+* end on jan 1st.
+
 */
 
 metadata {
@@ -176,6 +180,11 @@ metadata {
     attribute "snowHourly", "number"
       
     command "testfx"
+    command "testHourlyfx"
+    command "testDailyfx"
+    command "testMonthlyfx"
+    command "accumulateAndResetYearlyTotals"
+      
     command "startDepthRecording"
     command "disableDepthRecording"
     command "resetDepthTotals"
@@ -215,8 +224,6 @@ metadata {
       {
          input(name: "useWh54ForSnowDepthCalculations", type: "bool", title: "Use the WH54 to calculate snow depth and enable statistics?", defaultValue:false) 
          input(name: "debugDepthStatisics", type: "bool", title: "Turn on debugging for the Snow Depth Statistics Calculations?", defaultValue:false) 
-         input(name: "voltageMin", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>Empty Battery Voltage</font>", description: "<font style='font-size:12px; font-style: italic'>Sensor value when battery is empty</font>", defaultValue: "", required: true);
-         input(name: "voltageMax", type: "string", title: "<font style='font-size:12px; color:#1a77c9'>Full Battery Voltage</font>", description: "<font style='font-size:12px; font-style: italic'>Sensor value when battery is full</font>", defaultValue: "", required: true);
      }
       
   }
@@ -1950,20 +1957,34 @@ void updated() {
       log.info "sensor id = $sensorid"
       if (sensorid == "WH54")
       {
-          log.info "Found WH54 Laser Density Sensor... Enabling setting!"
+          log.warn "Found WH54 Laser Density Sensor... Enable depth recording setting (via command on device panel) if you want to record snow depth, otherwise just raw depth is recored!!"
           device.updateSetting("WH54LaserDensityDeviceEnabled",[value: true, type: "bool"])
-          initializeGlobals()
+          
+          def mv = device.getSetting("voltageMin")
+          def mm = device.getSetting("voltageMax")
+          log.warn "MinVoltage input setting: $mv, MaxVoltage input setting: $mm, recommend you configure these so max is near 3.0 volts!"
+          
       }
       else 
       {
           log.info "Device is Not a WH54!"
           device.updateSetting("WH54LaserDensityDeviceEnabled", [value: false, type: "bool"])
       }
-             
+      
+       def ed = device.getSetting("useWh54ForSnowDepthCalculations")
+       log.info "WH54 enable snow depth recording = $ed"
+         
+    if ((sensorid == "WH54") && (ed == true))
+      { 
+          log.info "Enable Snow/Density/Depth is on!"
+          initializeGlobals(false)
+      }
+    
     // Pre-process HTML templates (if any)
     String error = htmlUpdateUserInput(settings.htmlTemplate as String);
     if (error) ztatus(error, "red");
     else ztatus("OK", "green");
+   
    }
   catch (Exception e) {
     logError("Exception in updated(): ${e}");
@@ -2003,15 +2024,8 @@ def logsOff()
 
 // Recycle bin ----------------------------------------------------------------------------------------------------------------
 
-/*
-
-
-*/
-
 // lgk code for lds01 to accumulate snow depth in inches converted from feet by keep track of daily and monthly numbers only when it goes up
 // from one day to another for now just assume inches or mm if metric.. assume that the sensors is set to the correct feet or meters to match
-
-  
 
 void addToDays(id, type)
 {
@@ -2050,14 +2064,13 @@ void listMonths()
     log.info "months = $globalMonths"    
 }
 
-def initializeGlobals()
+def initializeGlobals(force)
 {
-    log.info "in init globals"
+    log.info "In init globals - force init = $force"
   
     
-    def gi = state.globalsInitialized
-  
-    if (gi != true)
+    def gi = state.globalsInitialized  
+    if ((gi != true) || (force == true))
     {
         
       log.info "Initializing globals for the first time"
@@ -2130,15 +2143,15 @@ def storeHourlyDepth()
         
         if (ld == null) ld = 0.00
         
-          if (debugDepthStatisics) log.debug("in store hourly depth  last hourly Depth = ${ld}, current depth = ${nd}")
+          if (debugDepthStatisics) log.info "In store hourly depth  last hourly Depth = ${ld}, current depth = ${nd}"
     
             // convert to inches
     
           if (nd > ld)
           {
-            if (debugDepthStatisics) log.debug "Depth has gone up!"
+            if (debugDepthStatisics) log.info "Depth has gone up!"
             def BigDecimal depthDiff = nd - ld
-            if (debugDepthStatisics) log.debug "depth diff = $depthDiff"
+            if (debugDepthStatisics) log.info "Depth diff = $depthDiff"
         
             def BigDecimal dd = depthDiff
             // depth diff is always in mm
@@ -2149,21 +2162,21 @@ def storeHourlyDepth()
                dd = (depthDiff * 0.003280840) * 12.0000000
               }
               
-            if (debugDepthStatisics) log.debug "new hourly depth in inches/mm = $dd"
+            if (debugDepthStatisics) log.info "new hourly depth in inches/mm = $dd"
             def BigDecimal rounddd = dd.toFloat().round(1).toBigDecimal();
             sendEvent([name: 'snowHourly', value: rounddd, isStateChange: true]) 
              
             if (debugDepthStatisics) 
               {
-                  log.debug "accumulating hourly depth total:  = $dd"
-                  log.debug "resetting last hourly depth!"
+                  log.info "Accumulating hourly depth total:  = $dd"
+                  log.info "Resetting last hourly depth!"
               }
               
             state.lastHourlyDepth = nd          
           }
       else 
           {
-           if (debugDepthStatisics) log.debug "Hourly Depth has not gone up!"
+           if (debugDepthStatisics) log.info "Hourly Depth has not gone up!"
            sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
            // leave last depth the same    
           } 
@@ -2182,15 +2195,15 @@ def storeDailyDepth()
         
         if (ld == null) ld = 0.00
         
-          if (debugDepthStatisics) log.debug("in store daily depth  last Raw Depth = ${ld}, current depth = ${nd}")
+          if (debugDepthStatisics) log.info "In store daily depth  last Raw Depth = ${ld}, current depth = ${nd}"
     
             // convert to inches
     
           if (nd > ld)
           {
-            if (debugDepthStatisics) log.debug "Depth has gone up!"
+            if (debugDepthStatisics) log.info "Depth has gone up!"
             def BigDecimal depthDiff = nd - ld
-            if (debugDepthStatisics) log.debug "depth diff = $depthDiff"
+            if (debugDepthStatisics) log.info "Depth diff = $depthDiff"
         
             
             def BigDecimal dd = depthDiff
@@ -2202,7 +2215,7 @@ def storeDailyDepth()
                dd = (depthDiff * 0.003280840) * 12.0000000
               }  
            
-            if (debugDepthStatisics) log.debug "new depth in inches/mm = $dd"
+            if (debugDepthStatisics) log.info "New depth in inches/mm = $dd"
    
             // total day status
           
@@ -2211,29 +2224,40 @@ def storeDailyDepth()
               
             if (debugDepthStatisics) 
               {
-                  log.debug "accumulating day depth total:  = $dd"
-                  log.debug "resetting last depth to todays!"
+                  log.info "Accumulating day depth total:  = $dd"
+                  log.info "Resetting last depth to todays!"
               }
               
             state.lastRawDepth = nd          
           }
+        
+      else if ((nd < ld) && (nd > 0.0000)) // if went down not zero and not negative
+          {
+             if (debugDepthStatisics) log.info "Depth has gone down (melting?) old: $ld, new: $nd - resetting last depth to current depth!"
+             state.lastRawDepth = nd
+             state.lastDayDepth = 0.00
+             if (debugDepthStatisics) log.info "Also resetting/reducing lastHourlyDepth to last reading: $nd from ${state.lastHourlyDepth} - otherwise hourly depths never go up due to melting!"
+             state.lastHourlyDepth = nd
+          }
+        
       else 
           {
-           if (debugDepthStatisics) log.debug "Depth has not gone up!"
-           state.lastDayDepth = 0.0
+           if (debugDepthStatisics) log.info "Depth has not gone up!"
+           state.lastDayDepth = 0.00
            // leave last depth the same but put 0 in array
           } 
           
         // now store in table for current day
         def now = new Date().format('dd', location.timeZone) 
         def intday = now.toInteger() 
-          
-         // override to test
-         //intday = 30
-         if (debugDepthStatisics) log.debug "intday = $intday"
+        
+        // test only uncomment for test a different day
+        //intday = intday + 1
+        
+         if (debugDepthStatisics) log.info "Day of month: $intday"
           
          addToDays(intday,state.lastDayDepth) 
-         log.info "day total: ${state.lastDayDepth}, global day stats: ${state.globalDays}"    
+          if (debugDepthStatisics) log.info "day total: ${state.lastDayDepth}, global day stats: ${state.globalDays}"    
     
          sendEvent([name: 'snowDaily', value: state.lastDayDepth, isStateChange: true]) 
          sendEvent([name: 'monthDepthStats', value: state.globalDays, isStateChange: true])         
@@ -2261,7 +2285,7 @@ def storeMonthlyDepth()
     // called on the first of month so need to go back a month
     
      def themonth = new Date().format('MM').toInteger()
-     if (debugDepthStatisics)  log.debug "Current month: $themonth"
+     if (debugDepthStatisics)  log.info "Current month: $themonth"
     
      def lastmonth = 0
     
@@ -2269,14 +2293,17 @@ def storeMonthlyDepth()
        lastmonth = 12
      else lastmonth = themonth - 1
       
-     if (debugDepthStatisics) log.debug "Last Month: $lastmonth"
+    // test  only uncomment to force test a specific month
+    //lastmonth = 11
+    
+     if (debugDepthStatisics) log.info "Last Month: $lastmonth"
     
      def theday = new Date().format('dd')
      def theyear = new Date().format('YYYY')
      
      def LocalDate ldate = LocalDate.of(theyear.toInteger(),lastmonth.toInteger(),1)
      def int mdays = ldate.lengthOfMonth();
-     if (debugDepthStatisics) log.debug "days in last month = $mdays"
+     if (debugDepthStatisics) log.info "days in last month = $mdays"
     
      // now loop through those days and get totals
     def float runningTotal = 0.00
@@ -2287,16 +2314,14 @@ def storeMonthlyDepth()
     while (loopctr <= mdays)
     {
      def dayvalue = globalDays.get(loopctr.toString())
-     if (debugDepthStatisics) log.debug "day: $loopctr, value: $dayvalue"
+     if (debugDepthStatisics) log.info "day: $loopctr, value: $dayvalue"
      runningTotal = runningTotal + dayvalue
      loopctr++
     }
     
-    if (debugDepthStatisics) log.debug "end of loop total = $runningTotal"
+    if (debugDepthStatisics) log.info "end of loop total = $runningTotal"
     
-   def BigDecimal monthstat = (runningTotal.toFloat() / mdays.toFloat()).toFloat().round(1).toBigDecimal()
-   //def monthPercent = monthstat.setScale(2, BigDecimal.ROUND_HALF_UP)
-   //state.monthPercent = monthPercent
+   def BigDecimal monthstat = runningTotal.toFloat().round(1).toBigDecimal()
    state.lastMonthDepth = monthstat
     
    addToMonths(lastmonth,monthstat)   
@@ -2327,45 +2352,83 @@ def storeYearlyDepth()
     def float runningTotal = 0.00
     
     def int loopctr = 1
-    globalDays = state.globalDays
+    globalMonths = state.globalMonths
  
     while (loopctr <= 12)
     {
      def monthvalue = globalMonths.get(loopctr.toString())
-     if (debugDepthStatisics) log.debug "month: $loopctr, value: $monthvalue"
+     if (debugDepthStatisics) log.info "month: $loopctr, value: $monthvalue"
      runningTotal = runningTotal + monthvalue
      loopctr++
     }
     
-   if (debugDepthStatisics) log.debug "end of loop total = $runningTotal"
+   if (debugDepthStatisics) log.info "end of loop total = $runningTotal"
     
    def BigDecimal yearstat = runningTotal.toFloat().round(1).toBigDecimal()   
    sendEvent([name: 'snowLastYear', value: yearstat, isStateChange: true])  
    
-
    // reset to start current month over
    state.currentYearDepth = 0.00
    sendEvent([name: 'snowYearly', value: 0.0, isStateChange: true])  
+  
+   // reset to start current month over
+   state.currentMonthDepth = 0.00
+   sendEvent([name: 'currentMonthDepth', value: 0.00, isStateChange: true])  
+    
+    // reset day  and month array
+   for (i in 1..31)
+    {
+     addToDays(i,0.0.toFloat())
+    } 
+    
+   for (j in 1..12)
+    {
+     addToMonths(j,0.0.toFloat())
+    }  
+    
+  resetDepthTotals()
+    
+}
+
+
+def testHourlyfx()
+{
+   storeHourlyDepth()
+}
+
+def testDailyfx()
+{
+   storeDailyDepth()
+    
+}
+
+def testMonthlyfx()
+{
+    storeMonthlyDepth()
+}
+
+def accumulateAndResetYearlyTotals()
+{
+   storeYearlyDepth()
 }
 
 
 def testfx()
 {   
-   // initializeGlobals()
+   // initializeGlobals(true)
     //state.rawDepth = 23.09
 //sendEvent([name: 'snowDaily', value: 0.00, isStateChange: true]) 
  //   sendEvent([name: 'snowMonthly', value: 0.00, isStateChange: true]) 
  //   sendEvent([name: 'snowYearly', value: 0.00, isStateChange: true])  
    // state.globalsInitialized = true
-    state.lastHourlyDepth = 0 
-    state.lastRawDepth = 0
-    state.rawDepth = 40
-    storeHourlyDepth()
-    storeDailyDepth() 
+   // state.lastHourlyDepth = 0 
+    state.lastRawDepth = 0.0
+   // state.rawDepth = 40
+   // storeHourlyDepth()
+  //  storeDailyDepth() 
     //listDays()
    // storeMonthlyDepth()
-    
-    
+      
 }
 
 def disableStats()
@@ -2385,6 +2448,7 @@ def disableStats()
     state.currentMonthDepth = 0
     state.currentYearDepth = 0
     state.rawDepth = 0.00
+    state.globalsInitialized = false
     
     state.remove("monthDepth") 
     state.remove("lastDayDepth")
@@ -2416,7 +2480,7 @@ def disableStats()
     device.deleteCurrentState("snowLastMonth")
     device.deleteCurrentState("snowMonthly")
     device.deleteCurrentState("snowYearly")
-    device.deleteCurrentState("snowLastYear)")
+    device.deleteCurrentState("snowLastYear")
     device.deleteCurrentState("snowHourly")
     device.deleteCurrentState("depth")
     device.deleteCurrentState("airHeight")
@@ -2424,7 +2488,7 @@ def disableStats()
     device.deleteCurrentState("heatLDS")
     device.deleteCurrentState("orphanedDepth")
     device.deleteCurrentState("depthLastUpdate")
-    
+
     device.updateSetting("debugDepthStatisics",false)
     device.updateSetting("useWh54ForSnowDepthCalculations",false)   
 }
@@ -2457,7 +2521,7 @@ def startDepthRecording()
          addToMonths(j,0.0.toFloat())
        }  
     
-   initializeGlobals()
+   initializeGlobals(true)
 
 }
 
@@ -2481,6 +2545,7 @@ def resetDepthTotals()
     // purposly dont clear lastrawdepth or rollover wont be correct.
     state.rawDepth = 0.00
     state.lastHourlyDepth = 0.00
+    state.lastMonthDepth = 0.00
     
     sendEvent([name: 'snowLastMonth', value: state.monthDepth, isStateChange: true]) 
     sendEvent([name: 'yearDepthStats', value: state.globalMonths, isStateChange: true])  
@@ -2489,9 +2554,8 @@ def resetDepthTotals()
     sendEvent([name: 'snowMonthly', value: 0.00, isStateChange: true]) 
     sendEvent([name: 'snowYearly', value: 0.00, isStateChange: true])   
     sendEvent([name: 'snowHourly', value: 0.00, isStateChange: true])        
-   
-    initializeGlobals()
     
+    initializeGlobals(true)   
 }
 
 
