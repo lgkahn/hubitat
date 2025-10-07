@@ -30,7 +30,14 @@
 * lgk 10/25 all code changes for wh54 depth sensor and code for snow depth sensing.
 * note to end yearly depth record .. and reset you must manually call the fx from the device panel as snowfalls levels dont conveniently
 * end on jan 1st.
+* lgk 10/25 add wh54 laser depth 4 channels
+ air_chN        = WH54 air height #N in mm; where N = 1..4
+thi_chN        = WH54 total height #N in mm; where N = 1..4
+depth_chN    = WH54 depth (thi-air) #N in mm; where N = 1..4
+ldsbattN        = WH54 voltage #N in Volt e.g. 1.1; where N = 1..4
+ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are return in mm
 
+ 10/6/25 change only record depth changes if at least 5mm or .19 inches... as sensor fluctuates up to 4mm up and down .
 */
 
 metadata {
@@ -2154,7 +2161,17 @@ def storeHourlyDepth()
             def BigDecimal depthDiff = nd - ld
             if (debugDepthStatisics) log.info "Depth diff = $depthDiff"
         
-            def BigDecimal dd = depthDiff
+            def BigDecimal dd = depthDiff // always in mm
+              
+            if (dd < 5.0000)
+              {
+                if (debugDepthStatisics) log.info "Depth diff of $dd is less than 5mm, within routine sensor sensitivity/fluctuations - ignoring!"
+                sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
+                // leave last depth the same
+              }
+             else 
+             {
+                       
             // depth diff is always in mm
             if (unitSystemIsMetric() == false) 
               {
@@ -2175,6 +2192,7 @@ def storeHourlyDepth()
               
             state.lastHourlyDepth = nd          
           }
+          } // deff >= 5mm
       else 
           {
            if (debugDepthStatisics) log.info "Hourly Depth has not gone up!"
@@ -2207,7 +2225,17 @@ def storeDailyDepth()
             if (debugDepthStatisics) log.info "Depth diff = $depthDiff"
         
             
-            def BigDecimal dd = depthDiff
+            def BigDecimal dd = depthDiff //always in mm
+              
+            if (dd < 5.0000)
+              {
+                if (debugDepthStatisics) log.info "Daily depth diff of $dd is less than 5mm, within routine sensor sensitivity/fluctuations - ignoring!"
+                state.lastDayDepth = 0.00
+                // dont store change as it may later go up more
+              }
+             else 
+             { 
+              
             // depth diff is always in mm
             if (unitSystemIsMetric() == false) 
               {
@@ -2231,6 +2259,7 @@ def storeDailyDepth()
               
             state.lastRawDepth = nd          
           }
+          } // > 5mm change
         
       else if ((nd < ld) && (nd > 0.0000)) // if went down not zero and not negative
           {
