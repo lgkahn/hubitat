@@ -93,7 +93,7 @@
 
  * lgk 5/25 add attribibute updateInterval and vpd
 
- * lgk 9/25 add wh54 laser depth 4 channels
+ * lgk 10/25 add wh54 laser depth 4 channels
  air_chN        = WH54 air height #N in mm; where N = 1..4
 thi_chN        = WH54 total height #N in mm; where N = 1..4
 depth_chN    = WH54 depth (thi-air) #N in mm; where N = 1..4
