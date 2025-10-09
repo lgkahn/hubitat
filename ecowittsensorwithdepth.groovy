@@ -38,6 +38,8 @@ ldsbattN        = WH54 voltage #N in Volt e.g. 1.1; where N = 1..4
 ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are return in mm
 
  10/6/25 change only record depth changes if at least 5mm or .19 inches... as sensor fluctuates up to 4mm up and down .
+
+ 10/8/24 v3 of depth code. make the above 5mm a parameter for sensitivity .
 */
 
 metadata {
@@ -230,6 +232,7 @@ metadata {
       
       {
          input(name: "useWh54ForSnowDepthCalculations", type: "bool", title: "Use the WH54 to calculate snow depth and enable statistics?", defaultValue:false) 
+         input(name: "depthSensorSensitivity", type: "number", title: "Depth sensor sensitivity in mm. Changes below this threshold will be ignored?", defaultValue:5)
          input(name: "debugDepthStatisics", type: "bool", title: "Turn on debugging for the Snow Depth Statistics Calculations?", defaultValue:false) 
      }
       
@@ -1975,6 +1978,8 @@ void updated() {
         
           ed = device.getSetting("useWh54ForSnowDepthCalculations")
           log.info "WH54 enable snow depth recording = $ed"
+          
+          log.info "Sensor sensitivity (below which readings will be ignored) ${settings.depthSensorSensitivity}"
       }
       else 
       {
@@ -2162,10 +2167,10 @@ def storeHourlyDepth()
             if (debugDepthStatisics) log.info "Depth diff = $depthDiff"
         
             def BigDecimal dd = depthDiff // always in mm
-              
-            if (dd < 5.0000)
+            def BigDecimal sensitivity = settings.depthSensorSensitivity.toFloat().round(0).toBigDecimal();
+            if (dd < sensitivity)
               {
-                if (debugDepthStatisics) log.info "Depth diff of $dd is less than 5mm, within routine sensor sensitivity/fluctuations - ignoring!"
+                if (debugDepthStatisics) log.info "Depth diff of $dd is less than ${sensitivity}mm, within routine sensor sensitivity/fluctuations - ignoring!"
                 sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
                 // leave last depth the same
               }
@@ -2226,10 +2231,11 @@ def storeDailyDepth()
         
             
             def BigDecimal dd = depthDiff //always in mm
+            def BigDecimal sensitivity = settings.depthSensorSensitivity.toFloat().round(0).toBigDecimal(); 
               
-            if (dd < 5.0000)
+            if (dd < sensitivity)
               {
-                if (debugDepthStatisics) log.info "Daily depth diff of $dd is less than 5mm, within routine sensor sensitivity/fluctuations - ignoring!"
+                  if (debugDepthStatisics) log.info "Daily depth diff of $dd is less than ${sensitivity}mm, within routine sensor sensitivity/fluctuations - ignoring!"
                 state.lastDayDepth = 0.00
                 // dont store change as it may later go up more
               }
