@@ -1383,7 +1383,7 @@ Boolean attributeUpdate(String key, String val) {
   case ~/depth_ch[1-4]/:
     state.sensor = 1;
       // lgk but here all numbers are returned in mm irregardless of foot setting of device so convert
-    if (debugDepthStatisics) log.info "got depth = $val"
+   // if (debugDepthStatisics) log.info "got depth = $val"
     updated = attributeUpdateDepth(val,"depth")
     if (useWh54ForSnowDepthCalculations) state.rawDepth = val;
     break;  
