@@ -2204,13 +2204,14 @@ def storeHourlyDepth()
       {
            if (debugDepthStatisics) log.info "Hourly Depth has gone down!"
            state.lastHourlyDepth = nd       
+           sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
            log.info "Resetting last hourly depth!"
       }
       else 
           {
            if (debugDepthStatisics) log.info "Hourly Depth has not gone up!"
            sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
-           // leave last depth the same    
+           // leave last depth the same if stays the same    
           } 
       }
 }
