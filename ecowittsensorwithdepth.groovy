@@ -39,7 +39,9 @@ ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are 
 
  10/6/25 change only record depth changes if at least 5mm or .19 inches... as sensor fluctuates up to 4mm up and down .
 
- 10/8/24 v3 of depth code. make the above 5mm a parameter for sensitivity .
+ 10/8/25 v3 of depth code. make the above 5mm a parameter for sensitivity .
+
+ 10/14/25 v 4 last hourly depth was never going down if we had a bogus reading.. so reset
 */
 
 metadata {
@@ -2198,6 +2200,12 @@ def storeHourlyDepth()
             state.lastHourlyDepth = nd          
           }
           } // deff >= 5mm
+      else if (nd < ld)
+      {
+           if (debugDepthStatisics) log.info "Hourly Depth has gone down!"
+           state.lastHourlyDepth = nd       
+           log.info "Resetting last hourly depth!"
+      }
       else 
           {
            if (debugDepthStatisics) log.info "Hourly Depth has not gone up!"
