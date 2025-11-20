@@ -142,6 +142,9 @@
  * v 2.30 add option to select how many firmware alerts to show.
  * v 2.40 add condition, impact and description hover text to alerts
  * v 2.41 add hover text as an option as it broke legacy dashboard display
+ * 
+ * v 2.42 as requested add softwareupdatealert, thermostatoperatingstate and fanlevel attrs so therm object on dashboards works.
+
 */
 
 metadata {
@@ -240,6 +243,10 @@ metadata {
         //attribute "weatherVisibility", "number"
         //attribute "weatherWindDirection", "number"
         attribute "weatherWindSpeed", "number"
+        attribute "softwareUpdateAlert", "enum", ["On","Off"]
+        attribute "thermostatOperatingState", "string"
+        attribute "fanOperatingState", "string"
+        attribute "fanLevel", "number"
       
         attribute "zzziFrame", "text"
        
@@ -559,13 +566,14 @@ private processFirmwareAlerts(data)
           if (impact == null) impact = ""
             
           def hoverstr = "Condition: $cond, Description: $desc, Impact: $impact"
-     
+        
           if (timestamp)
             { 
              def fix = 0
              if (enableDSTWorkAround) fix = 1
              def df = convertEpochToSpecificTimezone(timestamp.toInteger())
-             if (debugLevel == "Full") log.warn "Alert [$name, $df]"
+             if (debugLevel == "Full")
+                log.warn "Alert [$name, $df]"
                if (hoverTextOnFirmwareAlerts)  myresults = myresults + "<tr><td><p title=\"${hoverstr}\">${name}</p></td><td>${df}</td></tr>"
                 else myresults = myresults + "<tr><td>${name}</td><td>${df}</td></tr>"
             }
@@ -573,7 +581,7 @@ private processFirmwareAlerts(data)
     }
     if (ctr > 0)
     {
-      myrsults = myresults + "</table>"
+      myresults = myresults + "</table>"
       sendEvent(name: "firmwareAlerts", value: myresults)
     }
   else device.deleteCurrentState('firmwareAlerts')
@@ -874,6 +882,26 @@ private processData(data) {
             sendEvent(name: "seat_heater_rear_left", value: data.climateState.seat_heater_rear_left) 
             sendEvent(name: "seat_heater_rear_right", value: data.climateState.seat_heater_rear_right)
             sendEvent(name: "seat_heater_rear_center", value: data.climateState.seat_heater_rear_center)
+            
+            // lgk handle therm attrs
+            if (debugLevel != "None") log.info "climate on  = ${data.climateState.is_climate_on}"
+            if (data.climateState.is_climate_on  == true)
+            { 
+                sendEvent(name: "operatingState", value: "auto")
+                sendEvent(name: "thermostatOperatingState", value: "auto")
+                sendEvent(name: "fanOperatingState", value: "on")
+                sendEvent(name: "thermostatFanMode", value: "on")                  
+            }
+            else 
+            {  
+                sendEvent(name: "operatingState", value: "off")
+                sendEvent(name: "thermostatOperatingState", value: "idle")
+                sendEvent(name: "fanOperatingState", value: "idle") 
+                sendEvent(name: "thermostatFanMode", value: "idle")           
+            }
+            if ((data.climateState.fan_status != null) && (data.climateState.fan_status.toInteger() > 0))
+               sendEvent(name: "fanLevel", value: data.climateState.fan_status.toInteger())
+            else sendEvent(name: "fanLevel", value: 0)
 
         }
         
@@ -1044,17 +1072,17 @@ def off() {
 }
 
 def heat() {
-	if (debugLevel != "None") log.warn "'heat but not supported.'"
+	if (debugLevel != "None") log.warn "'Heat not supported. Use SetThermostatMode Auto/Off!'"
 	// Not supported
 }
 
 def emergencyHeat() {
-	if (debugLevel != "None") log.warn "'emergencyHeat not supported!'"
+	if (debugLevel != "None") log.warn "'EmergencyHeat not supported!'"
 	// Not supported
 }
 
 def cool() {
-	if (debugLevel != "None") log.warn "'cool not supported'"
+	if (debugLevel != "None") log.warn "'Cool not supported. Use SetThermostatMode Auto/Off'"
 	// Not supported
 }
 
@@ -1709,6 +1737,30 @@ def handleInvalidSpeed(it)
      }
 }
 
+def handleHVACPower(it)
+{
+    // lgk set all attributes here to therm objects work
+      //"HvacPower": { it -> sendEventX(name: "thermostatMode", value: it.value?.hvacPowerValue=="HvacPowerStateOff" ? "off" : "auto") }, // [value:[hvacPowerValue:HvacPowerStateOn], key:HvacPower], [value:[hvacPowerValue:HvacPowerStateOff], key:HvacPower] 
+     def isOn = it.value?.hvacPowerValue
+     def thevalue = "unknown"
+     def fanvalue = "off"
+
+    if (isOn == "HvacPowerStateOff")
+    {
+        thevalue = "off"
+        fanvalue = "idle"
+    }
+     else
+     {
+         thevalue = "auto"
+         fanvalue = "on"
+     }
+     
+     sendEventX(name: "thermostatMode", value: thevalue)
+     sendEventX(name: "thermostatOperatingState", value: thevalue)
+     sendEventX(name: "fanOperatingState", value: fanvalue)  
+}
+
 float getValueMile(Map value) { return (mileageScale == "M") ? getValueFloat(value) : getValueFloat(value)*1.609344 }
 Integer getValueInt(Map value) { return Math.round(getValueFloat(value)) as Integer}
 Boolean getValueBool(Map value) { return (value?.stringValue ?: value?.booleanValue).toBoolean() }
@@ -1751,7 +1803,7 @@ void webSocketProcess(data) {
         "HvacSteeringWheelHeatAuto": { it -> /* Handle HvacSteeringWheelHeatAuto */ },
         "HvacLeftTemperatureRequest": { it -> sendEventX(name: "thermostatSetpoint", value: Math.round( getValueTemp(it?.value) ), unit: tempScale) }, // [value:[doubleValue:20.5], key:HvacLeftTemperatureRequest] 
         "HvacRightTemperatureRequest": { it -> sendEventX(name: "passengerSetpoint", value: Math.round( getValueTemp(it?.value) ), unit: tempScale) },        
-        "HvacPower": { it -> sendEventX(name: "thermostatMode", value: it.value?.hvacPowerValue=="HvacPowerStateOff" ? "off" : "auto") }, // [value:[hvacPowerValue:HvacPowerStateOn], key:HvacPower], [value:[hvacPowerValue:HvacPowerStateOff], key:HvacPower] 
+        "HvacPower": { it -> handleHVACPower(it) }, // [value:[hvacPowerValue:HvacPowerStateOn], key:HvacPower], [value:[hvacPowerValue:HvacPowerStateOff], key:HvacPower] 
         "AutoSeatClimateLeft": { it -> /* Handle AutoSeatClimateLeft */ },
         "AutoSeatClimateRight": { it -> /* Handle AutoSeatClimateRight */ },        
 
@@ -1760,7 +1812,7 @@ void webSocketProcess(data) {
         "CurrentLimitMph": { it -> /* Handle CurrentLimitMph */ },
         "RatedRange": { it -> sendEventX(name: "batteryRange", value: Math.round( getValueMile(it?.value) ), unit: mileageScale ) }, // [value:[stringValue:225.9622591002932], key:RatedRange]
         "RemoteStartEnabled": { it -> /* Handle RemoteStartEnabled */ },
-        "SoftwareUpdateVersion": { it -> /* Handle SoftwareUpdateVersion */ },
+        "SoftwareUpdateVersion": { it -> sendEventX(name: "softwareUpdateAlert", value: (it.value?.stringValue?.trim() ? "On" : "Off")) },
         "Odometer": { it -> sendEventX(name: "odometer", value: getValueMile(it?.value).toInteger(), unit: mileageScale ) }, // [value:[stringValue:3379.656716239699], key:Odometer]
         "DefrostMode": { it -> /* Handle DefrostMode */ },
         "ScheduledChargingPending": { it -> /* Handle ScheduledChargingPending */ },
@@ -1956,5 +2008,4 @@ Boolean sendEventX(Map x)
     }     
     return true
 }
-
 
