@@ -127,6 +127,7 @@
  * v 2.30 add option to select how many firmware alerts to display : warning all cane be a lot...
  * v 2.40 add condition, impact and description hover text to alerts
  * v 2.41 add hover text as an option as it broke legacy dashboard display
+ * v 2.42 add stuff to have fanoperatingstate and thermostatoperatingstate 
  */
 
 import groovy.transform.Field
@@ -598,7 +599,9 @@ def refresh(child) {
                 seat_heater_right: climateState.seat_heater_right, 
                 seat_heater_rear_left: climateState.seat_heater_rear_left,  
                 seat_heater_rear_right: climateState.seat_heater_rear_right,                
-                seat_heater_rear_center: climateState.seat_heater_rear_center    
+                seat_heater_rear_center: climateState.seat_heater_rear_center,
+                is_climate_on: climateState.is_climate_on,
+                fan_status: climateState.fan_status
             ]
         }
         })
@@ -1099,7 +1102,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.41"
+    return "2.42"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
