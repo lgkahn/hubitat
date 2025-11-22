@@ -100,6 +100,8 @@ depth_chN    = WH54 depth (thi-air) #N in mm; where N = 1..4
 ldsbattN        = WH54 voltage #N in Volt e.g. 1.1; where N = 1..4
 ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are return in mm
 
+lgk 11/25 fix code that gets the device type as network ids can vary in width
+
  */
 
 public static String version() { return "v1.23.17"; }
@@ -693,7 +695,17 @@ private Boolean sensorUpdate(String key, String value, Integer id = null, Intege
           if (sensor && sensorIsBundled(id, channel)) sensor.updateDataValue("isBundled", "true");
             
            //lgk add sensorid attribute so child can have specific code based on its type
-            def theid = dni.substring(5,9)
+                       
+           def theloc = 0
+           for (i = 0; i <  dni.length(); i++)
+            {
+            if (dni.charAt(i) == "-")
+             {
+               theloc = i
+             }
+            }
+          
+            def theid = dni.substring(theloc+1,theloc+5)
             def thechild = getChildDevice(dni)
             thechild.sendEvent( [name: "sensorID", value: theid])
             
@@ -1301,22 +1313,35 @@ def formatUpTime(runtime)
 
 // lgk new function to go through children and update sensor ids zzz
 def updateSensorIds()
-{
-ArrayList<String> sensorList = [];
-
-  String value = device.getDataValue("sensorList");
-  if (value) sensorList = value.tokenize("[, ]");
-
-  List<com.hubitat.app.ChildDeviceWrapper> list = getChildDevices();
-  if (list) list.each {
+{   
+    // Example code within a parent driver
+  for (def child : getChildDevices())
+    {
       
-     String dni = it.getDeviceNetworkId();
-     // get type name from array
-     def theid = dni.substring(5,9)
+     log.info "Found child: ${child.displayName} with network ID ${child.deviceNetworkId}"
+    
+     def dni = child.deviceNetworkId
+     log.info "got dni = $dni"
+    
+     // devices can vary in length of network id ie xx-whe54 or xxx-wh54 etc. so find dash bo get the correct
+     // substring and not cause an error.
+    
+     def theloc = 0
+     for (i = 0; i <  dni.length(); i++)
+      {
+        if (dni.charAt(i) == "-")
+        {
+            theloc = i
+        }
+      }
+    
      def thechild = getChildDevice(dni)
-    thechild.sendEvent( [name: "sensorID", value: theid])
+     def theid = dni.substring(theloc+1,theloc+5)
+   
+     log.info "sensorID = $thechild id = $theid" 
+     thechild.sendEvent( [name: "sensorID", value: theid])
+}
 
-  }
 }
 // Recycle bin ----------------------------------------------------------------------------------------------------------------
 
