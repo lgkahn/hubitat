@@ -42,6 +42,10 @@ ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are 
  10/8/25 v3 of depth code. make the above 5mm a parameter for sensitivity .
 
  10/14/25 v 4 last hourly depth was never going down if we had a bogus reading.. so reset
+
+  11/25 fix code that figures out sensor ids.. note  you must run the update Sensor id functoin in the parent weather device before this will work!
+  also, a fix to get the correct sensorid ie wh42 wh54 from the devicdid as it appears some have differing formats.. ie xxx-wh54 vs xx-wh54.
+  also, add the percentage full attribute as requested and an option to calculate this.
 */
 
 metadata {
@@ -189,6 +193,7 @@ metadata {
     attribute "sensorID", "string"
     attribute "snowLastYear", "number"
     attribute "snowHourly", "number"
+    attribute "percentFull", "number"
       
     command "testfx"
     command "testHourlyfx"
@@ -234,6 +239,7 @@ metadata {
       
       {
          input(name: "useWh54ForSnowDepthCalculations", type: "bool", title: "Use the WH54 to calculate snow depth and enable statistics?", defaultValue:false) 
+         input(name: "calculatePercentFull", type: "bool", title: "Use the WH54 to calculate the percent full?", defaultValue:false) 
          input(name: "depthSensorSensitivity", type: "number", title: "Depth sensor sensitivity in mm. Changes below this threshold will be ignored?", defaultValue:5)
          input(name: "debugDepthStatisics", type: "bool", title: "Turn on debugging for the Snow Depth Statistics Calculations?", defaultValue:false) 
      }
@@ -1388,6 +1394,10 @@ Boolean attributeUpdate(String key, String val) {
    // if (debugDepthStatisics) log.info "got depth = $val"
     updated = attributeUpdateDepth(val,"depth")
     if (useWh54ForSnowDepthCalculations) state.rawDepth = val;
+      
+    if (calculatePercentFull)
+      calculatePercentageFull()
+      
     break;  
       
   case "tempinf":
@@ -1971,8 +1981,10 @@ void updated() {
       
       if (sensorid == "WH54")
       {
-          log.warn "Found WH54 Laser Density Sensor... Enable depth recording setting (via command on device panel) if you want to record snow depth, otherwise just raw depth is recored!!"
-          device.updateSetting("WH54LaserDensityDeviceEnabled",[value: true, type: "bool"])
+          log.warn "Found WH54 Laser Density Sensor... Enable depth recording setting (via command on device panel) if you want to record snow depth or percent full, otherwise just raw depth is recored!!"
+          //device.updateSetting("WH54LaserDensityDeviceEnabled",[value: true, type: "bool"])
+          //device.updateSetting("caculatePercentFull",[value: true, type: "bool"])
+          // now that there are two optios do not enable automatically
           
           def mv = device.getSetting("voltageMin")
           def mm = device.getSetting("voltageMax")
@@ -1980,6 +1992,9 @@ void updated() {
         
           ed = device.getSetting("useWh54ForSnowDepthCalculations")
           log.info "WH54 enable snow depth recording = $ed"
+          
+          pf = device.getSetting("calculatePercentFull")
+          log.info "WH54 caulcualte PercentFull = $pf"
           
           log.info "Sensor sensitivity (below which readings will be ignored) ${settings.depthSensorSensitivity}"
       }
@@ -2145,6 +2160,34 @@ def initializeGlobals(force)
     }
 }
 
+def calculatePercentageFull()
+{
+    // caculate the percentage full if using the depth sensor in that manner.
+    
+    if (debugDepthStatisics) log.info "In cacluate Percentage full."
+    
+    def BigDecimal airDepth = device.currentValue("airHeight").toFloat().toBigDecimal() 
+    def BigDecimal currentDepth =  device.currentValue("depth").toFloat().toBigDecimal()
+    
+    if (debugDepthStatisics)
+      {
+       log.info "Total Height: ${airDepth.toString()}"
+       log.info "Current Depth: ${currentDepth.toString()}"
+      }
+    
+    def BigDecimal percentRaw = (currentDepth / airDepth) * 100.00000
+    def BigDecimal percentRounded = percentRaw.toFloat().round(2).toBigDecimal()
+    
+    
+    if (debugDepthStatisics)
+      {
+          log.info "raw Percent Full: ${percentRaw.toString()}"
+          log.info "Percent Full: ${percentRounded.toString()}"
+      }
+    
+     sendEvent([name: 'percentFull', value: percentRounded, unit: "%", isStateChange: true]) 
+}
+
 
 def storeHourlyDepth()
 { 
@@ -2157,7 +2200,7 @@ def storeHourlyDepth()
          def BigDecimal nd = state.rawDepth.toFloat().round(4).toBigDecimal();
         
         if (ld == null) ld = 0.00
-        
+       
           if (debugDepthStatisics) log.info "In store hourly depth  last hourly Depth = ${ld}, current depth = ${nd}"
     
             // convert to inches
