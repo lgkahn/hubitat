@@ -241,7 +241,7 @@ metadata {
          input(name: "useWh54ForSnowDepthCalculations", type: "bool", title: "Use the WH54 to calculate snow depth and enable statistics?", defaultValue:false) 
          input(name: "calculatePercentFull", type: "bool", title: "Use the WH54 to calculate the percent full?", defaultValue:false) 
          input(name: "depthSensorSensitivity", type: "number", title: "Depth sensor sensitivity in mm. Changes below this threshold will be ignored?", defaultValue:5)
-         input(name: "debugDepthStatisics", type: "bool", title: "Turn on debugging for the Snow Depth Statistics Calculations?", defaultValue:false) 
+         input(name: "debugDepthStatisics", type: "bool", title: "Turn on debugging for the Snow Depth Statistics/Percent Full Calculations?", defaultValue:false) 
      }
       
   }
