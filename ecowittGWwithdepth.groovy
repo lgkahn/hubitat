@@ -100,7 +100,7 @@ depth_chN    = WH54 depth (thi-air) #N in mm; where N = 1..4
 ldsbattN        = WH54 voltage #N in Volt e.g. 1.1; where N = 1..4
 ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are return in mm
 
-lgk 11/25 fix code that gets the device type as network ids can vary in width
+lgk 11/25 fix code that gets the device type as network ids can vary in width, also add percentage full option for depth sensor
 
  */
 
