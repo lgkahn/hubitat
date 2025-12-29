@@ -277,9 +277,19 @@ def updated()
       
       if (state.globalDays == null)
         initializeGlobals()  
+        
+   
     }
     
     initialize();
+    
+     log.info "scheduling daily and monthly jobs"
+    unschedule("storeDailyStats")
+    schedule("0 55 23 ? * * *", "storeDailyStats")
+    
+    unschedule("storeMonthlyStats")
+    schedule("0 2 0 1 1-12 ? *","storeMonthlyStats")    
+    
 }
 
 def uninstalled() 
@@ -842,7 +852,34 @@ def refreshThermosat(com.hubitat.app.DeviceWrapper device, retry=false)
     refreshHelper(reJson.changeableValues, "heatSetpoint", "heatingSetpoint", device, tempUnits, false, false, false)
     refreshHelper(reJson.changeableValues, "coolSetpoint", "coolingSetpoint", device, tempUnits, false, false, false)
     refreshHelper(reJson.changeableValues, "mode", "thermostatMode", device, null, false, true)
-
+    
+    // lgk new code to set only setpoint based on mode heat, cool or emergency heat 
+    def themode = reJson.changeableValues.mode
+    
+    //log.warn "got mode = $themode"
+    def coolsp = reJson.changeableValues.coolSetpoint
+    def heatsp = reJson.changeableValues.heatSetpoint
+    
+   // log.warn "coolsp = $coolsp, heatsp = $heatsp"
+    
+    if ((themode == "Heat") || (themode == "EmergencyHeat"))
+        sendEvent(device, [name: "setPoint", value: heatsp.toString(), isStateChange: true])
+    
+    else if (themode == "Cool")
+        sendEvent(device, [name: "setPoint", value: coolsp.toString(), isStateChange: true])  
+      
+    else if (themode == "Off") 
+     sendEvent(device, [name: "setPoint", value: "Off", isStateChange: true])
+    
+    else
+    { 
+     log.warn "Unknown thermostat mode: $themode"
+     sendEvent(device, [name: "setPoint", value: "N/A", isStateChange: true])
+    }
+   
+    // lgk end net setpoint code
+ 
+    
     if ((reJson != null) && (settings?.debugOutput))
         {
             log.debug "reJson = ${reJson}"
