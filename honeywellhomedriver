@@ -48,6 +48,7 @@ metadata {
         attribute "deviceName", "String"
         attribute "isAlive", "enum", ["true", "false"]
         attribute "model", "String"
+        attribute "setPoint", "String"
         // lgk end new attributes
        
 		attribute "emergencyHeatActive", "enum", [null, "true", "false"]
