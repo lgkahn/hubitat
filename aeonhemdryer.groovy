@@ -5,6 +5,7 @@ Custom Laundry monitor device for Aeon HEM V1
 * also add dryer and washer ignore watts setting default 15000 so as to ignore eroneous data.
 * also updated fx to dump out status when saving preferences. Also add missing voltage update before washer/dryer turn off so you can see event.
 * also fx to turn off debug logging after one hour
+* lgk 2026 add level dryer and washer has to be lower then to flag done
 */
 
 metadata {
@@ -13,13 +14,12 @@ metadata {
 		capability "Configuration"
 		capability "Switch"
         capability "PushableButton"
-        //capability "Energy Meter"
+        //capability "EnergyMeter"
 
-        attribute "washerWatts", "string"
-        attribute "dryerWatts", "string"
+        attribute "washerWatts", "number"
+        attribute "dryerWatts", "number"
         attribute "washerState", "string"
         attribute "dryerState", "string"
-        
         command "configure"
         
 		fingerprint deviceId: "0x2101", inClusters: " 0x70,0x31,0x72,0x86,0x32,0x80,0x85,0x60"
@@ -28,6 +28,10 @@ metadata {
 	preferences {
        	input name: "washerRW", type: "number", title: "Washer running watts:", description: "", defaultValue: 300, required: true
         input name: "dryerRW", type: "number", title: "Dryer running watts:", description: "", defaultValue: 300, required: true
+        input name: "washerDoneWatts", type: "number", title: "Washer has to be lower than (Watts) to flag done:", description: "", defaultValue: 10, required: true
+        input name: "dryerDoneWatts", type: "number", title: "Dryer has to be lower than (Watts) to flag done:", description: "", defaultValue: 10, required: true
+  
+        
         input name: "dryerIgnoreRW", type: "number", title: "Over this many watts ignore for dryer?", description: "", defaultValue: 15000, required: true
         input name: "washerIgnoreRW", type: "number", title: "Over this many watts ignore for washer?", description: "", defaultValue: 15000, required: true
         input name: "debug", type: "bool", title: "Enable debug logging?", required: true, defaultValue: false
@@ -55,13 +59,15 @@ def updated()
         log.info "Tracking washer status and operation"
         log.info "Washer running Watts set to $washerRW"
         log.info "Washer Ignore watts set to $washerIgnoreRW"
+        log.info "Washer watts below which is flagged as done: $washerDoneWatts"  
       }
     
     if (enableDryerTracking)
       {
         log.info "Tracking dryer status and operation"
         log.info "Dryer running Watts set to $dryerRW"
-        log.info "Dryer Ignore watts set to $dryerIgnoreRW"
+        log.info "Dryer Ignore watts set to $dryerIgnoreRW"  
+        log.info "Dryer watts below which is flagged as done: $dryerDoneWatts"
       }
 }
  
@@ -123,12 +129,13 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                              sendEvent(name: "washerState", value: "on", displayed: false)
                              state.washerIsRunning = true
                             }
-                        } else 
+                        } else if (value <= settings.washerDoneWatts.toInteger())
                         {
                           //washer is off
                           if (state.washerIsRunning == true)
                             {
                               if (washerState == "on")
+                    
                                 {
                         	    //button event
                                 if (debug) log.debug "Washer turned off"
@@ -164,7 +171,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                           sendEvent(name: "dryerState", value: "on", displayed: false)
                         }
                         state.dryerIsRunning = true
-                        } else
+                        } else if (value <= settings.dryerDoneWatts.toInteger())
                         {
                           if (state.dryerIsRunning == true)
                             {
@@ -185,12 +192,12 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
                 if ((state.dryerIsRunning) && (enableDryerTracking == true))
                 {
                     if (debug) log.debug "Dryer has started"
-                	sendEvent(name: "switch", value: "on", descriptionText: "Dryer has started...", displayed: true)
+                	sendEvent(name: "switch", value: "on", descriptionText: "Dryer has started ($value).", displayed: true)
                 }
                 if ((state.washerIsRunning) && (enableWasherTracking == true))
                 {
                     if (debug) log.debug "Washer has started"
-                	sendEvent(name: "switch", value: "on", descriptionText: "Washer has started...", displayed: true)
+                	sendEvent(name: "switch", value: "on", descriptionText: "Washer has started ($value).", displayed: true)
                 }
                 if  ((state.dryerIsRunning == false) && (state.washerIsRunning == false))
                 {
