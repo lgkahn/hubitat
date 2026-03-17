@@ -4211,8 +4211,8 @@ private void finalizeDeviceType() {
 
 
 def illumEvent( illum, descMap) {
-    logDebug "in lgk illum event"
-    def map = [:]
+    logDebug "In lgk illum event"
+    def map = [:] 
     //def newMap = [:]
     Map statsMap = stringToJsonMap(state.stats2); try {statsMap['illumCtr']++ } catch (e) {statsMap['illumCtr']=1}; state.stats2 = mapToJsonString(statsMap)
     int lux = illum
@@ -4258,11 +4258,10 @@ private void sendDelayedEventIllum(Map map) {
   //  log.info "${device.displayName} ${map.descriptionText} (${map.type})"
 	//state.lastHumi = now()
     Map lastRxMap = stringToJsonMap(state.lastRx2); try {lastRxMap['illumTime'] = now()} catch (e) {lastRxMap['illumTime']=now()-(minReportingTimeIllum * 2000)}; state.lastRx2 = mapToJsonString(lastRxMap)
-    logInfo "in send delayed map = $map"
+    logInfo "In Send/Processing delayed map = $map"
    
     int illum = map.value
     descMap = map.descMap 
-    logInfo "newly contructed descmap = $descMap"
     
     sendHubitatEvent([
             name: 'illuminance',
