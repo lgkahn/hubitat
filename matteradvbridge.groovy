@@ -4230,7 +4230,7 @@ def illumEvent( illum, descMap) {
     def timeElapsed = Math.round((now() - lastRxMap['illumTime'])/1000)
     Integer timeRamaining = (minReportingTimeIllum - timeElapsed) as Integer
     if (timeElapsed >= minReportingTimeIllum) {
-        if (settings?.txtEnable) {log.info "${device.displayName} ${map.descriptionText}"}
+       // if (settings?.txtEnable) {log.info "${device.displayName} ${map.descriptionText}"}
         unschedule("sendDelayedEventIllum")
         lastRxMap['illumTime'] = now()
         logDebug "Not delaying sending $map"
@@ -4244,7 +4244,7 @@ def illumEvent( illum, descMap) {
     }
     else { // queue the event 
     	map.type = "delayed"
-        logInfo "${device.displayName} DELAYING ${timeRamaining} seconds event : ${map}"   
+        logDebug "${device.displayName} DELAYING ${timeRamaining} seconds event : ${map}"   
         
         map.descMap = descMap
         // [callbackType:Report, endpointInt:9, clusterInt:1024, attrInt:0, data:[0:UINT:13586], value:13586, cluster:0400, endpoint:09, attrId:0000]
@@ -4255,8 +4255,7 @@ def illumEvent( illum, descMap) {
 
 private void sendDelayedEventIllum(Map map) {
     def descMap = [:]
-  //  log.info "${device.displayName} ${map.descriptionText} (${map.type})"
-	//state.lastHumi = now()
+ 
     Map lastRxMap = stringToJsonMap(state.lastRx2); try {lastRxMap['illumTime'] = now()} catch (e) {lastRxMap['illumTime']=now()-(minReportingTimeIllum * 2000)}; state.lastRx2 = mapToJsonString(lastRxMap)
     logInfo "In Send/Processing delayed map = $map"
    
