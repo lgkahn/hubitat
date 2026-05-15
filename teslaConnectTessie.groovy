@@ -105,7 +105,7 @@
  * v 2.21 pull out the websocketspeed state that was getting set to false every morning or whenever you schedule to reenable.. It still gets set to false
  * if you manually save preferences.
  *
- * Also, add in a modified version of the outside implemented weather api call and associated attributes,.
+ * Also, add in a modified version of the outside implemented weather api call and associated attributes,
  *
  * v 2.22 get firmware alert api added and attribute and command. Only show last 5 alerts. Also option to call getfirmware alerts on wakeup once a day.
  *
@@ -127,7 +127,9 @@
  * v 2.30 add option to select how many firmware alerts to display : warning all cane be a lot...
  * v 2.40 add condition, impact and description hover text to alerts
  * v 2.41 add hover text as an option as it broke legacy dashboard display
- * v 2.42 add stuff to have fanoperatingstate and thermostatoperatingstate 
+ * v 2.42 add stuff to have fanoperatingstate and thermostatoperatingstate. 
+ * v 2.43 5/26 moved from apps to new integrations category.
+
  */
 
 import groovy.transform.Field
@@ -136,6 +138,7 @@ import java.net.SocketTimeoutException
 definition(
     name: "Tesla Connect Tessie",
     namespace: "lgkahn",
+    menu: "Integrations",
     author: "Larry Kahn",
     description: "Integrate your Tesla car with SmartThings.",
     category: "Convenience",
@@ -881,6 +884,7 @@ def openFrunk(child) {
 	return executeApiCommandWithTimeout(child, "command/activate_front_trunk", 30) 
 }
 
+
 def setSeatHeaters(child, seat,level) {
    if (wakeOnInitialTry)
     { 
@@ -1102,7 +1106,7 @@ def sleepStatus(child) {
 
 def currentVersion()
 {
-    return "2.42"
+    return "2.43"
 }
 
 @Field static final Long oneHourMs = 1000*60*60
