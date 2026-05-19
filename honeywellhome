@@ -37,7 +37,7 @@ second round now keeps track of average runtime for days and months of the year.
 
 Considerable inspiration an example to: https://github.com/dkilgore90/google-sdm-api/
 
-5/26 lgk fix url for api
+5/26 fix url for api change.
 */
 
 import groovy.transform.Field
