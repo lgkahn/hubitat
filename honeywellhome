@@ -36,6 +36,8 @@ Similiarly 6 times for 10 minutes etc.
 second round now keeps track of average runtime for days and months of the year.
 
 Considerable inspiration an example to: https://github.com/dkilgore90/google-sdm-api/
+
+5/26 lgk fix url for api
 */
 
 import groovy.transform.Field
@@ -48,7 +50,7 @@ import groovy.transform.Field
 import java.net.SocketTimeoutException
 import java.time.LocalDate
 
-@Field static String global_apiURL = "https://api.honeywell.com"
+@Field static String global_apiURL = "https://api.honeywellhome.com"
 @Field static String global_redirectURL = "https://cloud.hubitat.com/oauth/stateredirect"
 
 definition(
