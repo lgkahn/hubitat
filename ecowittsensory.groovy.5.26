@@ -22,6 +22,7 @@
 * https://www.reddit.com/r/myweatherstation/comments/18ngx4c/ecowitt_soil_moisture_showing_ad_in_additional_to/
 * lgk - added vpd attribute
 * lgk - add wh52
+ * lgk - 5/29/26 fix wh52 attributes
 */
 
 public static String gitHubUser() { return "sburke781"; }
@@ -1388,6 +1389,7 @@ Boolean attributeUpdate(String key, String val) {
 
   case ~/soilmoisture([1-9]|1[0-6])$/:
   case ~/soil_ec_humid([1-9]|1[0-6])$/:
+  case ~/soil_ec_hum([1-9]|1[0-6])$/:
     updated = attributeUpdateHumidity(val, "humidity");
     break;  
 
@@ -1396,6 +1398,7 @@ Boolean attributeUpdate(String key, String val) {
     break;  
 
   case ~/soil_ec_ad([1-9]|1[0-6])$/:
+  case ~/soil_ec_hum_ad([1-9]|1[0-6])$/:
      updated = attributeUpdateSoilAD(val, "soilHumAD")
      break;
 
