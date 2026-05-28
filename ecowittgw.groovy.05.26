@@ -119,7 +119,9 @@
  * 2025-01-14 - lgk - fixed missing break statement when processing srain_piezo and raining attributes
  * 2025-07-03 - ikishk and lgk - cater for 16 soil moisture channels, addition of soilAD reading for soil moisture sensors (seems to be raw milivolt reading)
  * 2025-07-04 - lgk - added updateInterval and vpd attributes
- * 2026-05-05 - lgk - add wh52 soil sensor
+ * 2026-05-05 - lgk - add wh52 soil sensor - 
+ * 2-26-06-29 - lgk humid changes
+
  */
 import groovy.json.JsonSlurper;
 
@@ -670,7 +672,7 @@ private String sensorName(Integer id, Integer channel) {
                   "WH80": "Wind Solar Sensor",
                   "WH34": "Water/Soil Temperature Sensor",
                   "WFST": "WeatherFlow Station",
-                  "WN35": "Leaf Wetness Sensor"];
+                  "WN35": "Leaf Wetness Sensor",
                   "WH52": "Soil Moisture Multi Sensor"];
 
   String model = sensorId."${sensorModel(id)}";
@@ -969,6 +971,8 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
     case ~/soil_ec_temp([1-9]|1[0-6])$/:
     case ~/soil_ec_humid([1-9]|1[0-6])$/:
     case ~/soil_ec_humid_ad([1-9]|1[0-6])$/:
+    case ~/soil_ec_hum([1-9]|1[0-6])$/:
+    case ~/soil_ec_hum_ad([1-9]|1[0-6])$/:
       updated = sensor(it.key, it.value, 14, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
       break;
 
