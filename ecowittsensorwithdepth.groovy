@@ -43,7 +43,7 @@ ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are 
 
  10/14/25 v 4 last hourly depth was never going down if we had a bogus reading.. so reset
 
-  11/25 fix code that figures out sensor ids.. note  you must run the update Sensor id functoin in the parent weather device before this will work!
+  11/25 fix code that figures out sensor ids.. note  you must run the update Sensor id function in the parent weather device before this will work!
   also, a fix to get the correct sensorid ie wh42 wh54 from the devicdid as it appears some have differing formats.. ie xxx-wh54 vs xx-wh54.
   also, add the percentage full attribute as requested and an option to calculate this.
 */
@@ -1392,7 +1392,7 @@ Boolean attributeUpdate(String key, String val) {
     state.sensor = 1;
      // lgk but here all numbers are returned in mm irregardless of foot setting of device so convert 
      
-    if (debugDepthStatisics) log.info "got raw depth = $val mm"
+   // if (debugDepthStatisics) log.info "got raw depth = $val mm"
     updated = attributeUpdateDepth(val,"depth")
     if (useWh54ForSnowDepthCalculations) state.rawDepth = val;
         
@@ -1729,14 +1729,18 @@ private Object htmlGetRepository() {
   // Return an Object containing all the templates
   // or null if something went wrong
   //
-    //log.warn "in html get repostitory"
+   // log.warn "in html get repostitory"
     
   Object repository = null;
 
   try {
   //  String repositoryText = "https://mircolino.github.io/ecowitt/ecowitt.json".toURL().getText(); 
-      String repositoryText = "http://mail.lgk.com/ecowitt1.css".toURL().getText();
-     // log.debug "got json = $repositoryText"
+  //    String repositoryText = "http://mail.lgk.com/ecowitt1.css".toURL().getText();   
+
+   def byte[] dBytes = downloadHubFile("ecowitt1.css")
+   def String repositoryText  = new String(dBytes)
+   
+    //  log.debug "got json = $repositoryText"
     if (repositoryText) {
       // text -> json
       Object parser = new groovy.json.JsonSlurper();
@@ -1744,7 +1748,7 @@ private Object htmlGetRepository() {
     }
   }
   catch (Exception e) {
-    logError("Exception in versionUpdate(): ${e}");
+    logError("Exception in htmlGetRepository(): ${e}");
   }
 
   return (repository);
@@ -2248,8 +2252,42 @@ def storeHourlyDepth()
       {
            if (debugDepthStatisics) log.info "Hourly Depth has gone down!"
            state.lastHourlyDepth = nd       
-           sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
+          // sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
            log.info "Resetting last hourly depth!"
+          
+          // new code store negative in hourly to show melting.
+          def BigDecimal depthDiff = nd - ld
+          def BigDecimal dd = depthDiff // always in mm
+          def BigDecimal sensitivity = settings.depthSensorSensitivity.toFloat().round(0).toBigDecimal();
+          log.warn "negative depth diff = $dd"
+            
+          if (dd  > ((-1.0) * sensitivity)) // less than here as dealing with min use ie - .5 mm etc       
+              {
+                if (debugDepthStatisics) log.info "Depth diff reduction of $dd is less than ${sensitivity}mm, within routine sensor sensitivity/fluctuations - ignoring!"
+                sendEvent([name: 'snowHourly', value: 0.0, isStateChange: true]) 
+                // leave last depth the same
+              }
+         
+             else 
+             {                   
+              // depth diff is always in mm
+              if (unitSystemIsMetric() == false) 
+              {
+               //convert to inches or mm if decimal
+               // lgk this is in mm so covert to feet then inches
+               dd = (depthDiff * 0.003280840) * 12.0000000
+              }
+              
+            if (debugDepthStatisics) log.info "new hourly depth decrease in inches/mm = $dd"
+            def BigDecimal rounddd = dd.toFloat().round(1).toBigDecimal();
+            sendEvent([name: 'snowHourly', value: rounddd, isStateChange: true]) 
+             
+            if (debugDepthStatisics) 
+              {
+                  log.info "Reducing hourly depth total:  = $dd"
+              }
+                    
+          }
       }
       else 
           {
@@ -2263,6 +2301,7 @@ def storeHourlyDepth()
 def storeDailyDepth()
 { 
     log.info "In store daily depth"
+    def BigDecimal amountGoneDown = 0.00
    
     if ((state.rawDepth != null) && (state.rawDepth != 0))
     { 
@@ -2288,7 +2327,7 @@ def storeDailyDepth()
               
             if (dd < sensitivity)
               {
-                  if (debugDepthStatisics) log.info "Daily depth diff of $dd is less than ${sensitivity}mm, within routine sensor sensitivity/fluctuations - ignoring!"
+                if (debugDepthStatisics) log.info "Daily depth diff of $dd is less than ${sensitivity}mm, within routine sensor sensitivity/fluctuations - ignoring!"
                 state.lastDayDepth = 0.00
                 // dont store change as it may later go up more
               }
@@ -2327,6 +2366,33 @@ def storeDailyDepth()
              state.lastDayDepth = 0.00
              if (debugDepthStatisics) log.info "Also resetting/reducing lastHourlyDepth to last reading: $nd from ${state.lastHourlyDepth} - otherwise hourly depths never go up due to melting!"
              state.lastHourlyDepth = nd
+              
+             // lgk show negative daily in dashboard to show daily melting.
+             def BigDecimal depthDiff = nd - ld
+             if (debugDepthStatisics) log.info "Depth reduction/diff = $depthDiff"
+        
+            
+            def BigDecimal dd = depthDiff //always in mm
+            def BigDecimal sensitivity = settings.depthSensorSensitivity.toFloat().round(0).toBigDecimal(); 
+              
+            if (dd < (-1.0 * sensitivity))
+              {
+                if (debugDepthStatisics) log.info "Daily depth reduction/diff of $dd is less than ${sensitivity}mm, within routine sensor sensitivity/fluctuations - ignoring!"
+              }
+             else 
+             { 
+              // depth diff is always in mm
+              if (unitSystemIsMetric() == false) 
+               {
+               //convert to inches or mm if decimal
+               // lgk this is in mm so covert to feet then inches
+               dd = (depthDiff * 0.003280840) * 12.0000000
+               } 
+               
+              def BigDecimal rounddd =  dd.toFloat().round(1).toBigDecimal(); 
+              amountGoneDown = rounddd
+              // dont put negative in array as it wont add up right for the month but do show in attribute            
+             }  
           }
         
       else 
@@ -2348,7 +2414,12 @@ def storeDailyDepth()
          addToDays(intday,state.lastDayDepth) 
           if (debugDepthStatisics) log.info "day total: ${state.lastDayDepth}, global day stats: ${state.globalDays}"    
     
-         sendEvent([name: 'snowDaily', value: state.lastDayDepth, isStateChange: true]) 
+        //handle negative only in snowdaily attr
+        if (amountGoneDown < 0.00)
+           sendEvent([name: 'snowDaily', value: amountGoneDown, isStateChange: true]) 
+        else
+           sendEvent([name: 'snowDaily', value: state.lastDayDepth, isStateChange: true]) 
+        
          sendEvent([name: 'monthDepthStats', value: state.globalDays, isStateChange: true])         
     
         // now add last days depth to the monthly and yearly running totals
