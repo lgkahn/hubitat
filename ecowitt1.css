@@ -1,0 +1,50 @@
+{
+  "name": "Ecowitt HTML template repository",
+  "templates": {
+    "2":  "<i class=\"ewi-air\" style=\"color:#${aqiColor}\"></i> ${aqiDanger}<br>AQI: ${aqi}<br>PM2.5: ${pm25} &micro;g/m&sup3;",
+    "2A": "<i class=\"ewi-air\" style=\"color:#${aqiColor_avg_24h}\"></i> ${aqiDanger_avg_24h}<br>AQI: ${aqi_avg_24h}<br>PM2.5: ${pm25_avg_24h} &micro;g/m&sup3;",      
+    "2B": "<i class=\"ewi-air\" style=\"color:#${aqiColor}\"></i> ${aqiDanger}<br>AQI: ${aqi}<br>PM2.5: ${pm25} &micro;g/m&sup3;<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "5":  "<i class=\"ewi-water\" style=\"color:#${leakColor}\"></i> ${leakMsg}",
+    "5B": "<i class=\"ewi-water\" style=\"color:#${leakColor}\"></i> ${leakMsg}<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "7":  "<i class=\"ewi-UV\" style=\"color:#${ultravioletColor}\"></i> ${ultravioletDanger}<br>UVI ${ultravioletIndex}<br><i class=\"ewi-light\"></i> ${illuminance} lux",
+    "9B": "<i class=\"ewi-batt${batteryTempIcon}\"></i> Temp: ${batteryTemp} %<br><i class=\"ewi-batt${batteryRainIcon}\"></i> Rain: ${batteryRain} %<br><i class=\"ewi-batt${batteryWindIcon}\"></i> Wind: ${batteryWind} %",
+    "12": "<i class=\"ewi-air\" style=\"color:#${aqiColor}\"></i> ${aqiDanger}<br>AQI: ${aqi}<br>PM2.5: ${pm25} &micro;g/m&sup3;<br>PM10: ${pm10} &micro;g/m&sup3;<br>CO2: ${carbonDioxide} ppm",
+    "12A":"<i class=\"ewi-air\" style=\"color:#${aqiColor_avg_24h}\"></i> ${aqiDanger_avg_24h}<br>AQI: ${aqi_avg_24h}<br>PM2.5: ${pm25_avg_24h} &micro;g/m&sup3;<br>PM10: ${pm10_avg_24h} &micro;g/m&sup3;<br>CO2: ${carbonDioxide_avg_24h} ppm"
+      },
+  "templatesImperial": {
+    "0":  "<i class=\"ewi-temperature\"></i> ${temperature} &deg;F<br><i class=\"ewi-humidity\"></i> ${humidity} %",
+    "0B": "<i class=\"ewi-temperature\"></i> ${temperature} &deg;F<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "1":  "<i class=\"ewi-temperature\"></i> ${temperature} &deg;F<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-pressure\"></i> ${pressure} inHg",
+    "1A": "<i class=\"ewi-temperature\" style=\"color:#${simmerColor}\"></i> ${temperature} &deg;F<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-pressure\"></i> ${pressure} inHg",    
+    "1B": "<i class=\"ewi-temperature\"></i> ${temperature} &deg;F<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-pressure\"></i> ${pressure} inHg<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "3":  "<i class=\"ewi-windspeed\"></i> ${windSpeed} mph<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}<br><i class=\"ewi-rain\"></i> ${rainRate} in/h<br><i class=\"ewi-light\"></i> ${illuminance} lux<br>UV ${ultravioletDanger}",
+    "3A":  "<i class=\"ewi-temperature\" style=\"color:#${simmerColor}\"></i> ${temperature} &deg;F<br><i class=\"ewi-windspeed\"></i> ${windSpeed} mph<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}<br><i class=\"ewi-light\"></i> ${illuminance} lux<br>UV ${ultravioletDanger}",
+    "4":  "<i class=\"ewi-lightning\"></i> ${lightningDistance} mi<br><i class=\"ewi-time\"></i> ${lightningTime}<br>${lightningCount} total",
+    "4B": "<i class=\"ewi-lightning\"></i> ${lightningDistance} mi<br><i class=\"ewi-time\"></i> ${lightningTime}<br>${lightningCount} total<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "6":  "<i class=\"ewi-temperature\"></i>${temperature} &deg;F<br><i class=\"ewi-humidity\"></i>${humidity} %<br><i class=\"ewi-dew\"></i>${dewPoint} &deg;F<br><i class=\"ewi-heat\"></i>${simmerIndex} SSI<br><p style=\"color:#${simmerColor}\">${simmerDanger}</p>",
+    "8":  "<i class=\"ewi-rain\"></i> ${rainRate} in/h<br><i class=\"ewi-windspeed\"></i> ${windSpeed} mph<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}",
+    "8A": "<i class=\"ewi-rain\"></i> ${rainRate} in/h<br><i class=\"ewi-windspeed\" style=\"color:#${windColor}\"></i> ${windSpeed} mph<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}",
+    "10": "<i class=\"ewi-rain\"></i> ${rainRate} in/hr<br>Hourly: ${rainHourly} in<br>Daily: ${rainDaily} in<br>Monthly: ${rainMonthly} in<br>Total: ${rainTotal} in",
+    "10A": "<i class=\"ewi-rain\"></i> ${rainRate} in/hr<br>Hourly: ${rainHourly} in<br>Daily: ${rainDaily} in<br>Monthly: ${rainMonthly} in<br>Yearly: ${rainYearly} in",
+    "11": "<i class=\"ewi-wind\"></i> ${windDirection} &deg; ${windCompass}<br><i class=\"ewi-windspeed\" style=\"color:#${windColor}\"></i> ${windSpeed} mph<br>Gust: ${windGust} mph<br>Daily Max: ${windGustMaxDaily} mph",
+    "11A": "<i class=\"ewi-wind\"></i> ${windDirection} &deg; ${windCompass}<br><i class=\"ewi-windspeed\"</i> ${windSpeed} mph<br>Gust: ${windGust} mph<br>Daily Max: ${windGustMaxDaily} mph",
+    "13": "<i class=\"ewi-snow\"></i>Hourly: ${snowHourly} in<br>Daily: ${snowDaily} in<br>Monthly: ${snowMonthly} in<br>Yearly Total: ${snowYearly} in"
+  },
+  "templatesMetric": {
+    "0":  "<i class=\"ewi-temperature\"></i> ${temperature} &deg;C<br><i class=\"ewi-humidity\"></i> ${humidity} %",
+    "0B": "<i class=\"ewi-temperature\"></i> ${temperature} &deg;C<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "1":  "<i class=\"ewi-temperature\"></i> ${temperature} &deg;C<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-pressure\"></i> ${pressure} hPa",
+    "1A": "<i class=\"ewi-temperature\" style=\"color:#${simmerColor}\"></i> ${temperature} &deg;C<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-pressure\"></i> ${pressure} hPa",    
+    "1B": "<i class=\"ewi-temperature\"></i> ${temperature} &deg;C<br><i class=\"ewi-humidity\"></i> ${humidity} %<br><i class=\"ewi-pressure\"></i> ${pressure} hPa<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "3":  "<i class=\"ewi-windspeed\"></i> ${windSpeed} km/h<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}<br><i class=\"ewi-rain\"></i> ${rainRate} mm/h<br><i class=\"ewi-light\"></i> ${illuminance} lux<br><i class=\"ewi-UV\" style=\"color:#${ultravioletColor}\"></i>UV ${ultravioletDanger}",
+    "3A":  "<i class=\"ewi-temperature\" style=\"color:#${simmerColor}\"></i> ${temperature} &deg;C<br><i class=\"ewi-windspeed\"></i> ${windSpeed} kn/hr<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}<br><i class=\"ewi-light\"></i> ${illuminance} lux<br>UV ${ultravioletDanger}",
+    "4B": "<i class=\"ewi-lightning\"></i> ${lightningDistance} km<br><i class=\"ewi-time\"></i> ${lightningTime}<br>${lightningCount} total<br><i class=\"ewi-batt${batteryIcon}\"></i> ${battery} %",
+    "6":  "<i class=\"ewi-temperature\"></i>${temperature} &deg;C<br><i class=\"ewi-humidity\"></i>${humidity} %<br><i class=\"ewi-dew\"></i>${dewPoint} &deg;C<br><i class=\"ewi-heat\"></i>${simmerIndex} SSI<br><p style=\"color:#${simmerColor}\">${simmerDanger}</p>",
+    "8":  "<i class=\"ewi-rain\"></i> ${rainRate} mm/h<br><i class=\"ewi-windspeed\"></i> ${windSpeed} km/h<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}",
+    "8A": "<i class=\"ewi-rain\"></i> ${rainRate} mm/h<br><i class=\"ewi-windspeed\" style=\"color:#${windColor}\"></i> ${windSpeed} km/h<br><i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}",
+    "10": "<i class=\"ewi-rain\"></i> ${rainRate} mm/hr<br>Hourly: ${rainHourly} mm<br>Daily: ${rainDaily} mm<br>Monthly: ${rainMonthly} mm<br>Total: ${rainTotal} mm",
+    "10A": "<i class=\"ewi-rain\"></i> ${rainRate} mm/hr<br>Hourly: ${rainHourly} mm<br>Daily: ${rainDaily} mm<br>Monthly: ${rainMonthly} mm<br>Total: ${rainYearly} mm",
+    "11": "<i class=\"ewi-wind${windCompass}\"></i> ${windDirection} &deg; ${windCompass}<br><i class=\"ewi-windspeed\" style=\"color:#${windColor}\"></i>${windSpeed} km/h<br>Gust: ${windGust} km/h<br>Daily Max: ${windGustMaxDaily} km/h",
+    "13": "<i class=\"ewi-snow\"></i>Hourly ${snowHourly} mm<br>Daily: ${snowDaily} mm<br>Monthly: ${snowMonthly} mm<br>Yearly Total: ${snowYearly} mm"
+ }
+}
