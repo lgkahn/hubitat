@@ -46,6 +46,9 @@ ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are 
   11/25 fix code that figures out sensor ids.. note  you must run the update Sensor id function in the parent weather device before this will work!
   also, a fix to get the correct sensorid ie wh42 wh54 from the devicdid as it appears some have differing formats.. ie xxx-wh54 vs xx-wh54.
   also, add the percentage full attribute as requested and an option to calculate this.
+
+6/26 new fx to override sensor id to set it as wh54 as one persons is misconfigured from ecowitt as ws90
+
 */
 
 metadata {
@@ -204,6 +207,8 @@ metadata {
     command "startDepthRecording"
     command "disableDepthRecording"
     command "resetDepthTotals"
+      
+    command  "overrideSensorIDtoWH54"
       
   }
 
@@ -1740,7 +1745,7 @@ private Object htmlGetRepository() {
    def byte[] dBytes = downloadHubFile("ecowitt1.css")
    def String repositoryText  = new String(dBytes)
    
-    //  log.debug "got json = $repositoryText"
+      //log.debug "got json = $repositoryText"
     if (repositoryText) {
       // text -> json
       Object parser = new groovy.json.JsonSlurper();
@@ -2690,6 +2695,15 @@ def disableDepthRecording()
     disableStats()
 }
 
+
+def overrideSensorIDtoWH54()
+
+{
+  
+    sendEvent([name: "sensorID", value:"WH54", isStateChange: true])
+               
+}
+              
 def resetDepthTotals()
 {
     log.info "Resetting monthly/Yearly depth totals! (Leaves last years total along)"
