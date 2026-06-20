@@ -208,7 +208,7 @@ metadata {
     command "disableDepthRecording"
     command "resetDepthTotals"
       
-    command  "overrideSensorIDtoWH54"
+    //command  "overrideSensorIDtoWH54"
       
   }
 
