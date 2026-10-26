@@ -5495,6 +5495,10 @@ def getDiagData() {
                             <label for="exampleFormControlTextarea1">External URL (Click/Tap to Select)</label>
                             <textarea class="form-control z-depth-1" id="exampleFormControlTextarea1" onclick="this.focus();this.select()" rows="3" readonly>${getAppEndpointUrl("diagData")}</textarea>
                         </div>
+                          <div class="form-group ml-0 mr-4">
+                            <label for="exampleFormControlTextarea1">External URL (Click/Tap to Select)</label>
+                            <textarea class="form-control z-depth-1" id="exampleFormControlTextarea2" onclick="this.focus();this.select()" rows="3" readonly>${getLocalEndpointUrl("diagData")}</textarea>
+                        </div>
                     </div>
                 </div>
             </body>
@@ -6093,10 +6097,14 @@ def renderConfig() {
                 <h5>1. Install the node server</h5>
                 <h5>2. Start the node server</h5>
                 <h5>3. Open the servers web config page</h5>
-                <h5>4. Copy the following URL and use it in the appCallbackUrl field of the Server Web Config Page</h5>
+                <h5>4. Copy the following URL and use it in the appCallbackUrl field of the Server Web Config Page, You can use either the local or cloud version.</h5>
             </div>
             <div class="all-copy nameContainer mx-0 mb-2 p-1">
                 <p id="copyCallback" class="m-0 p-0">${getAppEndpointUrl("receiveData") as String}</p>
+            </div>
+
+            <div class="all-copy nameContainer mx-0 mb-2 p-1">
+                <p id="copyCallback" class="m-0 p-0">${getLocalEndpointUrl("receiveData") as String}</p>
             </div>
         </div>""" : """
         <div id="cloudServerDiv" class="w-100 mb-3">
