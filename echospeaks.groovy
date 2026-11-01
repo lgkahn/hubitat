@@ -32,7 +32,7 @@ import java.util.concurrent.Semaphore
 //************************************************
 //*               STATIC VARIABLES               *
 //************************************************
-@Field static final String appVersionFLD  = '4.3.0.1'
+@Field static final String appVersionFLD  = '4.3.0.2'
 @Field static final String appModifiedFLD = '2025-09-10'
 @Field static final String gitBranchFLD   = 'master'
 @Field static final String platformFLD    = 'Hubitat'
@@ -106,6 +106,7 @@ import java.util.concurrent.Semaphore
 definition(
     name                : "Echo Speaks",
     namespace           : "tonesto7",
+	menu				: "Integrations",
     author              : "Anthony Santilli",
     description         : "Integrate your Amazon Echo devices into your Hubitat environment to create virtual Echo Devices. This allows you to speak text, make announcements, control media playback including volume, and many other Alexa features.",
     category            : "My Apps",
