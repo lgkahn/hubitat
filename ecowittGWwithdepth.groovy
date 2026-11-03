@@ -70,7 +70,6 @@
  * 2020.09.17 - Added (back) real-time AQI index, color and danger
  * 2020.09.20 - https://github.com/lymanepp: Added Summer Simmer Index attributes
  *            - Added preferences to selectively calculate HeatIndex, SimmerIndex, WindChill and DewPoint on a per-sensor basis
- * 2020.09.21 - https://github.com/lymanepp: Improved accuracy of dew point calculations
  * 2020.10.02 - Added WeatherFlow Smart Weather Stations local UDP support
  * 2020.10.06 - Fixed a minor issue with lightning attributes
  *            - Added new templates to the template repository
@@ -102,9 +101,16 @@ ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are 
 
 lgk 11/25 fix code that gets the device type as network ids can vary in width, also add percentage full option for depth sensor
 
+lgk 11/26 add support for wh52 new soil sensor attrib are
+soil_ec - elec. conducitivity
+soil_ec_ad - Analog-to-Digital Converter (ADC) raw count for the electrical conductivity
+soil_ec_hum - soil humidity 0 -100 percent
+soil_ec_hum_ad - soil humididty raw adc value
+soil_ec_temp - soil temp
+soil_ec_batt - soil sensor battery level
  */
 
-public static String version() { return "v1.23.17"; }
+public static String version() { return "v1.24.17"; }
 
 // Metadata -------------------------------------------------------------------------------------------------------------------
 
@@ -487,8 +493,8 @@ private void sensorMapping(Map data) {
   //
   // Remap sensors, boundling or decoupling devices, depending on what's present
   //
-  //                     0       1       2       3       4       5       6       7       8       9       10       11      12      13
-  String[] sensorMap =  ["WH69", "WH25", "WH26", "WH31", "WH40", "WH41", "WH51", "WH55", "WH57", "WH80", "WH34","WFST", "WS90", "WH54"];
+  //                     0       1       2       3       4       5       6       7       8       9       10       11      12      13      14
+  String[] sensorMap =  ["WH69", "WH25", "WH26", "WH31", "WH40", "WH41", "WH51", "WH55", "WH57", "WH80", "WH34","WFST", "WS90", "WH54", "WH52"];
 
   logDebug("sensorMapping()");
    // log.debug "data = $data"
@@ -563,8 +569,8 @@ String sensorModel(Integer id) {
 
   // assert (id >= 0 && id <= 10);
 
-  //                      0     1     2     3     4     5     6     7     8     9     10    11     12   13
-  // String sensorMap = "[WH69, WH25, WH26, WH31, WH40, WH41, WH51, WH55, WH57, WH80, WH34, WFST, WS90, WH54]";
+  //                      0     1     2     3     4     5     6     7     8     9     10    11     12   13     14
+  // String sensorMap = "[WH69, WH25, WH26, WH31, WH40, WH41, WH51, WH55, WH57, WH80, WH34, WFST, WS90, WH54, WH51]";
   //
   String sensorMap = device.getDataValue("sensorMap");
 
@@ -590,7 +596,8 @@ private String sensorName(Integer id, Integer channel) {
                   "WH34": "Water/Soil Temperature Sensor",
                   "WFST": "WeatherFlow Station",
                   "WS90": "WittBoy Weather Station",
-                  "WH54": "Laser Depth Sensor"];
+                  "WH54": "Laser Depth Sensor",
+                  "WH52": "Soil 3-in-1 Moisture Sensor"];
 
   String model = sensorId."${sensorModel(id)}";
 
@@ -909,6 +916,20 @@ private Boolean attributeUpdate(Map data, Closure sensor) {
       updated = sensor(it.key, it.value, 6, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
       break;
 
+      //
+    // Multi-channel Soil Moisture Sensor (WH52)
+    // lgk new wh52
+    case ~/soil_ec_batt([1-16])/:
+    case ~/soil_ec_hum([1-16])/:
+    case ~/soil_ec_temp([1-16])/:
+    case ~/soil_ec_ad([1-16])/:
+    case ~/soil_ec_hum_ad([1-16])/:
+    case ~/soil_ec([1-16])/:
+      updated = sensor(it.key, it.value, 14, java.util.regex.Matcher.lastMatcher.group(1).toInteger());
+      break;
+     
+        
+        
     //
     // Multi-channel Water Leak Sensor (WH55)
     //
