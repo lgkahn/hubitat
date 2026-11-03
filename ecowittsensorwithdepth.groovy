@@ -46,8 +46,7 @@ ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are 
   11/25 fix code that figures out sensor ids.. note  you must run the update Sensor id function in the parent weather device before this will work!
   also, a fix to get the correct sensorid ie wh42 wh54 from the devicdid as it appears some have differing formats.. ie xxx-wh54 vs xx-wh54.
   also, add the percentage full attribute as requested and an option to calculate this.
-
-6/26 new fx to override sensor id to set it as wh54 as one persons is misconfigured from ecowitt as ws90
+ lgk 11/26 add wh52 support
 
 */
 
@@ -198,6 +197,12 @@ metadata {
     attribute "snowHourly", "number"
     attribute "percentFull", "number"
       
+    //lgk 11/26 new wh52 soil attributes
+    attribute "soilElecConductivity", "number"
+    attribute "soilADCRaw", "number"  
+    attribute "soilMoistureRaw", "number"
+    attribute "soilTemperature", "number"
+ 
     command "testfx"
     command "testHourlyfx"
     command "testDailyfx"
@@ -207,8 +212,6 @@ metadata {
     command "startDepthRecording"
     command "disableDepthRecording"
     command "resetDepthTotals"
-      
-    //command  "overrideSensorIDtoWH54"
       
   }
 
@@ -1363,7 +1366,9 @@ Boolean attributeUpdate(String key, String val) {
   case ~/batt_wf[1-8]/:
   case ~/soilbatt[1-8]/:
   case ~/tf_batt[1-8]/:
-  case ~/ldsbatt[1-4]/:  
+  case ~/ldsbatt[1-4]/:
+  // lgk wh52 batter
+  case  ~/soil_ec_batt[1-16]/:
     state.sensor = 1;
     updated = attributeUpdateBattery(val, "battery", "batteryIcon", "batteryOrg", 1);  // voltage
     break;
@@ -1426,6 +1431,8 @@ Boolean attributeUpdate(String key, String val) {
   case ~/humidity_wf[1-8]/:
   case ~/humidity[1-8]/:
   case ~/soilmoisture[1-8]/:
+  // lgk wh52 new attr
+  case  ~/soil_ec_hum[1-16]/:
   case "humi_co2":
     state.sensor = 1;
     if (debug) log.debug "Updating humidity: $val"
@@ -1436,6 +1443,26 @@ Boolean attributeUpdate(String key, String val) {
     if (attributeUpdateSimmerIndex(val, "simmerIndex", "simmerDanger", "simmerColor")) updated = true;
     break;
 
+      
+    // lgk new wh52 raw settings
+   
+    case  ~/soil_ec[1-16]/:
+      updated = attributeUpdateNumer(val, "soilElecConductivity", "",0)
+      break;
+      
+    case  ~/soil_ec_ad[1-16]/:
+      updated = attributeUpdateNumer(val, "soilADCRaw","",0)
+      break;
+      
+    case  ~/soil_ec_hum_ad[1-16]/:
+      updated = attributeUpdateNumber(val, "soilMoistureRaw","",0)
+      break;
+      
+    case  ~/soil_ec_temp[1-16]/:
+     update = attributeUpdateTemperature(val,"soilTemperature")
+     break;      
+  // lgk end wh52 new code 
+       
   case ~/baromrelin_wf[1-8]/:
   case "baromrelin":
     state.sensor = 1;
@@ -1745,7 +1772,7 @@ private Object htmlGetRepository() {
    def byte[] dBytes = downloadHubFile("ecowitt1.css")
    def String repositoryText  = new String(dBytes)
    
-      //log.debug "got json = $repositoryText"
+    //  log.debug "got json = $repositoryText"
     if (repositoryText) {
       // text -> json
       Object parser = new groovy.json.JsonSlurper();
@@ -2695,15 +2722,6 @@ def disableDepthRecording()
     disableStats()
 }
 
-
-def overrideSensorIDtoWH54()
-
-{
-  
-    sendEvent([name: "sensorID", value:"WH54", isStateChange: true])
-               
-}
-              
 def resetDepthTotals()
 {
     log.info "Resetting monthly/Yearly depth totals! (Leaves last years total along)"
