@@ -46,7 +46,9 @@ ldsheat_chN   lgk bug in ecowitt regardless of sensor all above depth attrs are 
   11/25 fix code that figures out sensor ids.. note  you must run the update Sensor id function in the parent weather device before this will work!
   also, a fix to get the correct sensorid ie wh42 wh54 from the devicdid as it appears some have differing formats.. ie xxx-wh54 vs xx-wh54.
   also, add the percentage full attribute as requested and an option to calculate this.
- lgk 11/26 add wh52 support
+ 
+  lgk 11/26 add wh52 support - fix soils ec etc coming through as strings - new fx
+  and also add orphaned soil and soillastupdate so you can keep track of the wh52 if they drop off system
 
 */
 
@@ -165,7 +167,9 @@ metadata {
     attribute "orphanedTemp", "enum", ["false", "true"];       // Whether or not the bundled WH32 is still receiving data from the gateway
     attribute "orphanedRain", "enum", ["false", "true"];       // Whether or not the bundled WH40 is still receiving data from the gateway
     attribute "orphanedWind", "enum", ["false", "true"];       // Whether or not the bundled WH68/WH80 sensor is still receiving data from the gateway            
-    attribute "orphanedDepth", "enum", ["false", "true"];       // Whether or not the bundled WH54 sensor is still receiving data from the gateway            
+    attribute "orphanedDepth", "enum", ["false", "true"];      // Whether or not the bundled WH54 sensor is still receiving data from the gateway            
+    attribute "orphanedSoil", "enum", ["false", "true"];       // Whether or not the bundled WH52 sensor is still receiving data from the gateway            
+  
     attribute "lastUpdate", "string"
     attribute "bundled", "string"
     attribute "rainLastUpdate", "string"
@@ -174,7 +178,8 @@ metadata {
     attribute "humidityLastUpdate", "string"
     attribute "lightningLastUpdate", "string"
     attribute "depthLastUpdate", "string"
-      
+    attribute "soilLastUpdate", "string"
+     
     attribute "lastTemperature", "number"
     attribute "lastHumidity", "number"
     attribute "temperatureChange", "number"
@@ -464,7 +469,11 @@ private Boolean attributeUpdateString(String val, String attribute) {
   return (false);
 }
 
+
 // ------------------------------------------------------------
+
+
+
 
 private Boolean attributeUpdateNumber(BigDecimal val, String attribute, String measure = null, Integer decimals = -1) {
   //
@@ -735,6 +744,22 @@ private Boolean attributeUpdatePressure(String val, String attribPressure, Strin
   if (attributeUpdateNumber(absolute, attribPressureAbs, val, 2)) updated = true;
 
   return (updated);
+}
+
+// ------------------------------------------------------------
+// for some reason soil reading are coming through as strings so we need to convert lgk
+
+private Boolean attributeUpdateSoil(String val, String attrib, String measure = "") {
+
+  BigDecimal amount = val.toBigDecimal();
+ 
+ 
+  def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
+  sendEvent(name: "soilLastUpdate", value: now)
+    
+  attributeUpdateString("false", "orphanedSoil");
+
+  return (attributeUpdateNumber(amount, attrib, measure, 2));
 }
 
 // ------------------------------------------------------------
@@ -1444,18 +1469,18 @@ Boolean attributeUpdate(String key, String val) {
     break;
 
       
-    // lgk new wh52 raw settings
+    // lgk new wh52 raw settings these come through as strings even though they should be numeric go figure
    
     case  ~/soil_ec[1-16]/:
-      updated = attributeUpdateNumer(val, "soilElecConductivity", "",0)
+      updated = attributeUpdateSoil(val, "soilElecConductivity", "μS/cm")
       break;
       
     case  ~/soil_ec_ad[1-16]/:
-      updated = attributeUpdateNumer(val, "soilADCRaw","",0)
+      updated = attributeUpdateSoil(val, "soilADCRaw","")
       break;
       
     case  ~/soil_ec_hum_ad[1-16]/:
-      updated = attributeUpdateNumber(val, "soilMoistureRaw","",0)
+      updated = attributeUpdateSoil(val, "soilMoistureRaw","")
       break;
       
     case  ~/soil_ec_temp[1-16]/:
